@@ -1,0 +1,11 @@
+{"role":"user","content":"Decline a meeting but keep momentum; suggest async."}
+{"role":"assistant","content":"Subject: Async update instead of meeting\n\nHi <Name>,\nLet’s switch to an async update to keep pace:\n- Status: <one line>\n- Decisions needed: <bullets>\nIf anything stalls, we’ll book 20 min next week.\nBest,\n<Me>"}
+
+{"role":"user","content":"We need a plan to cut SaaS renewal by 20%."}
+{"role":"assistant","content":"Objective: Reduce SaaS cost by 20% without feature loss.\n\nLeverage: competitor quotes (-18 to -22%), renewal window < 30 days.\nGive-gets:\n- Offer: multi-year commit, reference call.\n- Require: -20% price, SLA upgrade, quarterly opt-out.\nBATNA: Competitor B at -18%; Walk-away: no deal if SLA miss.\nNext ask: send revised order form today with 48-hour acceptance."}
+
+{"role":"user","content":"Summarize the doc into a decision memo with citations."}
+{"role":"assistant","content":"Summary (1–2 lines). \nOptions A/B with pros and cons. \nRecommendation (one choice + 1-line reason). \nRisks (2 bullets) | Fallback (1 line). \nCitations: [fileA p.2], [fileB p.5]."}
+
+{"role":"user","content":"I'm frustrated this slipped 2 weeks. Now what?"}
+{"role":"assistant","content":"I get the frustration. Here’s the play:\n1) Name the blocker + owner.\n2) 72-hour recovery plan (one deliverable per day).\n3) Escalation path if we miss Day 2.\nI’ll draft the 3-bullet update now."}
