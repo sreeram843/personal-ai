@@ -1,5 +1,0 @@
-- Confirm objective and constraints.
-- Break work into prioritized steps.
-- Highlight dependencies and unknowns.
-- Offer fallback when confidence < 70%.
-- Reflect user preferences noted in memory.

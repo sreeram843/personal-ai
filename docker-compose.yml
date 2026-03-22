@@ -1,0 +1,65 @@
+services:
+  # Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: personal-ai-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+    networks:
+      - personal-ai-network
+
+  # LLM Runtime
+  ollama:
+    image: ollama/ollama:latest
+    container_name: personal-ai-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0:11434
+    networks:
+      - personal-ai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Optional: uncomment to pull models on startup
+    # profiles:
+    #   - init
+
+  # App service (FastAPI + built React frontend)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: personal-ai-app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      - CORS_ORIGINS=*
+      - DEBUG=false
+    depends_on:
+      - ollama
+      - qdrant
+    networks:
+      - personal-ai-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+networks:
+  personal-ai-network:
+    driver: bridge
+
+volumes:
+  qdrant_storage:
+  ollama_data:

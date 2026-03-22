@@ -1,4 +1,3 @@
-import { clsx } from 'clsx';
 import type { ChatMessage } from '../types';
 
 interface Props {
@@ -8,47 +7,33 @@ interface Props {
 
 export function ChatMessageBubble({ message, isStreaming }: Props) {
   const isUser = message.role === 'user';
+  const prefix = isUser ? '> USER' : '$ AI';
 
   return (
-    <div className={clsx('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
-      <div
-        className={clsx(
-          'max-w-3xl rounded-3xl px-4 py-3 shadow-sm transition-colors',
-          isUser
-            ? 'bg-emerald-500 text-white dark:bg-emerald-500'
-            : 'bg-white text-gray-900 dark:bg-zinc-800 dark:text-zinc-100',
-        )}
-      >
-        <div className="whitespace-pre-wrap leading-relaxed">{message.content}</div>
+    <div className="flex w-full justify-start">
+      <div className="max-w-3xl border border-[#004010] bg-[#001000] p-4 text-[#00ff41]">
+        <div className="mb-1 text-xs uppercase text-[#00bb33]">{prefix} | {new Date(message.createdAt).toLocaleTimeString()}</div>
+        <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed text-[#00ff41]">{message.content || (isStreaming ? 'Loading...' : '')}</pre>
+
         {message.latencyMs !== undefined && (
-          <div className="mt-2 text-xs text-emerald-100 dark:text-emerald-200/70">
-            {Math.round(message.latencyMs)} ms
-          </div>
+          <div className="mt-2 text-[11px] text-[#00cc44]">{Math.round(message.latencyMs)} ms</div>
         )}
+
         {message.sources && message.sources.length > 0 && (
-          <div className="mt-3 space-y-1 text-xs text-gray-500 dark:text-zinc-300">
-            <div className="font-medium uppercase tracking-wide text-gray-400 dark:text-zinc-400">
-              Sources
-            </div>
-            <ul className="space-y-1">
+          <div className="mt-2 rounded border border-[#003800] p-2 text-[11px] text-[#00cc44]">
+            <div className="font-medium uppercase text-[#00bb33]">SOURCES</div>
+            <ul className="mt-1 space-y-1">
               {message.sources.map((source) => {
                 const displayName =
                   typeof source.metadata?.name === 'string' ? source.metadata.name : source.id;
                 const pathValue = typeof source.metadata?.path === 'string' ? source.metadata.path : undefined;
 
                 return (
-                  <li
-                    key={source.id}
-                    className="rounded border border-gray-200 px-2 py-1 dark:border-zinc-700"
-                  >
-                    <div className="font-medium text-gray-800 dark:text-zinc-100">{displayName}</div>
-                    {pathValue && (
-                      <div className="text-[11px] text-gray-500 dark:text-zinc-400">{pathValue}</div>
-                    )}
+                  <li key={source.id} className="rounded border border-[#004010] p-1">
+                    <div className="font-medium text-[#00ff41]">{displayName}</div>
+                    {pathValue && <div className="text-[#00cc44]">{pathValue}</div>}
                     {source.score !== undefined && (
-                      <div className="text-[11px] text-gray-400 dark:text-zinc-500">
-                        score {source.score.toFixed(3)}
-                      </div>
+                      <div className="text-[#00cc44]">score {source.score.toFixed(3)}</div>
                     )}
                   </li>
                 );
@@ -56,14 +41,9 @@ export function ChatMessageBubble({ message, isStreaming }: Props) {
             </ul>
           </div>
         )}
+
         {isStreaming && !isUser && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-gray-400">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-            </span>
-            Streaming...
-          </div>
+          <div className="mt-2 text-[11px] text-[#00cc44]">[SYSTEM.LOG]: STREAMING IN PROGRESS...</div>
         )}
       </div>
     </div>

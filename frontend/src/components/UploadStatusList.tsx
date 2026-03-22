@@ -15,16 +15,17 @@ export function UploadStatusList({ items }: Props) {
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm shadow dark:border-zinc-700 dark:bg-zinc-800"
+          className="flex items-center justify-between rounded-lg border border-[#004010] bg-[#001000] px-4 py-2 text-sm text-[#00ff41]"
         >
           <div>
-            <div className="font-medium text-gray-800 dark:text-zinc-100">{item.name}</div>
-            {item.error && <div className="text-xs text-red-500">{item.error}</div>}
+            <div className="font-medium text-[#00ff41]">{item.name}</div>
+            {item.error && <div className="text-[11px] text-[#ff5555]">{item.error}</div>}
           </div>
-          <div className="text-gray-400">
-            {item.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin" />}
-            {item.status === 'success' && <Check className="h-4 w-4 text-emerald-500" />}
-            {item.status === 'error' && <XCircle className="h-4 w-4 text-red-500" />}
+          <div className="flex items-center gap-1 text-[#00cc44]">
+            {item.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-[#00ff41]" />}
+            {item.status === 'success' && <Check className="h-4 w-4 text-[#00ff41]" />}
+            {item.status === 'error' && <XCircle className="h-4 w-4 text-[#ff5555]" />}
+            <span className="text-[11px]">{item.status.toUpperCase()}</span>
           </div>
         </div>
       ))}

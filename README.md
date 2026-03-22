@@ -18,6 +18,59 @@ Monorepo for a local retrieval-augmented assistant. Backend is FastAPI + Qdrant 
 - Qdrant server (`http://127.0.0.1:6333` by default)
   - Docker example: `docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant`
 
+## Quick Start with Docker (Recommended)
+
+Start all services with a single command:
+
+```bash
+# Copy environment variables
+cp .env.example .env
+
+# Start all services (app, ollama, qdrant)
+docker compose up
+```
+
+Access the application:
+- **App (Frontend + Backend API)**: http://localhost:8000
+- **Ollama**: http://localhost:11434
+- **Qdrant**: http://localhost:6333
+
+### Useful Docker Commands
+
+```bash
+# View logs
+docker compose logs -f
+
+# View specific service logs
+docker compose logs -f app
+docker compose logs -f ollama
+
+# Stop all services
+docker compose down
+
+# Restart all services
+docker compose restart
+
+# Pull Ollama models (run after services are up)
+docker compose exec ollama ollama pull llama3:8b
+docker compose exec ollama ollama pull nomic-embed-text
+
+# Access backend shell
+docker compose exec app /bin/bash
+```
+
+### Using Makefile (Optional Convenience)
+
+```bash
+make help          # Show all available commands
+make build         # Build all images
+make up            # Start all services
+make down          # Stop all services
+make logs          # View all logs
+make pull-models   # Pull Ollama models
+make clean         # Remove containers and volumes
+```
+
 ## Backend Setup
 
 ```bash
@@ -38,11 +91,6 @@ Set `CORS_ORIGINS` to a comma-separated list of frontend origins (defaults inclu
 | `POST /chat` | Plain model chat without retrieval | `{ "message": "..." }` or `{ "messages": [...] }` | `{ "message": "..." }` |
 | `POST /rag_chat` | Retrieval-augmented chat with cited sources | `{ "message": "..." }` or `{ "messages": [...] }` | `{ "message": "...", "sources": [...] }` |
 | `POST /ingest` | Upload documents for embedding + storage in Qdrant | `multipart/form-data` (`files` field) | `{ "count": <int> }` |
-| `POST /persona/switch` | Switch active persona by slug | `{ "name": "harvey_specter" }` | `{ "persona": "harvey_specter" }` |
-| `GET /persona/active` | Return the currently-loaded persona | – | `{ "persona": "harvey_specter" }` |
-| `POST /persona/reload` | Reload active persona assets from disk | – | `{ "persona": "harvey_specter" }` |
-| `GET /persona/preview` | Preview merged system prompt + few-shot count | – | `{ "persona": "...", "system_prompt": "...", "fewshots": N }` |
-| `GET /persona/list` | List available personas (folder names) | – | `{ "personas": ["default", "harvey_specter"] }` |
 
 ### Typical Workflow
 
@@ -52,7 +100,21 @@ Set `CORS_ORIGINS` to a comma-separated list of frontend origins (defaults inclu
 
 ## Frontend Setup
 
-The frontend lives in `frontend/` and communicates with the FastAPI service at `http://localhost:8080`.
+The frontend lives in `frontend/` and usually communicates with the FastAPI backend through `VITE_API_BASE_URL`.
+
+Default local development settings are in `frontend/.env`:
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000
+```
+
+For phone/LAN testing (Option A), set your machine IP:
+
+```bash
+VITE_API_BASE_URL=http://<your-mac-ip>:8000
+```
+
+Then run:
 
 ```bash
 cd frontend
@@ -65,11 +127,10 @@ Open `http://127.0.0.1:5173` in a browser. Ensure the backend is running.
 ### Frontend Highlights
 
 - Sidebar with mode toggle (Chat vs RAG), new chat, and document upload buttons.
-- Chat window showing user/assistant bubbles, streaming text (when backend supports SSE), latency metric, and RAG source cards.
+- Chat window showing user/assistant bubbles, streaming text, latency metric, and RAG source cards.
 - Voice input toggle using the browser speech-recognition API (Chrome recommended).
 - File picker (accepts `.txt`, `.md`, `.pdf`) with per-file status updates.
 - Dark/light theme persisted via `localStorage`, chat history stored locally per browser.
-- Persona selector with preview overlay; Harvey Specter persona (EI layer) is the default.
 
 To build for production:
 

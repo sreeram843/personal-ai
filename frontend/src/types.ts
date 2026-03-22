@@ -37,17 +37,3 @@ export interface UploadStatus {
 }
 
 export type ConversationMode = 'chat' | 'rag';
-
-export interface PersonaPreviewPayload {
-  persona: string;
-  system_prompt: string;
-  fewshots: number;
-}
-
-export interface PersonaListPayload {
-  personas: string[];
-}
-
-export interface PersonaInfoPayload {
-  persona: string;
-}

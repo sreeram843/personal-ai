@@ -1,31 +1,54 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
+import httpx
 
 from app.core.config import get_settings
 from app.core.deps import get_ollama_client, get_vector_store
 from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage, RetrievedChunk
 from app.schemas.documents import IngestRequest, IngestResponse
-from app.schemas.persona import PersonaInfo, PersonaList, PersonaPreview, PersonaSwitchRequest
 from app.services.ollama import OllamaClient
 from app.services.vector_store import StoredDocument, VectorStore
-from app.services.persona_manager import get_persona_manager
-from api.persona_loader import PersonaDefinition, PersonaNotFoundError
 
 router = APIRouter()
 
 RAG_CITATION_RULE = "Use [path] or [title p.X]; if unsure, say 'I cannot verify this.'"
+SYSTEM_PROMPT = """
+You are "MACHINE_ALPHA_7," an old-school mainframe diagnostics and processing terminal.
+You do not respond in friendly natural language. You communicate strictly via technical protocols, command responses, and system logs.
+
+Operating Principles:
+1. Strict Monospace Logic: Format responses as if printed on a monochrome CRT monitor.
+2. Protocol over Persona: Never use subjective phrasing like "I think" or "I feel".
+3. Mandatory Formatting: Every response must follow exactly this structure:
+   [TIMESTAMP] MACHINE_ALPHA_7: > [Technical response]
+   Use 24-hour timestamps such as [14:23:02]. Always include the > prefix.
+4. Error Handling: For unclear or unsupported queries, return terminal-style warnings such as:
+   ERROR 404: OBJECT NOT FOUND, SYNTAX ERROR, PERMISSION DENIED.
+
+Keep responses concise, objective, and machine-formatted.
+""".strip()
 
 
-def _apply_persona(persona: PersonaDefinition, messages: List[dict[str, str]]) -> List[dict[str, str]]:
-    augmented: List[dict[str, str]] = []
-    augmented.append({"role": "system", "content": persona.system_prompt})
-    augmented.extend({"role": shot["role"], "content": shot["content"]} for shot in persona.fewshots)
-    augmented.extend(messages)
-    return augmented
+def _to_machine_alpha_7_output(text: str) -> str:
+    cleaned = text.strip()
+    if not cleaned:
+        cleaned = "ERROR 500: EMPTY RESPONSE PAYLOAD"
+    if cleaned.startswith("[") and "MACHINE_ALPHA_7: >" in cleaned:
+        return cleaned
+
+    if "MACHINE_ALPHA_7: >" in cleaned:
+        cleaned = cleaned.split("MACHINE_ALPHA_7: >", 1)[1].strip()
+
+    if cleaned.startswith(">"):
+        cleaned = cleaned[1:].strip()
+
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    return f"[{timestamp}] MACHINE_ALPHA_7: > {cleaned}"
 
 
 @router.post("/ingest", response_model=IngestResponse)
@@ -49,42 +72,6 @@ async def ingest_documents(
     return IngestResponse(count=len(stored_docs))
 
 
-@router.post("/persona/switch", response_model=PersonaInfo)
-async def switch_persona(payload: PersonaSwitchRequest) -> PersonaInfo:
-    manager = get_persona_manager()
-    try:
-        persona = manager.switch(payload.name)
-    except PersonaNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return PersonaInfo(persona=persona.name)
-
-
-@router.get("/persona/active", response_model=PersonaInfo)
-async def active_persona() -> PersonaInfo:
-    manager = get_persona_manager()
-    return PersonaInfo(persona=manager.current_name)
-
-
-@router.post("/persona/reload", response_model=PersonaInfo)
-async def reload_persona() -> PersonaInfo:
-    manager = get_persona_manager()
-    persona = manager.reload()
-    return PersonaInfo(persona=persona.name)
-
-
-@router.get("/persona/preview", response_model=PersonaPreview)
-async def persona_preview() -> PersonaPreview:
-    manager = get_persona_manager()
-    preview = manager.persona_preview()
-    return PersonaPreview(**preview)
-
-
-@router.get("/persona/list", response_model=PersonaList)
-async def persona_list() -> PersonaList:
-    manager = get_persona_manager()
-    return PersonaList(personas=manager.list_personas())
-
-
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     payload: ChatRequest,
@@ -99,22 +86,29 @@ async def chat(
     if last_user_message is None:
         raise HTTPException(status_code=400, detail="At least one user message is required")
 
-    manager = get_persona_manager()
-    persona_definition, banned_patterns = manager.active_bundle()
-    augmented_messages: List[dict[str, str]] = _apply_persona(
-        persona_definition,
-        [{"role": message.role, "content": message.content} for message in payload.messages],
+    augmented_messages: List[dict[str, str]] = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+    ]
+
+    augmented_messages.extend(
+        [{"role": message.role, "content": message.content} for message in payload.messages]
     )
 
-    response = await ollama.chat(augmented_messages, options=payload.options, stream=False)
+    try:
+        response = await ollama.chat(augmented_messages, options=payload.options, stream=False)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Ollama API error {exc.response.status_code}: {exc.response.text}",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Ollama connection error: {exc}")
 
     message = response.get("message", {}).get("content")
     if not message:
         raise HTTPException(status_code=500, detail="Unexpected response from Ollama")
 
-    sanitized = manager.sanitize_response(message, patterns=banned_patterns)
-
-    return ChatResponse(message=sanitized, sources=[])
+    return ChatResponse(message=_to_machine_alpha_7_output(message), sources=[])
 
 
 @router.post("/rag_chat", response_model=ChatResponse)
@@ -162,10 +156,12 @@ async def rag_chat(
 
     context_block = "\n\n".join(context_sections)
 
-    manager = get_persona_manager()
-    persona_definition, banned_patterns = manager.active_bundle()
     base_messages = [{"role": message.role, "content": message.content} for message in payload.messages]
-    augmented_messages: List[dict[str, str]] = _apply_persona(persona_definition, base_messages)
+    augmented_messages: List[dict[str, str]] = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+    ]
+
+    augmented_messages.extend(base_messages)
 
     if context_block:
         augmented_messages.insert(
@@ -178,15 +174,21 @@ async def rag_chat(
             },
         )
 
-    response = await ollama.chat(augmented_messages, options=payload.options, stream=False)
+    try:
+        response = await ollama.chat(augmented_messages, options=payload.options, stream=False)
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Ollama API error {exc.response.status_code}: {exc.response.text}",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Ollama connection error: {exc}")
 
     message = response.get("message", {}).get("content")
     if not message:
         raise HTTPException(status_code=500, detail="Unexpected response from Ollama")
 
-    sanitized = manager.sanitize_response(message, patterns=banned_patterns)
-
-    return ChatResponse(message=sanitized, sources=sources)
+    return ChatResponse(message=_to_machine_alpha_7_output(message), sources=sources)
 
 
 __all__ = ["router"]

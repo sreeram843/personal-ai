@@ -1,13 +1,56 @@
 import type {
   ChatResponsePayload,
   ConversationMode,
-  PersonaInfoPayload,
-  PersonaListPayload,
-  PersonaPreviewPayload,
   RetrievedSource,
 } from './types';
 
-const BASE_URL = 'http://localhost:8000';
+function resolveBaseUrl(): string {
+  const configured = ((import.meta.env.VITE_API_BASE_URL as string) || '').trim();
+
+  if (!configured) {
+    return '';
+  }
+
+  if (typeof window === 'undefined') {
+    return configured;
+  }
+
+  const host = window.location.hostname;
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+  const configuredIsLocal = configured.includes('localhost') || configured.includes('127.0.0.1');
+
+  // If app is opened from a remote host (ngrok/domain/phone), avoid broken localhost API targets.
+  if (!isLocalHost && configuredIsLocal) {
+    return '';
+  }
+
+  return configured;
+}
+
+const BASE_URL = resolveBaseUrl();
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const message = error.message.toLowerCase();
+  return message.includes('load failed') || message.includes('networkerror') || message.includes('failed to fetch');
+}
+
+async function safeFetch(input: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (error) {
+    const shouldRetrySameOrigin = BASE_URL !== '' && isRetryableNetworkError(error);
+    if (!shouldRetrySameOrigin) {
+      throw error;
+    }
+
+    // Safari/mobile fallback: retry using same-origin endpoint if configured base URL fails.
+    const pathname = new URL(input).pathname;
+    return fetch(pathname, init);
+  }
+}
 
 async function streamResponse(response: Response, onChunk: (chunk: string) => void) {
   if (!response.body) {
@@ -40,12 +83,14 @@ export async function sendMessage(
   const endpoint = mode === 'rag' ? '/rag_chat' : '/chat';
   const url = `${BASE_URL}${endpoint}`;
 
-  const response = await fetch(url, {
+  const bodyPayload: Record<string, unknown> = { message };
+
+  const response = await safeFetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify(bodyPayload),
     signal,
   });
 
@@ -88,7 +133,7 @@ export async function uploadDocuments(files: File[]): Promise<void> {
     formData.append('files', file);
   });
 
-  const response = await fetch(`${BASE_URL}/ingest`, {
+  const response = await safeFetch(`${BASE_URL}/ingest`, {
     method: 'POST',
     body: formData,
   });
@@ -99,34 +144,4 @@ export async function uploadDocuments(files: File[]): Promise<void> {
   }
 }
 
-async function requestJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, init);
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || response.statusText);
-  }
-  return (await response.json()) as T;
-}
 
-export async function getActivePersona(): Promise<string> {
-  const data = await requestJSON<PersonaInfoPayload>('/persona/active');
-  return data.persona;
-}
-
-export async function switchPersona(name: string): Promise<string> {
-  const data = await requestJSON<PersonaInfoPayload>('/persona/switch', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
-  });
-  return data.persona;
-}
-
-export async function getPersonaPreview(): Promise<PersonaPreviewPayload> {
-  return requestJSON<PersonaPreviewPayload>('/persona/preview');
-}
-
-export async function getPersonaList(): Promise<string[]> {
-  const data = await requestJSON<PersonaListPayload>('/persona/list');
-  return data.personas;
-}

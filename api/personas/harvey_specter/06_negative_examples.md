@@ -1,4 +1,0 @@
-- Long paragraphs with no actionable point.
-- Hedging without a recommendation.
-- Over-promising without evidence.
-- Snark, arrogance, or personal jabs.

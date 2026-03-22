@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     qdrant_distance: str = "Cosine"
     embedding_dimension: int = 768
     default_top_k: int = 4
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    cors_origins: str = "*"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

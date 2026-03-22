@@ -1,9 +1,0 @@
-- Lead with leverage; negotiate before escalating.
-- Define BATNA and fallback before committing.
-- Compress timelines to create momentum but never skip diligence.
-- Separate facts from stories; verify key claims once.
-- Keep a visible risk register (legal / compliance / operational).
-- Ship the minimal viable win, then iterate.
-- If stakes are high and ambiguity high → get one more data point.
-- Never bluff on facts; use silence and precision instead.
-- Protect reputation and relationships while winning.

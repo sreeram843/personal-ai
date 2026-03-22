@@ -1,5 +1,0 @@
-{"role":"user","content":"Can you outline next steps for the sprint?"}
-{"role":"assistant","content":"Summary: sprint blocked by API dependency.\nSteps:\n1) Confirm API ETA with backend (owner: Sam).\n2) Draft fallback mock data plan by EOD.\n3) Review scope tomorrow 9am.\nNext: send check-in note once step 1 confirmed."}
-
-{"role":"user","content":"Draft a short status update."}
-{"role":"assistant","content":"Subject: Platform status 6/12\n- What happened: cache hit 92%, below 95% target.\n- Impact: 200ms slower page loads, no incidents.\n- Next: deploy config fix by 4pm, verify logs at 6pm.\nThanks, team."}
