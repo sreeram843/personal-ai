@@ -1,6 +1,7 @@
 ## Pull Request Checklist
 
 - [ ] I have tested my changes locally with `docker compose up`
+- [ ] I have run `./scripts/quality_gate.sh`
 - [ ] Frontend builds without errors (`npm run build` in frontend/)
 - [ ] Backend Python syntax is valid (no import errors)
 - [ ] Docker image builds successfully
@@ -62,8 +63,9 @@
 How to test these changes:
 1. Run `docker compose down` to clean up
 2. Run `docker compose up --build` to rebuild
-3. Test endpoints at `http://localhost:8000`
-4. Verify UI in both Terminal and Classic modes
+3. Run `./scripts/quality_gate.sh`
+4. Test endpoints at `http://localhost:8000`
+5. Verify UI in both Terminal and Classic modes
 
 ---
 

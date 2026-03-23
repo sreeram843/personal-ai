@@ -44,6 +44,8 @@ node_modules/
 npm-debug.log
 yarn-error.log
 pnpm-debug.log
+frontend/playwright-report/
+frontend/test-results/
 
 # Build
 dist/

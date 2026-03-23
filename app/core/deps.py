@@ -1,8 +1,11 @@
 from functools import lru_cache
 
 from app.core.config import get_settings
+from app.services.adapter_cache import build_adapter_cache
+from app.services.live_data_manager import LiveDataManager
 from app.services.ollama import OllamaClient
 from app.services.vector_store import VectorStore
+from app.services.web_search import WebSearchService
 
 
 @lru_cache
@@ -30,4 +33,16 @@ def get_ollama_client() -> OllamaClient:
     )
 
 
-__all__ = ["get_vector_store", "get_ollama_client"]
+@lru_cache
+def get_web_search() -> WebSearchService:
+    return WebSearchService(max_results=5, timeout=10)
+
+
+@lru_cache
+def get_live_data_manager() -> LiveDataManager:
+    settings = get_settings()
+    cache = build_adapter_cache(settings)
+    return LiveDataManager(web_search=get_web_search(), cache=cache, settings=settings)
+
+
+__all__ = ["get_vector_store", "get_ollama_client", "get_web_search", "get_live_data_manager"]

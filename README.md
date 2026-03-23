@@ -34,6 +34,8 @@ Access the application:
 - **App (Frontend + Backend API)**: http://localhost:8000
 - **Ollama**: http://localhost:11434
 - **Qdrant**: http://localhost:6333
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000
 
 ### Useful Docker Commands
 
@@ -69,6 +71,7 @@ make down          # Stop all services
 make logs          # View all logs
 make pull-models   # Pull Ollama models
 make clean         # Remove containers and volumes
+make quality-gate  # Run the shared repo quality gate
 ```
 
 ## Backend Setup
@@ -179,11 +182,44 @@ Recommended validation prompts:
 
 ## Testing
 
-Run unit tests (persona switching, disclaimers, banned-word enforcement):
+Run the full repo gate:
+
+```bash
+./scripts/quality_gate.sh
+```
+
+Run backend tests only:
 
 ```bash
 ./.venv/bin/python3 -m pytest
 ```
+
+Run backend tests with coverage gate only:
+
+```bash
+./.venv/bin/python3 -m pytest --cov=app --cov=api --cov-fail-under=70
+```
+
+Run Playwright browser coverage only:
+
+```bash
+cd frontend
+npm run test:e2e
+npm run test:visual
+```
+
+Run lightweight docker compose smoke test only:
+
+```bash
+bash scripts/compose_smoke.sh
+```
+
+## Docs
+
+- `docs/architecture.md` - system structure and runtime responsibilities
+- `docs/live-data-flow.md` - deterministic live-data path and guardrails
+- `docs/ops-runbook.md` - startup, health checks, and troubleshooting
+- `docs/deployment-checklist.md` - pre-release readiness checklist
 
 ## Troubleshooting
 

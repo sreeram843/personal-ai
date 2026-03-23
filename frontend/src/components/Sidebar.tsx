@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { FileUp, MessageCirclePlus, Sparkles, SunMoon } from 'lucide-react';
+import { FileUp, MessageCirclePlus, MessageSquare, Moon, Sparkles, Sun } from 'lucide-react';
 import type { ConversationMode } from '../types';
 
 interface Props {
@@ -21,11 +21,14 @@ export function Sidebar({
   onToggleTheme,
   onToggleUI,
 }: Props) {
+  const iconButtonBase =
+    'grid h-11 w-11 shrink-0 place-content-center rounded-xl border border-[#004010] text-[#00ff41] transition hover:bg-[#002000] sm:h-12 sm:w-12';
+
   const menus = [
     {
       id: 'chat',
       label: 'STANDARD CHAT',
-      icon: MessageCirclePlus,
+      icon: MessageSquare,
       description: 'DIRECT MODEL RESPONSES',
     },
     {
@@ -37,38 +40,37 @@ export function Sidebar({
   ] as const;
 
   return (
-    <aside className="flex h-full w-20 flex-col border-r border-[#007f1f] bg-black/90 text-[#00ff41] transition-all duration-200">
-      <div className="flex items-center justify-center px-4 pb-6 pt-8">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            className="rounded-full border border-[#004010] p-2 text-[#00ff41] transition hover:bg-[#002000]"
-            title="Toggle light or dark theme"
-          >
-            <SunMoon className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={onToggleUI}
-            className="rounded-md border border-[#004010] px-2 py-1 text-xs text-[#00ff41] transition hover:bg-[#002000]"
-            title="Toggle between terminal and standard UI"
-          >
-            UI
-          </button>
-        </div>
-      </div>
+    <aside className="border-b border-[#007f1f] bg-black/90 text-[#00ff41] transition-all duration-200 md:flex md:h-full md:w-20 md:flex-col md:border-b-0 md:border-r">
+      <nav className="flex flex-row items-center gap-2 overflow-x-auto px-3 py-3 md:flex-col md:gap-3 md:px-3 md:pb-6 md:pt-8">
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          title={theme === 'dark' ? 'Theme: Dark (click to switch to Light)' : 'Theme: Light (click to switch to Dark)'}
+          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          className={iconButtonBase}
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleUI}
+          className={clsx(iconButtonBase, 'text-xs tracking-[0.15em]')}
+          title="Toggle UI mode (Terminal / Classic)"
+          aria-label="Toggle UI mode"
+        >
+          UI
+        </button>
 
-      <nav className="flex flex-col gap-2 px-3">
         {menus.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => onModeChange(item.id)}
             title={`${item.label}: ${item.description}`}
+            aria-label={item.label}
             className={clsx(
-              'flex items-center rounded-lg border border-[#003800] py-3 text-left transition text-[#00ff41]',
-              'justify-center px-2',
+              iconButtonBase,
+              'border-[#003800]',
               mode === item.id
                 ? 'bg-[#002000] font-semibold text-[#a7ff7b]'
                 : 'hover:bg-[#002000] text-[#00cc44]',
@@ -77,17 +79,13 @@ export function Sidebar({
             <item.icon className="h-5 w-5 text-[#00ff41]" />
           </button>
         ))}
-      </nav>
 
-      <div className="mt-8 space-y-4 px-3">
         <button
           type="button"
           onClick={onNewChat}
           title="New session"
-          className={clsx(
-            'flex w-full items-center justify-center rounded-lg border border-[#004010] bg-[#003000] py-3 text-sm font-semibold text-[#00ff41] transition hover:bg-[#004010]',
-            'px-2',
-          )}
+          aria-label="Start new chat"
+          className={clsx(iconButtonBase, 'w-full bg-[#003000] hover:bg-[#004010]')}
         >
           <MessageCirclePlus className="h-4 w-4 text-[#00ff41]" />
         </button>
@@ -95,18 +93,14 @@ export function Sidebar({
           type="button"
           onClick={onUpload}
           title="Upload docs"
-          className={clsx(
-            'flex w-full items-center justify-center rounded-lg border border-[#004010] bg-[#001800] py-3 text-sm font-semibold text-[#00ff41] transition hover:bg-[#002200]',
-            'px-2',
-          )}
+          aria-label="Upload documents"
+          className={clsx(iconButtonBase, 'w-full bg-[#001800] hover:bg-[#002200]')}
         >
           <FileUp className="h-4 w-4 text-[#00ff41]" />
         </button>
-      </div>
+      </nav>
 
-      <div className="mt-auto px-3 pb-6 text-center text-[10px] text-[#00bb33]" title={`Mode: ${mode === 'rag' ? 'RAG' : 'STANDARD'} | Theme: ${theme}`}>
-        STATUS
-      </div>
+      <div className="hidden md:mt-auto md:block md:pb-6" />
     </aside>
   );
 }

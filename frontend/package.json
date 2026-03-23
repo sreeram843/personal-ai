@@ -3,11 +3,28 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "browserslist": {
+    "production": [
+      "defaults",
+      "not dead",
+      "safari >= 16",
+      "ios_saf >= 16"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test tests/ui-flows.spec.ts",
+    "test:ui": "playwright test",
+    "test:visual": "playwright test tests/ui-visual.spec.ts",
+    "test:ui:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -17,6 +34,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^24.6.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",

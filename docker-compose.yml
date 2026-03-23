@@ -1,4 +1,15 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: personal-ai-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - personal-ai-network
+
   # Vector Database
   qdrant:
     image: qdrant/qdrant:latest
@@ -47,19 +58,56 @@ services:
       - OLLAMA_BASE_URL=http://ollama:11434
       - QDRANT_URL=http://qdrant:6333
       - QDRANT_API_KEY=${QDRANT_API_KEY:-}
-      - CORS_ORIGINS=*
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000}
       - DEBUG=false
+      - ENABLE_ADAPTER_CACHE=true
+      - ADAPTER_CACHE_BACKEND=redis
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
       - ollama
       - qdrant
+      - redis
     networks:
       - personal-ai-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: personal-ai-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - app
+    networks:
+      - personal-ai-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: personal-ai-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - personal-ai-network
 
 networks:
   personal-ai-network:
     driver: bridge
 
 volumes:
+  redis_data:
   qdrant_storage:
   ollama_data:
+  prometheus_data:
+  grafana_data:

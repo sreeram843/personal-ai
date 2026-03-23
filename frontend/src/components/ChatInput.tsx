@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ChangeEvent } from 'react';
 import { Mic, MicOff, Send } from 'lucide-react';
 import { playKeyClick, playSendChirp } from '../utils/terminalAudio';
 
@@ -65,7 +65,7 @@ export function ChatInput({ disabled, onSend, terminalMode = false }: Props) {
     setValue('');
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSend();
@@ -76,9 +76,10 @@ export function ChatInput({ disabled, onSend, terminalMode = false }: Props) {
     return (
       <div className="w-full bg-transparent px-0 py-0">
         <label className="flex items-center gap-2 text-[var(--phosphor)]">
-          <span className="terminal-font text-xl">[USER1: &gt;]</span>
+          <span className="terminal-font hidden text-xl sm:inline">[USER1: &gt;]</span>
+          <span className="terminal-font text-lg sm:hidden">&gt;</span>
           <textarea
-            className="terminal-font h-8 w-full resize-none bg-transparent text-xl leading-8 text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] outline-none"
+            className="terminal-font h-8 min-w-0 w-full resize-none bg-transparent text-lg leading-8 text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] outline-none sm:text-xl"
             placeholder="type command and press Enter"
             value={value}
             onChange={(event) => {
@@ -91,50 +92,47 @@ export function ChatInput({ disabled, onSend, terminalMode = false }: Props) {
             disabled={disabled}
             rows={1}
           />
-          <span className="terminal-cursor text-xl">█</span>
+          <span className="terminal-cursor text-lg sm:text-xl">█</span>
         </label>
       </div>
     );
   }
 
   return (
-    <div className="flex items-end gap-3 rounded-lg border border-[#007f1f] bg-[#001000] p-3">
-      <div className="relative flex-1">
-        <textarea
-          className="h-20 w-full resize-none bg-black text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] outline-none"
-          placeholder="> ENTER COMMAND"
-          value={value}
-          onChange={(event) => {
-            if (event.target.value.length > value.length) {
-              playKeyClick();
-            }
-            setValue(event.target.value);
-          }}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-        />
-        <span className="terminal-cursor absolute right-3 bottom-2 text-[var(--phosphor)]">{terminalMode ? '█' : '|'}</span>
-      </div>
-      <div className="flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => setIsRecording((state) => !state)}
-          disabled={disabled}
-          className="grid h-10 w-10 place-content-center rounded-lg border border-[#004010] text-[#00ff41] transition hover:bg-[#002000] disabled:cursor-not-allowed disabled:opacity-50"
-          title={isRecording ? 'Stop recording' : 'Voice input'}
-        >
-          {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-        </button>
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={disabled || !value.trim()}
-          className="grid h-10 w-10 place-content-center rounded-lg bg-[#004010] text-[#00ff41] transition hover:bg-[#005020] disabled:cursor-not-allowed disabled:opacity-50"
-          title="Send"
-        >
-          <Send className="h-5 w-5" />
-        </button>
-      </div>
+    <div className="flex items-center gap-2 rounded-lg border border-[#007f1f] bg-[#001000] px-3 py-2 sm:gap-3">
+      <input
+        type="text"
+        className="min-w-0 flex-1 bg-transparent text-sm text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] outline-none sm:text-base"
+        placeholder="> ENTER COMMAND"
+        value={value}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
+          if (event.target.value.length > value.length) {
+            playKeyClick();
+          }
+          setValue(event.target.value);
+        }}
+        onKeyDown={handleKeyDown}
+        disabled={disabled}
+      />
+      <span className="terminal-cursor text-[var(--phosphor)]">|</span>
+      <button
+        type="button"
+        onClick={() => setIsRecording((state) => !state)}
+        disabled={disabled}
+        className="grid h-8 w-8 shrink-0 place-content-center rounded border border-[#004010] text-[#00ff41] transition hover:bg-[#002000] disabled:cursor-not-allowed disabled:opacity-50"
+        title={isRecording ? 'Stop recording' : 'Voice input'}
+      >
+        {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+      </button>
+      <button
+        type="button"
+        onClick={handleSend}
+        disabled={disabled || !value.trim()}
+        className="grid h-8 w-8 shrink-0 place-content-center rounded bg-[#004010] text-[#00ff41] transition hover:bg-[#005020] disabled:cursor-not-allowed disabled:opacity-50"
+        title="Send"
+      >
+        <Send className="h-4 w-4" />
+      </button>
     </div>
   );
 }

@@ -38,6 +38,10 @@ function buildTerminalPrefix(role: 'user' | 'assistant', createdAt: number) {
   return `[${formatTimestamp(createdAt)}] ${node}: > `;
 }
 
+function stripMachinePrefix(content: string) {
+  return content.replace(/^\[\d{2}:\d{2}:\d{2}\]\s+MACHINE_ALPHA_7:\s*>\s*/i, '');
+}
+
 export default function App() {
   const [theme, , toggleTheme] = useTheme();
   const [mode, setMode] = useLocalStorage<ConversationMode>('personal-ai-mode', 'rag');
@@ -219,7 +223,7 @@ export default function App() {
   const isTerminalUI = uiMode === 'terminal';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0d0f0d] text-[var(--phosphor)]">
+    <div className="flex min-h-screen flex-col overflow-hidden bg-[#0d0f0d] text-[var(--phosphor)] md:h-screen md:flex-row">
       <Sidebar
         mode={mode}
         onModeChange={(value) => setMode(value)}
@@ -229,7 +233,7 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onToggleUI={() => setUiMode((prev) => (prev === 'classic' ? 'terminal' : 'classic'))}
       />
-      <main className="flex h-full flex-1 flex-col border-l border-[#007f1f] bg-[#000800]">
+      <main className="flex min-h-0 flex-1 flex-col border-t border-[#007f1f] bg-[#000800] md:h-full md:border-l md:border-t-0">
         <ChatHeader
           mode={mode}
           model={activeModel || DEFAULT_MODEL_NAME}
@@ -241,20 +245,42 @@ export default function App() {
           onTogglePhosphor={() => setPhosphor((prev) => (prev === 'green' ? 'amber' : 'green'))}
         />
         {isTerminalUI ? (
-          <div className="flex h-full flex-1 flex-col bg-[#0b0d0b] px-2 py-2 md:px-3 md:py-3">
-            <div className="crt-screen phosphor-text terminal-font flex h-full min-h-0 flex-col rounded-md text-2xl leading-7">
-              <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex h-full flex-1 flex-col bg-[#0b0d0b] p-2 md:p-3">
+            <div className="crt-screen phosphor-text terminal-font flex h-full min-h-[28rem] min-w-0 flex-col rounded-md text-xl leading-6 sm:text-2xl sm:leading-7">
+              <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 sm:py-5">
                 {messages.length === 0 ? (
-                  <div className="text-[var(--phosphor-dim)]">SYSTEM READY.</div>
+                  <div className="mx-auto flex h-full w-full max-w-4xl items-center justify-center">
+                    <div className="w-full max-w-2xl rounded-md border border-[#194119] bg-[rgba(7,20,7,0.72)] px-5 py-6 text-center shadow-[0_0_0_1px_rgba(32,72,32,0.3)] sm:px-8 sm:py-8">
+                      <div className="text-[11px] uppercase tracking-[0.45em] text-[var(--phosphor-dim)] sm:text-xs">
+                        Terminal Session Ready
+                      </div>
+                      <div className="mt-3 text-3xl leading-none text-[var(--phosphor-bright)] sm:text-5xl">
+                        {mode === 'rag' ? 'RAG MODE ONLINE' : 'STANDARD MODE ONLINE'}
+                      </div>
+                      <div className="mt-4 text-base leading-6 text-[var(--phosphor)] sm:text-xl sm:leading-7">
+                        Ask a question to start a session, or upload documents to ground responses in your own material.
+                      </div>
+                      <div className="mt-5 grid gap-2 text-left text-sm text-[var(--phosphor-dim)] sm:grid-cols-2 sm:text-base">
+                        <div className="rounded border border-[#173417] bg-[rgba(6,14,6,0.55)] px-3 py-2">
+                          &gt; Ask for live market, weather, or news data
+                        </div>
+                        <div className="rounded border border-[#173417] bg-[rgba(6,14,6,0.55)] px-3 py-2">
+                          &gt; Switch to RAG after uploading documents
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-1">
                     {messages.map((message, index) => {
                       const isLast = index === messages.length - 1;
                       const isAssistantLoading = isLast && message.role === 'assistant' && isLoading && !message.content;
+                      const displayContent =
+                        message.role === 'assistant' ? stripMachinePrefix(message.content) : message.content;
                       return (
                         <div key={message.id} className="whitespace-pre-wrap break-words">
                           <span className="text-[var(--phosphor-bright)]">{buildTerminalPrefix(message.role === 'user' ? 'user' : 'assistant', message.createdAt)}</span>
-                          <span>{isAssistantLoading ? 'PROCESSING REQUEST...' : message.content}</span>
+                          <span>{isAssistantLoading ? 'PROCESSING REQUEST...' : displayContent}</span>
                         </div>
                       );
                     })}
@@ -263,18 +289,32 @@ export default function App() {
                 <div ref={bottomRef} />
               </div>
 
-              <div className="border-t border-[var(--phosphor-dim)] px-4 py-3">
+              <div className="border-t border-[var(--phosphor-dim)] px-4 py-3 sm:px-5">
                 <ChatInput onSend={handleSend} disabled={isLoading} terminalMode />
               </div>
             </div>
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5 md:px-6">
+              <div className="mx-auto flex w-full max-w-4xl flex-col gap-3">
                 {messages.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-[#004010] bg-[#001000]/70 p-4 text-center text-sm text-[#00ff41]">
-                    [SYSTEM.LOG]: START A CHAT OR UPLOAD DOCUMENTS FOR RAG MODE.
+                  <div className="rounded-xl border border-[#174117] bg-[linear-gradient(180deg,rgba(5,18,5,0.92),rgba(3,12,3,0.82))] p-5 text-left shadow-[0_0_0_1px_rgba(23,65,23,0.35)] sm:p-6">
+                    <div className="text-[11px] uppercase tracking-[0.35em] text-[var(--phosphor-dim)]">System Ready</div>
+                    <div className="mt-3 text-2xl text-[var(--phosphor-bright)] sm:text-3xl">
+                      {mode === 'rag' ? 'Start a grounded conversation' : 'Start a direct model conversation'}
+                    </div>
+                    <div className="mt-3 max-w-2xl text-sm leading-6 text-[var(--phosphor)] sm:text-base">
+                      Enter a prompt below, or upload documents and use RAG mode to answer against your own files.
+                    </div>
+                    <div className="mt-5 grid gap-3 text-sm text-[var(--phosphor-dim)] sm:grid-cols-2">
+                      <div className="rounded-lg border border-[#123312] bg-[#020a02]/80 px-3 py-3">
+                        Live queries: weather, FX, stocks, commodities, news.
+                      </div>
+                      <div className="rounded-lg border border-[#123312] bg-[#020a02]/80 px-3 py-3">
+                        Upload text, markdown, or PDF files to ground answers.
+                      </div>
+                    </div>
                   </div>
                 )}
                 {messages.map((message, index) => (
@@ -288,8 +328,8 @@ export default function App() {
                 <UploadStatusList items={uploadStatuses} />
               </div>
             </div>
-            <div className="border-t border-[#007f1f] bg-[#001200] px-6 py-5">
-              <div className="mx-auto max-w-3xl">
+            <div className="border-t border-[#007f1f] bg-[#001200] px-4 py-4 sm:px-5 md:px-6 md:py-5">
+              <div className="mx-auto max-w-4xl">
                 <ChatInput onSend={handleSend} disabled={isLoading} />
               </div>
             </div>

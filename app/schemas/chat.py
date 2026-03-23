@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
-from pydantic.class_validators import root_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class ChatMessage(BaseModel):
@@ -18,8 +17,12 @@ class ChatRequest(BaseModel):
     score_threshold: Optional[float] = Field(default=None, ge=0.0)
     options: Dict[str, Any] = Field(default_factory=dict)
 
-    @root_validator(pre=True)
-    def populate_messages(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+    @model_validator(mode="before")
+    @classmethod
+    def populate_messages(cls, values: Any) -> Any:
+        if not isinstance(values, dict):
+            return values
+
         messages = values.get("messages")
         message = values.get("message")
         if (not messages or len(messages) == 0) and isinstance(message, str) and message.strip():

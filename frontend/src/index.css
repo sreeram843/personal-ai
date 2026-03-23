@@ -11,6 +11,8 @@
   --phosphor-bright: #bfffaa;
   --phosphor-dim: #4f9650;
   --phosphor-shadow: rgba(136, 224, 112, 0.5);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html[data-phosphor='amber'] {
@@ -24,19 +26,59 @@ html, body, #root {
   height: 100%;
 }
 
+html {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: #000000;
   color: var(--phosphor);
   -webkit-font-smoothing: antialiased;
   margin: 0;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
   height: 100%;
+  min-height: 100dvh;
+}
+
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root {
+    min-height: -webkit-fill-available;
+  }
 }
 
 * {
   box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea {
+  min-width: 0;
 }
 
 ::-webkit-scrollbar {

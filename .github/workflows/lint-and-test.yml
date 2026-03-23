@@ -1,4 +1,4 @@
-name: Lint and Test
+name: Quality Gate
 
 on:
   push:
@@ -7,144 +7,47 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  frontend-lint:
-    name: Frontend - ESLint & TypeScript
+  quality-gate:
+    name: Repo Quality Gate
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: 'frontend/package-lock.json'
-      
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-      
-      - name: Run ESLint
-        working-directory: frontend
-        run: npm run lint
-        continue-on-error: true
-      
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
 
-  backend-syntax:
-    name: Backend - Python Syntax Check
-    runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: ['3.11']
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      
-      - name: Check Python syntax
-        run: |
-          python -m py_compile app/**/*.py
-          python -m py_compile api/**/*.py
-        continue-on-error: true
-      
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-        continue-on-error: true
-      
-      - name: Check imports
-        run: |
-          python -c "from app.main import app; from app.api.routes import router; from api.persona_loader import load_persona"
-        continue-on-error: true
 
-  docker-build:
-    name: Docker - Build Image
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Run shared quality gate
+        run: |
+          chmod +x scripts/quality_gate.sh
+          ./scripts/quality_gate.sh
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          context: .
-          file: ./Dockerfile.backend
-          push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  compose-validation:
-    name: Docker Compose - Syntax Check
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Validate docker-compose.yml
-        run: |
-          docker-compose config > /dev/null
-          echo "✓ docker-compose.yml is valid"
-
-  quality-checks:
-    name: Code Quality
-    runs-on: ubuntu-latest
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Check for hardcoded localhost in production code
-        run: |
-          if grep -r "localhost:8000\|127.0.0.1:8000" frontend/src --exclude-dir=node_modules; then
-            echo "❌ Found hardcoded localhost in frontend code"
-            exit 1
-          fi
-          echo "✓ No hardcoded localhost in frontend"
-        continue-on-error: true
-      
-      - name: Check for console.log in production code
-        run: |
-          if grep -r "console\.\(log\|debug\)" frontend/src --exclude-dir=node_modules | grep -v "node_modules\|\.test\|\.spec"; then
-            echo "⚠ Found console.log statements in production code (consider using proper logging)"
-          fi
-          echo "✓ Console check complete"
-        continue-on-error: true
-      
-      - name: Check for TODO/FIXME comments
-        run: |
-          echo "TODO/FIXME comments found:"
-          grep -r "TODO\|FIXME" app api frontend/src --include="*.py" --include="*.tsx" --include="*.ts" || echo "None found"
-        continue-on-error: true
-
-  summary:
-    name: Workflow Summary
-    runs-on: ubuntu-latest
-    needs: [frontend-lint, backend-syntax, docker-build, compose-validation, quality-checks]
-    if: always()
-    
-    steps:
-      - name: Check job statuses
-        run: |
-          echo "Frontend Lint: ${{ needs.frontend-lint.result }}"
-          echo "Backend Syntax: ${{ needs.backend-syntax.result }}"
-          echo "Docker Build: ${{ needs.docker-build.result }}"
-          echo "Compose Validation: ${{ needs.compose-validation.result }}"
-          echo "Quality Checks: ${{ needs.quality-checks.result }}"
-          
-          if [ "${{ needs.frontend-lint.result }}" != "success" ] || [ "${{ needs.backend-syntax.result }}" != "success" ] || [ "${{ needs.docker-build.result }}" != "success" ] || [ "${{ needs.compose-validation.result }}" != "success" ]; then
-            echo "⚠ Some checks failed or skipped - review the output above"
-          else
-            echo "✅ All checks passed!"
-          fi
+          name: playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: ignore
