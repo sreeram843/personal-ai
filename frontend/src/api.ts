@@ -1,7 +1,10 @@
 import type {
+  ChatMessage,
   ChatResponsePayload,
   ConversationMode,
+  PersonaType,
   RetrievedSource,
+  WorkflowEventPayload,
 } from './types';
 
 function resolveBaseUrl(): string {
@@ -52,38 +55,77 @@ async function safeFetch(input: string, init: RequestInit): Promise<Response> {
   }
 }
 
-async function streamResponse(response: Response, onChunk: (chunk: string) => void) {
+async function streamSseEvents(
+  response: Response,
+  onEvent: (event: WorkflowEventPayload) => void,
+): Promise<void> {
   if (!response.body) {
-    return '';
+    return;
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder('utf-8');
-  let result = '';
+  let buffer = '';
 
   while (true) {
     const { value, done } = await reader.read();
     if (done) {
       break;
     }
-    const chunk = decoder.decode(value, { stream: true });
-    result += chunk;
-    onChunk(chunk);
-  }
 
-  return result;
+    buffer += decoder.decode(value, { stream: true });
+    const frames = buffer.split('\n\n');
+    buffer = frames.pop() || '';
+
+    for (const frame of frames) {
+      const payload = frame
+        .split('\n')
+        .filter((line) => line.startsWith('data:'))
+        .map((line) => line.slice(5).trim())
+        .join('\n');
+
+      if (!payload) {
+        continue;
+      }
+
+      onEvent(JSON.parse(payload) as WorkflowEventPayload);
+    }
+  }
 }
 
 export async function sendMessage(
   mode: ConversationMode,
   message: string,
+  history: ChatMessage[],
+  conversationId: string,
   signal: AbortSignal,
-  onStreamChunk?: (chunk: string) => void,
+  onWorkflowEvent?: (event: WorkflowEventPayload) => void,
 ): Promise<ChatResponsePayload> {
-  const endpoint = mode === 'rag' ? '/rag_chat' : '/chat';
+  const endpoint = mode === 'smart' ? '/smart_chat/stream' : '/chat';
   const url = `${BASE_URL}${endpoint}`;
 
-  const bodyPayload: Record<string, unknown> = { message };
+  const messages = [
+    ...history.map((item) => ({ role: item.role, content: item.content })),
+    { role: 'user' as const, content: message },
+  ];
+
+  const bodyPayload: Record<string, unknown> =
+    mode === 'smart'
+      ? {
+          conversation_id: conversationId,
+          messages,
+          workflow: {
+            enabled: true,
+            use_rag: true,
+            include_trace: true,
+            persist_memory: true,
+            max_steps: 6,
+          },
+        }
+      : {
+          conversation_id: conversationId,
+          messages,
+        };
 
   const response = await safeFetch(url, {
     method: 'POST',
@@ -100,17 +142,26 @@ export async function sendMessage(
   }
 
   if (response.headers.get('content-type')?.includes('text/event-stream')) {
-    let aggregated = '';
-    await streamResponse(response, (chunk) => {
-      aggregated += chunk;
-      onStreamChunk?.(chunk);
+    let finalResponse: ChatResponsePayload | undefined;
+    await streamSseEvents(response, (event) => {
+      onWorkflowEvent?.(event);
+      if (event.type === 'final' && event.response) {
+        finalResponse = event.response;
+      }
     });
-    return { message: aggregated };
+    if (!finalResponse) {
+      throw new Error('Workflow stream completed without a final response');
+    }
+    const responsePayload = finalResponse as ChatResponsePayload;
+    if (responsePayload.sources) {
+      responsePayload.sources = normalizeSources(responsePayload.sources);
+    }
+    return responsePayload;
   }
 
   if (response.headers.get('content-type')?.includes('application/json')) {
     const data = (await response.json()) as ChatResponsePayload;
-    if (data.sources && mode === 'rag') {
+    if (data.sources && mode === 'smart') {
       data.sources = normalizeSources(data.sources);
     }
     return data;
@@ -142,6 +193,23 @@ export async function uploadDocuments(files: File[]): Promise<void> {
     const errorText = await response.text();
     throw new Error(errorText || response.statusText);
   }
+}
+
+export async function switchPersona(persona: PersonaType): Promise<{ status: string; active: PersonaType }> {
+  const response = await safeFetch(`${BASE_URL}/personas/switch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ persona }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || response.statusText);
+  }
+
+  return response.json();
 }
 
 

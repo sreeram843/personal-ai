@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { assertQaGuards, installQaGuards } from './utils/qaGuards';
 
 const stableUiStyles = `
   *, *::before, *::after {
@@ -23,17 +24,36 @@ async function preparePage(page: import('@playwright/test').Page) {
   await page.addStyleTag({ content: stableUiStyles });
 }
 
+async function setUiMode(page: import('@playwright/test').Page, mode: 'classic' | 'terminal') {
+  await page.evaluate((targetMode) => {
+    localStorage.setItem('personal-ai-ui-mode', JSON.stringify(targetMode));
+    if (targetMode === 'terminal') {
+      localStorage.setItem('personal-ai-mode', JSON.stringify('chat'));
+    }
+  }, mode);
+  await page.goto('/');
+  await page.addStyleTag({ content: stableUiStyles });
+}
+
 test.describe('cross-browser UI visual baselines', () => {
+  test.beforeEach(async ({ page }) => {
+    installQaGuards(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await assertQaGuards(page);
+  });
+
   test('classic desktop empty state', async ({ page }) => {
     await preparePage(page);
-    await expect(page.getByText('Start a grounded conversation')).toBeVisible();
+    await expect(page.getByText('Start a smart-routed conversation')).toBeVisible();
     await expect(page.locator('#root')).toHaveScreenshot('classic-desktop.png');
   });
 
   test('terminal desktop empty state', async ({ page }) => {
     await preparePage(page);
-    await page.getByRole('button', { name: 'TERMINAL' }).click();
-    await expect(page.getByText('RAG MODE ONLINE')).toBeVisible();
+    await setUiMode(page, 'terminal');
+    await expect(page.getByText('CHAT MODE ONLY')).toBeVisible();
     await expect(page.locator('#root')).toHaveScreenshot('terminal-desktop.png');
   });
 
@@ -43,13 +63,9 @@ test.describe('cross-browser UI visual baselines', () => {
     await page.goto('/');
     await page.addStyleTag({ content: stableUiStyles });
     if (!isMobile) {
-      await page.evaluate(() => {
-        localStorage.setItem('personal-ai-ui-mode', 'classic');
-      });
-      await page.goto('/');
-      await page.addStyleTag({ content: stableUiStyles });
+      await setUiMode(page, 'classic');
     }
-    await expect(page.getByText('Start a grounded conversation')).toBeVisible();
+    await expect(page.getByText('Start a smart-routed conversation')).toBeVisible();
     await expect(page.locator('#root')).toHaveScreenshot('classic-mobile.png');
   });
 
@@ -58,8 +74,8 @@ test.describe('cross-browser UI visual baselines', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await page.addStyleTag({ content: stableUiStyles });
-    await page.getByRole('button', { name: 'TERMINAL' }).click();
-    await expect(page.getByText('RAG MODE ONLINE')).toBeVisible();
+    await setUiMode(page, 'terminal');
+    await expect(page.getByText('CHAT MODE ONLY')).toBeVisible();
     await expect(page.locator('#root')).toHaveScreenshot('terminal-mobile.png');
   });
 });

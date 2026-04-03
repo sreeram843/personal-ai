@@ -1,0 +1,75 @@
+# Docker Model Runner override
+# Replaces the Ollama container with Docker Desktop's built-in Model Runner.
+#
+# Requirements:
+#   - Docker Desktop 4.40+ (macOS) or 4.41+ (Windows) with Model Runner enabled
+#   - Docker Compose 2.38+
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dmr.yml up
+#
+# ⚠ FIRST-TIME SETUP: mxbai-embed-large produces 1024-dim vectors.
+#   Your existing Qdrant collection was built with nomic-embed-text (768-dim).
+#   Before running, wipe it:
+#     docker compose -f docker-compose.yml -f docker-compose.dmr.yml down -v
+#   then bring up fresh. Alternatively, update EMBEDDING_DIMENSION back to 768
+#   and use a DMR embedding model that produces 768-dim vectors.
+#
+# NOTE on llama3:8b → ai/llama3.2
+#   DMR Hub does not currently publish a Llama 3 8B GGUF. The closest available
+#   is Llama 3.2 3B (ai/llama3.2). Quality will differ for complex tasks.
+#   Monitor https://hub.docker.com/u/ai for a future ai/llama3.1 or ai/llama3:8b.
+
+services:
+
+  # Suppress the Ollama container — DMR handles inference instead.
+  ollama:
+    profiles:
+      - _disabled_by_dmr   # never starts unless this profile is explicitly activated
+
+  app:
+    # Remove hard dependency on the now-disabled ollama service.
+    depends_on:
+      ollama:
+        condition: service_started
+        required: false
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+
+    # Compose model bindings:
+    #   endpoint_var → set to the DMR Ollama-compatible base URL
+    #   model_var    → set to the ai/* model identifier
+    models:
+      llm:
+        endpoint_var: OLLAMA_BASE_URL
+        model_var: OLLAMA_CHAT_MODEL
+      embed:
+        endpoint_var: OLLAMA_EMBED_URL       # same DMR host; app only reads OLLAMA_BASE_URL
+        model_var: OLLAMA_EMBED_MODEL
+
+    environment:
+      # Multi-role model overrides (not covered by the model bindings above).
+      # Pydantic reads these as llm_planner_model, llm_synthesizer_model, etc.
+      LLM_DEFAULT_MODEL: ai/llama3.2
+      LLM_PLANNER_MODEL: ai/qwen2.5:3B-Q4_K_M
+      LLM_SYNTHESIZER_MODEL: ai/qwen2.5              # default tag = 7B-Q4_K_M
+      LLM_REVIEWER_MODEL: ai/qwen2.5:3B-Q4_K_M
+      LLM_WRITER_MODEL: ai/llama3.2
+
+      # mxbai-embed-large-v1 outputs 1024-dim vectors (nomic was 768).
+      # Qdrant collection must be recreated if switching — see note at the top.
+      EMBEDDING_DIMENSION: 1024
+
+# Declare models for Docker Model Runner to pull and manage.
+models:
+  llm:
+    model: ai/llama3.2
+    context_size: 8192
+
+  embed:
+    model: ai/mxbai-embed-large
+    context_size: 512
+    runtime_flags:
+      - "--embeddings"    # required for /api/embed and /v1/embeddings endpoints

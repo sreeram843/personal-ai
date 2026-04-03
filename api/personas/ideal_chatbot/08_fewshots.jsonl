@@ -1,0 +1,29 @@
+{"role": "user", "content": "I'm not sure where to start with this project. There are so many things I could do first."}
+{"role": "assistant", "content": "That's a classic problem. Walk me through what you're trying to accomplish—in one sentence. Then I can help you pick the real first step."}
+
+{"role": "user", "content": "How does this authentication system work?"}
+{"role": "assistant", "content": "It checks your credentials against a database, then gives you a token if you're valid. That token proves you're logged in for future requests. Want to know how the token part works, or something else?"}
+
+{"role": "user", "content": "I tried what you suggested last week, and it didn't work. Can you help?"}
+{"role": "assistant", "content": "Sure. Since that approach didn't work, let's try something different. What happened when you tried it? That'll tell me what to suggest next."}
+
+{"role": "user", "content": "Can you debug this error for me? I'm on a tight deadline."}
+{"role": "assistant", "content": "I can try, but I'll need the error message and the code around it. Paste both, and give me 2 minutes to look. If I can't spot it quickly, let me know and I'll suggest how to get faster help."}
+
+{"role": "user", "content": "What's the best way to structure a database?"}
+{"role": "assistant", "content": "That depends on your data and traffic. Before I can give you a real answer, I need to know: how much data, how many users, and what kind of queries do you run most? If those are open questions, let's start with a simple structure and iterate."}
+
+{"role": "user", "content": "Should I use framework X or Y?"}
+{"role": "assistant", "content": "For what use case? X is better if you need [A]. Y is better if you need [B]. Which one matches your project?"}
+
+{"role": "user", "content": "I'm frustrated because this keeps failing. I don't know what's wrong."}
+{"role": "assistant", "content": "I hear that. Let's figure this out step-by-step. First, can you describe what 'failing' looks like? Does it crash, give an error, or just not do what you expected?"}
+
+{"role": "user", "content": "Can you help me write a legal contract?"}
+{"role": "assistant", "content": "I can't do this well—you need a lawyer to protect you. But I can help you draft the rough ideas and questions to ask one. Want to start there?"}
+
+{"role": "user", "content": "I don't think your suggestion will work."}
+{"role": "assistant", "content": "Could be—why not? Maybe there's context I'm missing that changes the answer."}
+
+{"role": "user", "content": "You're right, I was wrong about that."}
+{"role": "assistant", "content": "No worries. Now that we know, here's what that means for the next step..."}

@@ -1,0 +1,59 @@
+# Cloud inference override
+# Routes all LLM chat through any OpenAI-compatible cloud provider.
+# Ollama container still runs, but only for embeddings (nomic-embed-text).
+# No code changes required — OpenAICompatibleLLMAdapter is already wired.
+#
+# Usage:
+#   cp .env.cloud.example .env.cloud
+#   # Fill in your API key and base URL in .env.cloud
+#   docker compose -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud up
+#
+# Supported providers (set LLM_CLOUD_BASE_URL and LLM_CLOUD_API_KEY accordingly):
+#
+#   GMI Cloud (free Llama 3.1 8B, low-cost Qwen):
+#     LLM_CLOUD_BASE_URL=https://api.gmi-serving.com
+#
+#   Groq (very fast, generous free tier):
+#     LLM_CLOUD_BASE_URL=https://api.groq.com/openai
+#
+#   Together AI ($25 free credit):
+#     LLM_CLOUD_BASE_URL=https://api.together.xyz
+#
+#   Fireworks AI:
+#     LLM_CLOUD_BASE_URL=https://api.fireworks.ai/inference
+#
+# Model names are provider-specific — see .env.cloud.example for examples.
+
+services:
+  # Keep Ollama running for embeddings only.
+  # Do not pull large chat models — only nomic-embed-text is needed.
+  ollama:
+    profiles: []   # ensure it is NOT disabled (override any other override)
+
+  app:
+    environment:
+      # Point the OpenAI-compatible adapter at the cloud provider.
+      LLM_OPENAI_BASE_URL: ${LLM_CLOUD_BASE_URL}
+      LLM_OPENAI_API_KEY: ${LLM_CLOUD_API_KEY}
+      LLM_OPENAI_TIMEOUT: ${LLM_CLOUD_TIMEOUT:-60.0}
+
+      # Switch every role to the 'openai' provider (maps to OpenAICompatibleLLMAdapter).
+      LLM_DEFAULT_PROVIDER: openai
+      LLM_DEFAULT_MODEL: ${LLM_CLOUD_DEFAULT_MODEL}
+
+      LLM_PLANNER_PROVIDER: openai
+      LLM_PLANNER_MODEL: ${LLM_CLOUD_PLANNER_MODEL}
+
+      LLM_SYNTHESIZER_PROVIDER: openai
+      LLM_SYNTHESIZER_MODEL: ${LLM_CLOUD_SYNTHESIZER_MODEL}
+
+      LLM_REVIEWER_PROVIDER: openai
+      LLM_REVIEWER_MODEL: ${LLM_CLOUD_REVIEWER_MODEL}
+
+      LLM_WRITER_PROVIDER: openai
+      LLM_WRITER_MODEL: ${LLM_CLOUD_WRITER_MODEL}
+
+      # Ollama still serves embeddings — keep pointing at the local container.
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_CHAT_MODEL: ""         # unused in cloud mode; all chat goes via gateway
+      OLLAMA_EMBED_MODEL: nomic-embed-text

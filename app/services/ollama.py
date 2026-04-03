@@ -25,13 +25,14 @@ class OllamaClient:
         self,
         messages: Sequence[Dict[str, str]],
         *,
+        model: Optional[str] = None,
         options: Optional[Dict[str, Any]] = None,
         stream: bool = False,
     ) -> Dict[str, Any]:
         """Send a chat completion request and return the JSON response."""
 
         payload: Dict[str, Any] = {
-            "model": self._chat_model,
+            "model": model or self._chat_model,
             "messages": list(messages),
             "stream": stream,
         }

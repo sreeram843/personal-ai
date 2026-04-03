@@ -14,6 +14,20 @@ class Settings(BaseSettings):
     ollama_embed_model: str = "nomic-embed-text"
     ollama_timeout: float = 120.0
 
+    llm_default_provider: str = "ollama"
+    llm_default_model: str = "llama3:8b"
+    llm_openai_base_url: Optional[str] = None
+    llm_openai_api_key: Optional[str] = None
+    llm_openai_timeout: float = 60.0
+    llm_planner_provider: str = "ollama"
+    llm_planner_model: str = "qwen2.5:3b"
+    llm_synthesizer_provider: str = "ollama"
+    llm_synthesizer_model: str = "qwen2.5:7b"
+    llm_reviewer_provider: str = "ollama"
+    llm_reviewer_model: str = "qwen2.5:3b"
+    llm_writer_provider: str = "ollama"
+    llm_writer_model: str = "llama3:8b"
+
     qdrant_url: str = "http://127.0.0.1:6333"
     qdrant_api_key: Optional[str] = None
     qdrant_collection: str = "personal_ai_documents"
@@ -29,6 +43,10 @@ class Settings(BaseSettings):
     adapter_cache_backend: str = "memory"
     adapter_cache_default_ttl_seconds: int = 60
     redis_url: Optional[str] = None
+
+    workflow_memory_path: str = "memory/workflow_sessions.json"
+    workflow_memory_max_entries: int = 24
+    workflow_runs_path: str = "memory/runs"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

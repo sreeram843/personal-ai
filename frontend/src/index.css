@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=VT323&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,13 +6,37 @@
 
 :root {
   color-scheme: dark;
-  font-family: 'Courier New', 'Lucida Console', Monaco, monospace;
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
   --phosphor: #88e070;
   --phosphor-bright: #bfffaa;
   --phosphor-dim: #4f9650;
   --phosphor-shadow: rgba(136, 224, 112, 0.5);
+  --ui-bg: #050a05;
+  --ui-bg-elevated: #0b130b;
+  --ui-panel: #071007;
+  --ui-panel-strong: #030803;
+  --ui-border: #1d3b1d;
+  --ui-border-strong: #2f5c2f;
+  --ui-focus: #bfffaa;
+  --ui-danger: #ff6f6f;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html:not(.dark) {
+  color-scheme: light;
+  --phosphor: #2f4658;
+  --phosphor-bright: #182936;
+  --phosphor-dim: #6d7f8b;
+  --phosphor-shadow: rgba(36, 63, 85, 0.14);
+  --ui-bg: #f3f5f8;
+  --ui-bg-elevated: #ffffff;
+  --ui-panel: #fcfdff;
+  --ui-panel-strong: #f8faff;
+  --ui-border: #d7dee7;
+  --ui-border-strong: #c2ccd9;
+  --ui-focus: #185fa5;
+  --ui-danger: #c03f45;
 }
 
 html[data-phosphor='amber'] {
@@ -32,7 +56,7 @@ html {
 }
 
 body {
-  background: #000000;
+  background: radial-gradient(circle at 35% 0%, #ffffff 0%, var(--ui-bg) 62%, #e9edf3 100%);
   color: var(--phosphor);
   -webkit-font-smoothing: antialiased;
   margin: 0;
@@ -44,11 +68,21 @@ body {
   min-height: 100dvh;
 }
 
+.app-shell {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
 @supports (-webkit-touch-callout: none) {
   html,
   body,
   #root {
     min-height: -webkit-fill-available;
+  }
+
+  .app-shell {
+    min-height: -webkit-fill-available;
+    height: -webkit-fill-available;
   }
 }
 
@@ -62,6 +96,29 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 50;
+  transform: translateY(-160%);
+  border: 1px solid var(--ui-border-strong);
+  background: var(--ui-panel);
+  color: var(--phosphor-bright);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  transition: transform 120ms ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
 }
 
 button,
@@ -156,6 +213,52 @@ textarea {
   font-family: 'VT323', 'Courier New', monospace;
 }
 
+.classic-font {
+  font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+}
+
+.classic-mono {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+}
+
+.classic-atmosphere {
+  position: relative;
+  isolation: isolate;
+}
+
+.classic-atmosphere::before,
+.classic-atmosphere::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(18px);
+}
+
+.classic-atmosphere::before {
+  top: -8rem;
+  left: -6rem;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--ui-focus) 18%, transparent) 0%, transparent 70%);
+}
+
+.classic-atmosphere::after {
+  bottom: -10rem;
+  right: -6rem;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, #7ea9cf 14%, transparent) 0%, transparent 74%);
+}
+
+.elevated-panel {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-panel) 90%, transparent), color-mix(in srgb, var(--ui-panel-strong) 94%, transparent));
+  border: 1px solid color-mix(in srgb, var(--ui-border) 88%, transparent);
+  box-shadow: 0 10px 24px rgba(31, 52, 72, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
 @keyframes screen-flicker {
   0% {
     opacity: 0.08;
@@ -174,10 +277,21 @@ textarea {
   }
 }
 ::-webkit-scrollbar-thumb {
-  background: #00bb29;
+  background: var(--ui-border-strong);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #001000;
+  background: var(--ui-panel-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

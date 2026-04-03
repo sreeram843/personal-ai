@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { assertQaGuards, installQaGuards } from './utils/qaGuards';
 
 async function preparePage(page: import('@playwright/test').Page) {
   await page.goto('/');
@@ -9,7 +10,15 @@ async function preparePage(page: import('@playwright/test').Page) {
 }
 
 test.describe('browser interaction flows', () => {
-  test('classic standard chat sends a prompt and new chat clears history', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    installQaGuards(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await assertQaGuards(page);
+  });
+
+  test('classic quick chat sends a prompt and new chat clears history', async ({ page }) => {
     await page.route('**/chat', async (route) => {
       await route.fulfill({
         status: 200,
@@ -21,45 +30,48 @@ test.describe('browser interaction flows', () => {
     });
 
     await preparePage(page);
-    await page.getByRole('button', { name: 'STANDARD CHAT' }).click();
-    await page.getByPlaceholder('> ENTER COMMAND').fill('Explain the cache path');
+    await page.getByRole('button', { name: 'QUICK CHAT', exact: true }).click();
+    await page.getByPlaceholder('Ask a follow-up...').fill('Explain the cache path');
     await page.getByRole('button', { name: 'Send' }).click();
 
-    await expect(page.getByText('Explain the cache path')).toBeVisible();
+    await expect(page.getByRole('log').getByText('Explain the cache path', { exact: true })).toBeVisible();
     await expect(page.getByText('CACHE PIPELINE VERIFIED')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Start new chat' }).click();
+    await page.getByRole('button', { name: 'Start new conversation' }).click();
     await expect(page.getByText('Start a direct model conversation')).toBeVisible();
     await expect(page.getByText('CACHE PIPELINE VERIFIED')).not.toBeVisible();
   });
 
-  test('rag flow renders returned citations', async ({ page }) => {
-    await page.route('**/rag_chat', async (route) => {
+  test('smart flow renders returned citations', async ({ page }) => {
+    await page.route('**/smart_chat/stream', async (route) => {
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          message: '[12:00:00] MACHINE_ALPHA_7: > RAG RESPONSE READY',
-          sources: [
-            {
-              id: 'doc-1',
-              score: 0.982,
-              metadata: {
-                name: 'ops-runbook.md',
-                path: 'docs/ops-runbook.md',
+        contentType: 'text/event-stream',
+        body: `data: ${JSON.stringify({
+          type: 'final',
+          response: {
+            message: '[12:00:00] MACHINE_ALPHA_7: > SMART RESPONSE READY',
+            sources: [
+              {
+                id: 'doc-1',
+                score: 0.982,
+                metadata: {
+                  name: 'ops-runbook.md',
+                  path: 'docs/ops-runbook.md',
+                },
               },
-            },
-          ],
-        }),
+            ],
+          },
+        })}\n\n`,
       });
     });
 
     await preparePage(page);
-    await page.getByPlaceholder('> ENTER COMMAND').fill('Summarize the ops guidance');
+    await page.getByPlaceholder('Ask a follow-up...').fill('Summarize the ops guidance');
     await page.getByRole('button', { name: 'Send' }).click();
 
-    await expect(page.getByText('RAG RESPONSE READY')).toBeVisible();
-    await expect(page.getByText('SOURCES')).toBeVisible();
+    await expect(page.getByText('SMART RESPONSE READY')).toBeVisible();
+    await expect(page.getByText('SOURCES', { exact: true })).toBeVisible();
     await expect(page.getByText('ops-runbook.md', { exact: true })).toBeVisible();
     await expect(page.getByText('docs/ops-runbook.md')).toBeVisible();
   });
@@ -87,10 +99,11 @@ test.describe('browser interaction flows', () => {
 
   test('terminal mode toggle persists after reload', async ({ page }) => {
     await preparePage(page);
-    await page.getByRole('button', { name: 'Toggle UI mode' }).first().click();
-    await expect(page.getByText('RAG MODE ONLINE')).toBeVisible();
+    await page.getByRole('button', { name: 'Open user settings' }).first().click();
+    await page.getByRole('button', { name: 'Terminal' }).click();
+    await expect(page.getByText('CHAT MODE ONLY')).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText('RAG MODE ONLINE')).toBeVisible();
+    await expect(page.getByText('CHAT MODE ONLY')).toBeVisible();
   });
 });

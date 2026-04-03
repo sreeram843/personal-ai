@@ -1,4 +1,4 @@
-import { Loader2, Radio } from 'lucide-react';
+import { Loader2, MessageCirclePlus, Settings, Share2 } from 'lucide-react';
 import type { ConversationMode } from '../types';
 
 interface Props {
@@ -7,43 +7,87 @@ interface Props {
   latency?: number;
   isLoading?: boolean;
   uiMode: 'classic' | 'terminal';
-  onToggleUI: () => void;
-  phosphor: 'green' | 'amber';
-  onTogglePhosphor: () => void;
+  conversationTitle: string;
+  onShareConversation: () => void;
+  onNewChat: () => void;
+  onOpenSettings: () => void;
 }
 
-export function ChatHeader({ mode, model, latency, isLoading, uiMode, onToggleUI, phosphor, onTogglePhosphor }: Props) {
+export function ChatHeader({
+  mode,
+  model,
+  latency,
+  isLoading,
+  uiMode,
+  conversationTitle,
+  onShareConversation,
+  onNewChat,
+  onOpenSettings,
+}: Props) {
+  const modeLabel = mode === 'smart' ? 'Smart router · chat/rag/workflow' : 'Direct chat';
+  const isClassicUI = uiMode === 'classic';
+
+  if (!isClassicUI) {
+    return (
+      <header className="terminal-font flex flex-col gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-panel)] px-4 py-2 text-[var(--phosphor)] sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-sm tracking-[0.18em] text-[var(--phosphor-bright)]">MACHINE_ALPHA_7</div>
+          <div className="text-xs text-[var(--phosphor-dim)]">CHAT MODE ONLY</div>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          <div className="rounded border border-[var(--ui-border)] px-2 py-1">{isLoading ? 'PROCESSING' : 'READY'}</div>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="rounded border border-[var(--ui-border)] px-2 py-1 transition hover:bg-[var(--ui-bg-elevated)]"
+          >
+            SETTINGS
+          </button>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className="flex flex-col gap-3 border-b border-[#2f3d2f] bg-black/80 px-4 py-3 text-[var(--phosphor)] sm:px-5 md:flex-row md:items-center md:justify-between">
+    <header className="flex flex-col gap-3 border-b border-[var(--ui-border)] bg-[color-mix(in_srgb,var(--ui-panel),transparent_4%)] px-4 py-3 text-[var(--phosphor)] backdrop-blur-[2px] sm:px-5 md:flex-row md:items-center md:justify-between">
       <div className="min-w-0">
-        <div className="text-[10px] uppercase tracking-[0.35em] text-[var(--phosphor-dim)]">{mode === 'rag' ? 'RAG CHAT' : 'STANDARD CHAT'}</div>
+        <div className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">{conversationTitle}</div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-          <div className="text-lg font-semibold leading-none text-[var(--phosphor-bright)] sm:text-xl">{model}</div>
-          <div className="text-[11px] uppercase tracking-[0.25em] text-[var(--phosphor-dim)]">{uiMode === 'classic' ? 'Classic Interface' : 'Terminal Interface'}</div>
+          <div className="text-xs text-[var(--phosphor-dim)]">{modeLabel} · {model}</div>
+          <div className="text-xs text-[var(--phosphor-dim)]">{uiMode === 'classic' ? 'Classic interface' : 'Terminal interface'}</div>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-[var(--phosphor)] sm:justify-end">
-        <div className="flex items-center gap-1 rounded-full border border-[#173417] bg-[#051105]/70 px-2.5 py-1">
-          <Radio className="h-3.5 w-3.5 text-[var(--phosphor)]" />
-          ONLINE
+      <div aria-live="polite" className="flex flex-wrap items-center gap-2 text-[11px] text-[var(--phosphor)] sm:justify-end">
+        <div className="rounded-full bg-[color-mix(in_srgb,var(--ui-focus),white_78%)] px-2.5 py-1 text-[10px] font-semibold text-[var(--ui-focus)]">
+          {isLoading ? 'Thinking' : 'Ready'}
         </div>
-        <div className="flex items-center gap-1 rounded-full border border-[#173417] bg-[#051105]/70 px-2.5 py-1">
-          {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--phosphor)]" /> : <span className="h-1.5 w-1.5 rounded-full bg-[var(--phosphor)]" />}
-          {latency !== undefined ? `${Math.round(latency)} ms` : 'READY'}
+        <div className="flex items-center gap-1 rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-2.5 py-1">
+          {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--phosphor)]" /> : null}
+          {latency !== undefined ? `${Math.round(latency)} ms` : 'Live'}
         </div>
         <button
           type="button"
-          onClick={onTogglePhosphor}
-          className="rounded-full border border-[var(--phosphor-dim)] px-3 py-1 text-[10px] tracking-[0.25em] text-[var(--phosphor)] transition hover:bg-[#1b1b1b]"
+          onClick={onNewChat}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--ui-border)] px-2.5 py-1 text-[11px] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
         >
-          {phosphor === 'green' ? 'GREEN' : 'AMBER'}
+          <MessageCirclePlus className="h-3.5 w-3.5" />
+          New chat
         </button>
         <button
           type="button"
-          onClick={onToggleUI}
-          className="rounded-full border border-[var(--phosphor-dim)] px-3 py-1 text-[10px] tracking-[0.25em] text-[var(--phosphor)] transition hover:bg-[#1b1b1b]"
+          onClick={onShareConversation}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--ui-border)] px-2.5 py-1 text-[11px] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
         >
-          {uiMode === 'classic' ? 'TERMINAL' : 'CLASSIC'}
+          <Share2 className="h-3.5 w-3.5" />
+          Share
+        </button>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="inline-flex items-center gap-1 rounded-full border border-[var(--ui-border)] px-2.5 py-1 text-[11px] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+        >
+          <Settings className="h-3.5 w-3.5" />
+          Settings
         </button>
       </div>
     </header>
