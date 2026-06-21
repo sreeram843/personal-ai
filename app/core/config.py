@@ -36,17 +36,58 @@ class Settings(BaseSettings):
     default_top_k: int = 4
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000"
 
-    enable_langchain_agent: bool = False
+    enable_fast_chat: bool = True
+    enable_langchain_agent: bool = True
     enable_llamaindex_rag: bool = False
 
     enable_adapter_cache: bool = True
     adapter_cache_backend: str = "memory"
     adapter_cache_default_ttl_seconds: int = 60
+    live_cache_ttl_fx_seconds: int = 60
+    live_cache_ttl_stock_seconds: int = 30
+    live_cache_ttl_commodity_seconds: int = 30
+    live_cache_ttl_weather_current_seconds: int = 300
+    live_cache_ttl_weather_forecast_seconds: int = 900
+    live_cache_ttl_news_seconds: int = 180
+    geocoding_cache_ttl_seconds: int = 86_400
+    market_data_provider: str = "yahoo"
+    finnhub_api_key: Optional[str] = None
     redis_url: Optional[str] = None
+
+    enable_background_workers: bool = False
+    worker_queue_backend: str = "arq"
+    ingest_async_min_documents: int = 5
+    ingest_async_min_bytes: int = 32768
 
     workflow_memory_path: str = "memory/workflow_sessions.json"
     workflow_memory_max_entries: int = 24
+    workflow_memory_backend: str = "disk"
     workflow_runs_path: str = "memory/runs"
+    run_store_backend: str = "disk"
+
+    object_storage_backend: str = "local"
+    object_storage_local_path: str = "memory/uploads"
+    object_storage_bucket: Optional[str] = None
+    object_storage_prefix: str = "uploads"
+    object_storage_endpoint_url: Optional[str] = None
+    object_storage_region: Optional[str] = None
+    object_storage_access_key: Optional[str] = None
+    object_storage_secret_key: Optional[str] = None
+
+    # PostgreSQL (Phase 1 multi-user persistence)
+    database_url: str = "postgresql+psycopg2://postgres:postgres@127.0.0.1:5432/personal_ai"
+
+    # Authentication (Phase 1)
+    auth_disabled: bool = True
+    jwt_secret: str = "dev-change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24 * 7
+    dev_user_email: str = "dev@localhost"
+    dev_user_display_name: str = "Dev User"
+    google_client_id: Optional[str] = None
+
+    # Path to assistant system prompt markdown (default: app/prompts/system.md)
+    system_prompt_path: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

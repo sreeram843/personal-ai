@@ -1,46 +1,38 @@
-# Environment
+# Local MCP / runtime data
+memory/
+memory/chroma-data/
+memory/pglite-data/
+.playwright-mcp/
+.code-review-graph/
+
+# Environment & secrets (never commit filled-in copies)
 .env
 .env.local
+.env.*.local
 .env.cloud
+.env.remote
+.env.gpu-vllm
+
+# MCP configs with tokens (use *.example templates instead)
+.mcp.json
+.cursor/mcp.json
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.egg-info/
-dist/
-build/
-.venv/
-venv/
-env/
 .Python
 pip-log.txt
 pip-delete-this-directory.txt
-
-# Virtual environments
-.venv
+.venv/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-
-# Docker
-.dockerignore
-
-# Node
+# Node / frontend
 node_modules/
 npm-debug.log
 yarn-error.log
@@ -48,7 +40,31 @@ pnpm-debug.log
 frontend/playwright-report/
 frontend/test-results/
 
-# Build
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# AI assistant tool configs (local / auto-generated duplicates)
+.claude/
+.kiro/
+.qoder/
+.opencode.json
+.cursorrules
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+QODER.md
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
 dist/
 build/
 

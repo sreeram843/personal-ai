@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, Protocol, Sequence
 
 import httpx
 
+from app.services.llm_metrics import observe_llm_call
 from app.services.ollama import OllamaClient
 
 
@@ -119,7 +120,8 @@ class LLMGateway:
         adapter = self._adapters.get(selected_provider)
         if adapter is None:
             raise RuntimeError(f"No LLM adapter registered for provider '{selected_provider}'")
-        return await adapter.generate(messages=messages, model=model, options=options)
+        async with observe_llm_call(provider=selected_provider, model=model):
+            return await adapter.generate(messages=messages, model=model, options=options)
 
 
 __all__ = [

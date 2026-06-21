@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.live_intent import LiveDataProvenance
+
 
 class ChatMessage(BaseModel):
     role: Literal["system", "user", "assistant"]
@@ -72,12 +74,15 @@ class ChatResponse(BaseModel):
     message: str
     sources: List[RetrievedChunk]
     workflow: Optional[WorkflowTrace] = None
+    conversation_id: Optional[str] = None
+    live: Optional[LiveDataProvenance] = None
 
 
 __all__ = [
     "ChatMessage",
     "ChatRequest",
     "ChatResponse",
+    "LiveDataProvenance",
     "RetrievedChunk",
     "WorkflowRequest",
     "WorkflowStep",

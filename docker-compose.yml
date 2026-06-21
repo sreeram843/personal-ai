@@ -1,4 +1,37 @@
+# Personal AI — Docker Compose stack
+#
+# Profiles (activate with --profile <name> or COMPOSE_PROFILES):
+#   local       — Ollama for chat + embeddings (default via `make up`)
+#   cloud-chat  — Cloud OpenAI-compatible chat + local Ollama embeddings (`make up-cloud`)
+#   gpu-vllm    — vLLM on GPU for chat + local Ollama embeddings (`make up-gpu-vllm`)
+#   workers     — ARQ background worker (`make up-workers`)
+#
+# Examples:
+#   docker compose --profile local up -d
+#   docker compose --profile cloud-chat -f docker-compose.cloud.yml --env-file .env.cloud up -d
+#   docker compose --profile gpu-vllm -f docker-compose.gpu-vllm.yml up -d
+#   docker compose --profile local --profile workers up -d
+
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: personal-ai-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: personal_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - personal-ai-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d personal_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     container_name: personal-ai-redis
@@ -41,9 +74,37 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    # Optional: uncomment to pull models on startup
-    # profiles:
-    #   - init
+    profiles:
+      - local
+      - cloud-chat
+      - gpu-vllm
+
+  # GPU chat runtime (OpenAI-compatible). Embeddings stay on Ollama.
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: personal-ai-vllm
+    ports:
+      - "8001:8000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    command:
+      - "--model"
+      - "${VLLM_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "8000"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - personal-ai-network
+    profiles:
+      - gpu-vllm
 
   # App service (FastAPI + built React frontend)
   app:
@@ -63,13 +124,69 @@ services:
       - ENABLE_ADAPTER_CACHE=true
       - ADAPTER_CACHE_BACKEND=redis
       - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/personal_ai
+      - AUTH_DISABLED=${AUTH_DISABLED:-true}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - JWT_SECRET=${JWT_SECRET:-dev-change-me-in-production}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-10080}
+      - ENABLE_BACKGROUND_WORKERS=true
+      - WORKER_QUEUE_BACKEND=arq
+      - RUN_STORE_BACKEND=${RUN_STORE_BACKEND:-disk}
+      - WORKFLOW_MEMORY_BACKEND=${WORKFLOW_MEMORY_BACKEND:-disk}
+      - OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
+      - OBJECT_STORAGE_LOCAL_PATH=${OBJECT_STORAGE_LOCAL_PATH:-memory/uploads}
     depends_on:
-      - ollama
-      - qdrant
-      - redis
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
     networks:
       - personal-ai-network
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: personal-ai-worker
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - QDRANT_URL=http://qdrant:6333
+      - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      - DEBUG=false
+      - ENABLE_ADAPTER_CACHE=true
+      - ADAPTER_CACHE_BACKEND=redis
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/personal_ai
+      - AUTH_DISABLED=${AUTH_DISABLED:-true}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - JWT_SECRET=${JWT_SECRET:-dev-change-me-in-production}
+      - JWT_EXPIRE_MINUTES=${JWT_EXPIRE_MINUTES:-10080}
+      - ENABLE_BACKGROUND_WORKERS=true
+      - WORKER_QUEUE_BACKEND=arq
+      - RUN_STORE_BACKEND=${RUN_STORE_BACKEND:-disk}
+      - WORKFLOW_MEMORY_BACKEND=${WORKFLOW_MEMORY_BACKEND:-disk}
+      - OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
+      - OBJECT_STORAGE_LOCAL_PATH=${OBJECT_STORAGE_LOCAL_PATH:-memory/uploads}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+    networks:
+      - personal-ai-network
+    command: arq app.workers.settings.WorkerSettings
+    profiles:
+      - workers
 
   prometheus:
     image: prom/prometheus:latest
@@ -81,6 +198,31 @@ services:
       - prometheus_data:/prometheus
     depends_on:
       - app
+    networks:
+      - personal-ai-network
+
+  loki:
+    image: grafana/loki:latest
+    container_name: personal-ai-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    networks:
+      - personal-ai-network
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: personal-ai-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/tmp
+    depends_on:
+      - loki
     networks:
       - personal-ai-network
 
@@ -96,8 +238,10 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
     depends_on:
       - prometheus
+      - loki
     networks:
       - personal-ai-network
 
@@ -106,8 +250,11 @@ networks:
     driver: bridge
 
 volumes:
+  postgres_data:
   redis_data:
   qdrant_storage:
   ollama_data:
   prometheus_data:
   grafana_data:
+  loki_data:
+  promtail_positions:

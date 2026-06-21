@@ -1,384 +1,305 @@
 # Personal AI
 
-Monorepo for a local retrieval-augmented assistant. Backend is FastAPI + Qdrant + Ollama. Frontend is a Vite + React + Tailwind UI with two distinct visual modes.
+Monorepo for a **multi-user**, retrieval-augmented assistant with live data, tool calling, and optional multi-agent workflows. Backend is FastAPI + PostgreSQL + Qdrant + Ollama (or cloud LLMs). Frontend is a Vite + React + Tailwind chat UI with **Chat** vs **Smart** modes, server-synced history, and light/dark themes.
 
-## Stack Overview
+## What it does today
 
-- **Backend** (`app/`): FastAPI service with chat, RAG, smart routing, multi-agent workflows, persona management, and document ingestion.
-- **Vector store**: Qdrant (local or remote) for document embeddings.
-- **Model runtime**: Ollama serving chat + embedding models locally.
-- **Frontend** (`frontend/`): React 19 + Vite 7 + Tailwind 3 with a CSS design token system, dual UI modes (Classic and Terminal), voice input, file uploads, and full chat history persistence.
+| Capability | Status |
+|------------|--------|
+| Multi-user auth + Postgres persistence | ✅ JWT/OIDC-ready (`AUTH_DISABLED=true` for local dev) |
+| Per-user RAG (Qdrant scoped by `user_id`) | ✅ |
+| Live data (FX, stocks, weather, news) | ✅ Deterministic short-circuit before LLM |
+| Fast single-call chat | ✅ Greetings / trivial prompts (`ENABLE_FAST_CHAT`) |
+| Tool-calling agent (web + live tools) | ✅ LangChain agent via `ToolRegistry` (`ENABLE_LANGCHAIN_AGENT`) |
+| Smart routing (`chat` / `rag` / `workflow`) | ✅ `/smart_chat` |
+| Multi-agent workflow + SSE trace | ✅ `/workflow_chat`, `/smart_chat/stream` |
+| Cloud LLM (Groq, Together, etc.) | ✅ `cloud-chat` Compose profile |
+| Background workers (ingest) | ✅ Optional `workers` profile |
+| Runtime MCP connectors in chat UI | 🔜 Phase C (MCP today is IDE-only via `.cursor/mcp.json`) |
+
+Phases 0–3 of the product roadmap are complete. See [docs/roadmap.md](docs/roadmap.md).
+
+## Stack overview
+
+- **Backend** (`app/`): FastAPI, SQLAlchemy + Alembic, orchestrated chat, live-data adapters, tool registry.
+- **Database**: PostgreSQL (users, conversations, messages, documents).
+- **Vector store**: Qdrant with per-user payload filters.
+- **Cache / queue**: Redis (adapter cache, optional ARQ workers, optional run/memory backends).
+- **Model runtime**: Ollama for local chat + embeddings, or OpenAI-compatible cloud/GPU endpoints for chat.
+- **Frontend** (`frontend/`): React 19, Vite 7, TanStack Query, voice input, uploads, workflow trace UI.
 
 ## Prerequisites
 
-- Python 3.9+ (3.11 recommended to avoid LibreSSL warnings on macOS)
-- Node.js 18+
-- [Ollama](https://ollama.com) running locally (`http://127.0.0.1:11434`)
-  - Pull required models once: `ollama pull llama3:8b` and `ollama pull nomic-embed-text`
-- Qdrant server (`http://127.0.0.1:6333` by default)
-  - Docker example: `docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant`
+- Docker + Docker Compose (recommended), or local Python 3.11+ / Node 18+
+- [Ollama](https://ollama.com) for local chat and/or embeddings (`nomic-embed-text` required for RAG)
+- Pull models once (local profile): `ollama pull llama3:8b` and `ollama pull nomic-embed-text`
 
-## Quick Start with Docker (Recommended)
-
-Start all services with a single command:
+## Quick start with Docker (recommended)
 
 ```bash
-# Copy environment variables
 cp .env.example .env
-
-# Start all services (app, ollama, qdrant)
-docker compose up
+make up          # profile: local (Ollama chat + embeds)
+make db-migrate  # create Postgres tables (first run)
+make pull-models # optional if models not yet in Ollama container
 ```
 
-Access the application:
-- **App (Frontend + Backend API)**: http://localhost:8000
-- **Ollama**: http://localhost:11434
-- **Qdrant**: http://localhost:6333
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000
+Access:
 
-### Useful Docker Commands
+| Service | URL |
+|---------|-----|
+| App (API + built frontend) | http://localhost:8000 |
+| Ollama | http://localhost:11434 |
+| Qdrant | http://localhost:6333 |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 |
+
+Frontend dev server (optional): `cd frontend && npm install && npm run dev` → http://localhost:5173
+
+### Useful commands
 
 ```bash
-# View logs
-docker compose logs -f
-
-# View specific service logs
-docker compose logs -f app
-docker compose logs -f ollama
-
-# Stop all services
-docker compose down
-
-# Restart all services
-docker compose restart
-
-# Pull Ollama models (run after services are up)
-docker compose exec ollama ollama pull llama3:8b
-docker compose exec ollama ollama pull nomic-embed-text
-
-# Access backend shell
-docker compose exec app /bin/bash
+make help           # all Makefile targets
+make logs           # tail all services
+make down           # stop stack
+make real-api-smoke # health + live FX/weather smoke (app on :8000)
+make quality-gate   # backend tests + compose validation
 ```
 
-### Using Makefile (Optional Convenience)
+## Runtime modes (Compose profiles)
+
+See [docs/compose-profiles.md](docs/compose-profiles.md) for details.
+
+| Profile | Command | Chat | Embeddings |
+|---------|---------|------|------------|
+| **local** (default) | `make up` | Ollama | Ollama |
+| **cloud-chat** | `make up-cloud` | Cloud OpenAI-compatible API | Ollama |
+| **gpu-vllm** | `make up-gpu-vllm` | Local vLLM on :8001 | Ollama |
+| **remote** | `make up-remote` | LM Studio on Mac Mini (:1234) | Ollama on Mac Mini (:11434) |
+| **workers** | `make up-workers` | Same as local + ARQ worker | Ollama |
+
+**Remote inference (MacBook app + Mac Mini models via LAN or Tailscale):**
 
 ```bash
-make help          # Show all available commands
-make build         # Build all images
-make up            # Start all services
-make down          # Stop all services
-make logs          # View all logs
-make pull-models   # Pull Ollama models
-make clean         # Remove containers and volumes
-make quality-gate  # Run the shared repo quality gate
+cp .env.remote.example .env.remote
+# Set OLLAMA_BASE_URL and LLM_OPENAI_BASE_URL to Mac Mini LAN or Tailscale IP
+# Edit LLM_*_MODEL if your LM Studio model id differs
+make up-remote
+make db-migrate
 ```
 
-### Runtime Modes (Local, Cloud, DMR)
-
-This project supports three runtime modes using Docker Compose overlays.
-
-1. **Local Ollama mode (default)**
-
-```bash
-make up
-```
-
-- Chat + embeddings run locally in the `ollama` container.
-- Best for fully local/offline development.
-
-2. **Cloud inference mode (OpenAI-compatible providers)**
+**Cloud chat setup:**
 
 ```bash
 cp .env.cloud.example .env.cloud
-# Edit .env.cloud and enable exactly one provider block
+# Enable one provider block (e.g. Groq) and set LLM_CLOUD_API_KEY
 make up-cloud
+make db-migrate
 ```
 
-- Chat routes to your cloud provider (`LLM_DEFAULT_PROVIDER=openai`).
-- Embeddings still run locally via Ollama (`nomic-embed-text`).
-- Good balance for fast chat responses while keeping local RAG storage.
+Tiered Groq example (fast planner/reviewer, stronger writer): see commented models in `.env.cloud.example`.
 
-3. **Docker Model Runner mode (macOS only)**
+Verify active provider inside the app container:
 
 ```bash
-make up-dmr
+docker compose exec app env | grep -E "LLM_DEFAULT_PROVIDER|LLM_OPENAI_BASE_URL|ENABLE_LANGCHAIN"
 ```
 
-- Uses Docker Desktop Model Runner models via `docker-compose.dmr.yml`.
-- The Ollama container is disabled in this mode.
-- Recommended only when you specifically want DMR behavior on macOS.
+## How chat works
 
-### Cloud Provider Notes
+### Direct chat (`POST /chat`)
 
-- Providers are configured in `.env.cloud` (ignored by git) using the template in `.env.cloud.example`.
-- Supported examples: GMI Cloud, Groq, Together AI, Fireworks AI.
-- If one provider endpoint is unavailable, switch to another provider block in `.env.cloud`.
+After optional **live-data short-circuit** (FX, weather, stocks, news), `/chat` picks one path:
 
-### Groq Cloud Flow (Tested)
+```mermaid
+flowchart TD
+    Q[User message] --> Live{Live intent?}
+    Live -->|yes| LD[Adapter response]
+    Live -->|no| Strat{Strategy}
+    Strat -->|trivial| Fast[Single LLM call]
+    Strat -->|default| Tools[Tool-calling agent]
+    Strat -->|tools off| Orch[Multi-agent pipeline]
+```
 
-Groq was validated end-to-end with this setup:
+| Path | When | Typical LLM calls |
+|------|------|-------------------|
+| **Fast** | `hi`, `thanks`, short chitchat | 1 |
+| **Tools** | Default when `ENABLE_LANGCHAIN_AGENT=true` | 1–4 (model picks tools) |
+| **Orchestrated** | `ENABLE_LANGCHAIN_AGENT=false` | 4+ (researcher → synthesizer → reviewer → writer) |
+
+Built-in tools (registered in `ToolRegistry`, exposed to the agent): `fx_rate`, `market_price`, `weather`, `weather_forecast`, `news`, `web_search`. List them with `GET /tools?role=chat_agent`.
+
+### Smart mode (`POST /smart_chat`)
+
+Auto-routes each message:
+
+- **chat** — uses the paths above (fast / tools / orchestrated)
+- **rag** — retrieval from your documents + orchestration
+- **workflow** — dynamic multi-agent plan with optional trace
+
+Use Smart mode when you want grounding, deeper analysis, or a visible workflow trace. Use direct Chat for faster, ChatGPT-style replies.
+
+## Authentication
+
+Local development defaults to `AUTH_DISABLED=true` (a dev user is injected automatically; no token required).
+
+With auth enabled, obtain a JWT and send `Authorization: Bearer <token>` on API calls:
 
 ```bash
-make up-cloud
-curl -s -X POST http://localhost:8000/chat \
+curl -s -X POST http://localhost:8000/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"message": "Reply in one sentence: what is 2+2?", "conversation_id": "test-groq-001"}' \
-  | python3 -m json.tool
+  -d '{"email":"you@example.com"}'
 ```
 
-Expected behavior:
-- API returns `200` with a chatbot message.
-- Response is produced by the orchestration pipeline (planner/synthesizer/reviewer/writer).
-- `sources` may include live web context when the workflow decides to fetch it.
+Conversation and message APIs are scoped per user. RAG ingest and search filter Qdrant by `user_id`.
 
-### Verify Active Mode
+## API endpoints
 
-Use this to confirm which backend provider is active inside the app container:
+### Chat
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /chat` | Direct chat (fast / tool agent / orchestrated) |
+| `POST /rag_chat` | RAG-grounded chat with citations |
+| `POST /smart_chat` | Intent routing: chat / rag / workflow |
+| `POST /smart_chat/stream` | SSE stream for smart mode |
+| `POST /workflow_chat` | Explicit workflow with trace |
+| `POST /workflow_chat/stream` | SSE workflow stream |
+| `POST /workflow_chat/background` | Enqueue long workflow to worker |
+| `POST /ingest` | Upload documents (`multipart/form-data`, field `files`) |
+
+Request body (chat): `{ "messages": [{"role":"user","content":"..."}], "conversation_id": "<uuid>" }`  
+Shorthand: `{ "message": "..." }` is also accepted.
+
+### Conversations
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /conversations` | List conversations for current user |
+| `POST /conversations` | Create conversation |
+| `GET /conversations/{id}/messages` | Message history |
+| `DELETE /conversations/{id}` | Delete conversation |
+
+### Tools, workflow runs, jobs
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /tools?role=chat_agent` | Tools available to the chat agent |
+| `POST /workflow_runs` | Create workflow run record |
+| `GET /workflow_runs` | List runs (by `conversation_id`) |
+| `GET /workflow_runs/{run_id}` | Fetch run |
+| `POST /workflow_runs/{run_id}/pause` | Pause run |
+| `POST /workflow_runs/{run_id}/resume` | Resume run |
+| `POST /workflow_runs/{run_id}/cancel` | Cancel run |
+| `GET /jobs/{job_id}` | Background job status (ingest / workflow) |
+
+### Health & observability
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /health` | Liveness |
+| `GET /ready` | Readiness (Qdrant + Ollama) |
+| `GET /metrics` | Prometheus scrape |
+
+Assistant behavior is governed by `app/prompts/system.md` (seven traits — see [docs/traits.md](docs/traits.md)). Personas were removed in Phase 0.
+
+## Configuration
+
+Copy `.env.example` → `.env`. Important flags:
 
 ```bash
-docker compose exec app env | grep -E "LLM_DEFAULT_PROVIDER|LLM_OPENAI_BASE_URL|OLLAMA_BASE_URL"
+# Chat execution (Phase A — on by default)
+ENABLE_FAST_CHAT=true
+ENABLE_LANGCHAIN_AGENT=true
+
+# Auth (local dev)
+AUTH_DISABLED=true
+
+# Optional: cloud / per-stage models (see .env.cloud.example)
+LLM_DEFAULT_PROVIDER=ollama          # or openai in cloud-chat profile
+LLM_PLANNER_MODEL=...
+LLM_SYNTHESIZER_MODEL=...
 ```
 
-Interpretation:
-- `LLM_DEFAULT_PROVIDER=openai` -> cloud chat mode.
-- `LLM_DEFAULT_PROVIDER` unset (or `ollama`) -> local Ollama chat mode.
-- `OLLAMA_BASE_URL=http://ollama:11434` should remain set for embeddings.
+Full variable list: `.env.example`, `.env.cloud.example`, [docs/ops-runbook.md](docs/ops-runbook.md).
 
-## Backend Setup
+## Backend setup (without Docker)
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # adjust if needed
+cp .env.example .env
+# Start Postgres + Qdrant + Ollama separately, then:
+alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-Environment variables are defined in `.env.example`. Key options include Ollama URLs, Qdrant connection, embedding dimensions, and default retrieval depth.
-Set `CORS_ORIGINS` to a comma-separated list of frontend origins (defaults include Vite dev server `http://localhost:5173`).
-
-### API Endpoints
-
-**Chat**
-
-| Endpoint | Description | Response shape |
-|----------|-------------|----------------|
-| `POST /chat` | Standard chat via the orchestration engine | `{ "message": "..." }` |
-| `POST /rag_chat` | Retrieval-grounded chat with source citations | `{ "message": "...", "sources": [...] }` |
-| `POST /smart_chat` | Auto-routes between chat / RAG / workflow based on intent | `{ "message": "...", "sources": [...], "workflow": {...} }` |
-| `POST /smart_chat/stream` | SSE stream of smart-routed progress events + final response | `text/event-stream` |
-| `POST /workflow_chat` | Explicit multi-agent workflow with step trace | `{ "message": "...", "sources": [...], "workflow": { "steps": [...] } }` |
-| `POST /workflow_chat/stream` | SSE stream of workflow progress events + final response | `text/event-stream` |
-| `POST /ingest` | Upload documents for embedding and storage in Qdrant | `{ "count": <int> }` |
-
-All chat endpoints accept `{ "messages": [...], "conversation_id": "..." }`. `/ingest` accepts `multipart/form-data` with a `files` field.
-
-**Workflow runs (CRUD)**
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /workflow_runs` | Create a workflow run record |
-| `GET /workflow_runs` | List all workflow run records |
-| `GET /workflow_runs/{run_id}` | Fetch a specific run |
-| `POST /workflow_runs/{run_id}/pause` | Pause a run |
-| `POST /workflow_runs/{run_id}/resume` | Resume a paused run |
-| `POST /workflow_runs/{run_id}/cancel` | Cancel a run |
-
-**Personas**
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /personas` | List available personas |
-| `POST /personas/switch` | Switch the active persona (`{ "name": "<persona>" }`) |
-| `GET /personas/active` | Return the current active persona |
-| `POST /personas/preview` | Return the merged system prompt for the active persona |
-
-**Observability**
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /metrics` | Prometheus metrics scrape endpoint |
-
-### Typical Workflow
-
-1. Start the backend (`uvicorn app.main:app --reload`).
-2. Ingest documents via `/ingest` (Postman, curl, or the UI upload button). Friendly IDs such as `doc-1` are automatically normalized for Qdrant.
-3. Call `/smart_chat` for intent-routed answers, `/rag_chat` for explicit retrieval with citations, or `/chat` for a direct baseline response.
-
-## Frontend Setup
-
-The frontend lives in `frontend/` and usually communicates with the FastAPI backend through `VITE_API_BASE_URL`.
-
-Default local development settings are in `frontend/.env`:
-
-```bash
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-For phone/LAN testing (Option A), set your machine IP:
-
-```bash
-VITE_API_BASE_URL=http://<your-mac-ip>:8000
-```
-
-Then run:
+## Frontend setup
 
 ```bash
 cd frontend
 npm install
+# frontend/.env — point at API:
+# VITE_API_BASE_URL=http://localhost:8000
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173` in a browser. Ensure the backend is running.
+**UI highlights:** Chat vs Smart mode toggle, server-synced conversations (TanStack Query), RAG source cards, workflow step trace, voice input, file upload (`.txt`, `.md`, `.pdf`), light/dark theme.
 
-### Frontend Highlights
+Production build: `npm run build` (also baked into the Docker app image).
 
-**Dual UI modes** (persisted in `localStorage`):
-- **Classic mode** — Elevated-panel card layout with Space Grotesk typography, atmospheric ambient glow, and light/dark theme toggle.
-- **Terminal mode** — Full-screen CRT aesthetic using the `MACHINE_ALPHA_7` persona, VT323 monospace font, phosphor color themes (green or amber), scanline overlay, and Web Audio print-tick feedback.
-
-**Feature highlights:**
-- Sidebar with conversation-mode toggle (Chat vs Smart), persona selector, new chat, and document upload.
-- Chat bubbles with streaming text, per-message latency display, and RAG source cards.
-- Smart mode (`/smart_chat`) auto-routes each message between direct chat, RAG, and multi-agent workflow.
-- Workflow mode shows a live execution trace (planning → retrieval → synthesis → review → writing steps).
-- Step memory events and per-step source citations displayed inline.
-- Voice input toggle using the browser Web Speech API (Chrome recommended).
-- File picker (accepts `.txt`, `.md`, `.pdf`) with per-file status updates and `aria-live` announcements.
-- Full accessibility: skip link, `:focus-visible` outlines, ARIA labels and live regions, reduced-motion support.
-- Dark/light theme, phosphor theme, chat history, conversation ID, and persona all persisted via `localStorage`.
-
-**Font stack:**
-- Classic mode: `Space Grotesk` (UI), `JetBrains Mono` (labels/meta)
-- Terminal mode: `VT323`
-
-**CSS architecture:**
-- Design tokens via CSS custom properties (`--phosphor`, `--ui-bg`, `--ui-panel`, `--ui-border`, etc.) on `:root`.
-- All component colours reference tokens — no hardcoded hex values in components.
-
-To build for production:
+## Example: cloud chat smoke test
 
 ```bash
-npm run build
-npm run preview
+make up-cloud && make db-migrate
+
+curl -s -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message": "hello"}' | python3 -m json.tool
+
+curl -s http://localhost:8000/tools | python3 -m json.tool
 ```
 
-## Persona System
-
-Three built-in personas live under `api/personas/`:
-
-| Persona | Directory | Description |
-|---------|-----------|-------------|
-| `ideal_chatbot` | `api/personas/ideal_chatbot/` | Seven-trait governed assistant (default) |
-| `therapist` | `api/personas/therapist/` | Empathetic listener with boundaries |
-| `barney` | `api/personas/barney/` | Loyal, direct, high-confidence persona |
-
-Each persona directory contains a standard set of files:
-- `00_identity.md` — Mission and personality anchors
-- `01_values.md` — How traits translate to behavior
-- `02_decision_rules.md` — When to answer vs. ask
-- `03_style.md` — Tone and vocabulary
-- `04_emotion_rules.md` — Handling frustration and uncertainty
-- `05_rubrics/` — Task-specific playbooks
-- `06_negative_examples.md` — What NOT to do
-- `07_glossary.md` — Preferred and banned terms
-- `08_fewshots.jsonl` — Example interactions
-
-**Runtime management:**
-- `api/persona_loader.py` — disk hydration
-- `app/services/persona_manager.py` — runtime switching and sanitisation
-
-### Persona API Examples
-
-```bash
-# List personas
-curl -s http://localhost:8000/personas | jq
-
-# Switch to therapist
-curl -s -X POST http://localhost:8000/personas/switch \\
-  -H 'Content-Type: application/json' \\
-  -d '{"name":"therapist"}'
-
-# View active persona
-curl -s http://localhost:8000/personas/active | jq
-
-# Inspect merged system prompt
-curl -s -X POST http://localhost:8000/personas/preview | jq '.persona, .fewshots'
-```
-
-## Trait System
-
-This chatbot is governed by **seven core traits** that ensure consistent, principled behavior:
-
-1. **Intuitive** — Clear vocabulary, uncluttered, happy to delegate.
-2. **Coachable and Eager to Learn** — Accepts feedback, remembers context, adjusts.
-3. **Contextually Smart** — Reads between lines, tracks constraints, infers intent.
-4. **An Effective Communicator** — Right amount of detail, leads with answers.
-5. **Reliable** — Honest about limitations, doesn't speculate on live data.
-6. **Well-Connected** — Knows limits, suggests alternatives, respects boundaries.
-7. **Secure** — Respects authorization, refuses unsafe requests.
-
-**See [docs/traits.md](docs/traits.md)** for complete governance: operational definitions, decision rules, emotion handling, rubrics, negative examples, glossary, and validation tests.
+For non-trivial questions, the tool agent may call `web_search` or live-data tools before answering. Live FX/weather/stock intents often return directly from adapters without an LLM call.
 
 ## Testing
 
-Run the full repo gate:
-
 ```bash
-./scripts/quality_gate.sh
+./scripts/quality_gate.sh              # full repo gate
+./.venv/bin/python3 -m pytest          # backend tests
+cd frontend && npm run test:e2e          # Playwright flows
+bash scripts/compose_smoke.sh            # compose smoke
+make real-api-smoke                     # live provider + HTTP checks
 ```
 
-Run backend tests only:
+## Documentation
 
-```bash
-./.venv/bin/python3 -m pytest
-```
-
-Run backend tests with coverage gate only:
-
-```bash
-./.venv/bin/python3 -m pytest --cov=app --cov=api --cov-fail-under=70
-```
-
-Run Playwright browser coverage only:
-
-```bash
-cd frontend
-npm run test:e2e
-npm run test:visual
-```
-
-Run lightweight docker compose smoke test only:
-
-```bash
-bash scripts/compose_smoke.sh
-```
-
-## Docs
-
-- [docs/architecture.md](docs/architecture.md) — system structure and runtime responsibilities
-- [docs/live-data-flow.md](docs/live-data-flow.md) — deterministic live-data path and guardrails
-- [docs/ops-runbook.md](docs/ops-runbook.md) — startup, health checks, and troubleshooting
-- [docs/deployment-checklist.md](docs/deployment-checklist.md) — pre-release readiness checklist
-- [docs/traits.md](docs/traits.md) — trait governance, rubrics, and validation tests
-- [docs/multi-trait-system.md](docs/multi-trait-system.md) — comprehensive multi-trait usage guide
-- [docs/barney-persona.md](docs/barney-persona.md) — Barney persona design notes
-- [docs/research-findings.md](docs/research-findings.md) — research and implementation findings
-- [docs/multi-agent-improvement-roadmap.md](docs/multi-agent-improvement-roadmap.md) — multi-agent architecture roadmap
-- [docker-setup.md](docker-setup.md) — detailed Docker + Compose setup guide
+| Doc | Topic |
+|-----|--------|
+| [docs/roadmap.md](docs/roadmap.md) | Phased plan (0–3 complete) |
+| [docs/architecture.md](docs/architecture.md) | Components and data flow |
+| [docs/live-data-flow.md](docs/live-data-flow.md) | Live adapters and guardrails |
+| [docs/compose-profiles.md](docs/compose-profiles.md) | Docker profiles |
+| [docs/cloud-deploy-aws.md](docs/cloud-deploy-aws.md) | EKS / Helm deploy |
+| [docs/gpu-deployment.md](docs/gpu-deployment.md) | vLLM / GPU chat |
+| [docs/mcp-servers.md](docs/mcp-servers.md) | IDE MCP setup (Cursor) |
+| [docs/penpot-mcp.md](docs/penpot-mcp.md) | Penpot design MCP |
+| [docs/traits.md](docs/traits.md) | Assistant governance |
+| [docs/ops-runbook.md](docs/ops-runbook.md) | Operations and troubleshooting |
+| [docker-setup.md](docker-setup.md) | Detailed Docker guide |
 
 ## Troubleshooting
 
-- **Ollama 404 on `/api/embed`**: Ensure `nomic-embed-text` (or the configured embedding model) is pulled and the Ollama daemon is running.
-- **Qdrant JSON ID errors**: The service now normalizes string IDs; check logs for warnings if a UUID is generated.
-- **LibreSSL warnings on macOS system Python**: Switch to Python 3.11+ to use OpenSSL 3 and silence `urllib3` warnings.
-- **Speech input unavailable**: Browsers without the Web Speech API fall back to text input; no additional configuration needed.
+- **500 on `/chat` after first deploy**: Run `make db-migrate` (Postgres tables missing).
+- **Ollama 404 on `/api/embed`**: Pull `nomic-embed-text` (`make pull-models`).
+- **Groq 429 rate limits**: Use tiered models in `.env.cloud` (8B for planner/reviewer, larger model for writer only) or space out requests; Smart workflow mode issues more LLM calls than direct Chat.
+- **Tool agent errors**: Ensure `langchain`, `langchain-openai`, `langchain-ollama` are installed (in Docker image via `requirements.txt`). For Ollama local chat, use a model with tool-calling support.
+- **Speech input unavailable**: Web Speech API is browser-dependent (Chrome works best).
 
-## Roadmap
+## What's next
 
-- Backend conversation history persistence.
-- Background ingestion workflows for large files.
-- Deployment templates for Azure GPU VM with vLLM runtime.
-- Mobile responsiveness pass and Playwright visual regression baseline.
-- Additional persona types and runtime persona creation via API.
+- **Phase C**: Runtime MCP client in the app (GitHub, Supabase, Penpot from chat UI)
+- Connector settings UI and per-user OAuth
+- RAG exposed as a `ToolRegistry` tool for the agent
+
+Track progress in [docs/roadmap.md](docs/roadmap.md) and [docs/multi-agent-improvement-roadmap.md](docs/multi-agent-improvement-roadmap.md).

@@ -1,11 +1,48 @@
+import { authHeaders, clearAuthToken, getAuthToken, setAuthToken } from './auth';
 import type {
   ChatMessage,
   ChatResponsePayload,
   ConversationMode,
-  PersonaType,
   RetrievedSource,
   WorkflowEventPayload,
 } from './types';
+
+export interface ServerConversationSummary {
+  id: string;
+  title?: string | null;
+  mode?: string | null;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  pinned?: boolean;
+  pinned_at?: string | null;
+}
+
+export interface ServerStoredMessage {
+  id: string;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AuthConfig {
+  auth_disabled: boolean;
+  google_client_id: string | null;
+  google_auth_enabled: boolean;
+}
+
+export interface CurrentUser {
+  id: string;
+  email?: string | null;
+  display_name?: string | null;
+}
+
+export interface TokenResponsePayload {
+  access_token: string;
+  token_type: string;
+  user_id: string;
+}
 
 function resolveBaseUrl(): string {
   const configured = ((import.meta.env.VITE_API_BASE_URL as string) || '').trim();
@@ -22,7 +59,6 @@ function resolveBaseUrl(): string {
   const isLocalHost = host === 'localhost' || host === '127.0.0.1';
   const configuredIsLocal = configured.includes('localhost') || configured.includes('127.0.0.1');
 
-  // If app is opened from a remote host (ngrok/domain/phone), avoid broken localhost API targets.
   if (!isLocalHost && configuredIsLocal) {
     return '';
   }
@@ -49,10 +85,146 @@ async function safeFetch(input: string, init: RequestInit): Promise<Response> {
       throw error;
     }
 
-    // Safari/mobile fallback: retry using same-origin endpoint if configured base URL fails.
     const pathname = new URL(input).pathname;
     return fetch(pathname, init);
   }
+}
+
+async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const auth = authHeaders();
+  Object.entries(auth).forEach(([key, value]) => {
+    headers.set(key, value);
+  });
+
+  if (init.body && !headers.has('Content-Type') && typeof init.body === 'string') {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  const response = await safeFetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    if (response.status === 401) {
+      clearAuthToken();
+    }
+    throw new Error(errorText || response.statusText);
+  }
+
+  return response;
+}
+
+export async function fetchAuthConfig(): Promise<AuthConfig> {
+  const response = await safeFetch(`${BASE_URL}/auth/config`, {
+    method: 'GET',
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Failed to load auth configuration');
+  }
+  return (await response.json()) as AuthConfig;
+}
+
+export async function fetchCurrentUser(): Promise<CurrentUser> {
+  const response = await apiFetch('/auth/me');
+  return (await response.json()) as CurrentUser;
+}
+
+export async function exchangeGoogleToken(idToken: string): Promise<TokenResponsePayload> {
+  const response = await safeFetch(`${BASE_URL}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_token: idToken }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Google sign-in failed');
+  }
+
+  const payload = (await response.json()) as TokenResponsePayload;
+  setAuthToken(payload.access_token);
+  return payload;
+}
+
+export async function ensureAuthToken(): Promise<string> {
+  const existing = getAuthToken();
+  if (existing) {
+    return existing;
+  }
+
+  const response = await safeFetch(`${BASE_URL}/auth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Failed to obtain auth token');
+  }
+
+  const payload = (await response.json()) as { access_token: string };
+  setAuthToken(payload.access_token);
+  return payload.access_token;
+}
+
+export async function listConversations(): Promise<ServerConversationSummary[]> {
+  const response = await apiFetch('/conversations');
+  const payload = (await response.json()) as { conversations: ServerConversationSummary[] };
+  return payload.conversations;
+}
+
+export async function createConversation(mode: ConversationMode, title?: string): Promise<ServerConversationSummary> {
+  const response = await apiFetch('/conversations', {
+    method: 'POST',
+    body: JSON.stringify({
+      title,
+      mode,
+    }),
+  });
+  return (await response.json()) as ServerConversationSummary;
+}
+
+export async function fetchConversationMessages(conversationId: string): Promise<ServerStoredMessage[]> {
+  const response = await apiFetch(`/conversations/${conversationId}/messages`);
+  const payload = (await response.json()) as { messages: ServerStoredMessage[] };
+  return payload.messages;
+}
+
+export async function deleteConversation(conversationId: string): Promise<void> {
+  await apiFetch(`/conversations/${conversationId}`, { method: 'DELETE' });
+}
+
+export interface UpdateConversationPayload {
+  title?: string;
+  pinned?: boolean;
+}
+
+export async function updateConversation(
+  conversationId: string,
+  payload: UpdateConversationPayload,
+): Promise<ServerConversationSummary> {
+  const response = await apiFetch(`/conversations/${conversationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return (await response.json()) as ServerConversationSummary;
+}
+
+export function mapServerMessage(message: ServerStoredMessage): ChatMessage {
+  const metadata = message.metadata ?? {};
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    createdAt: new Date(message.created_at).getTime(),
+    sources: Array.isArray(metadata.sources) ? (metadata.sources as RetrievedSource[]) : undefined,
+    workflow: metadata.workflow as ChatMessage['workflow'],
+  };
 }
 
 async function streamSseEvents(
@@ -97,7 +269,7 @@ export async function sendMessage(
   mode: ConversationMode,
   message: string,
   history: ChatMessage[],
-  conversationId: string,
+  conversationId: string | null,
   signal: AbortSignal,
   onWorkflowEvent?: (event: WorkflowEventPayload) => void,
 ): Promise<ChatResponsePayload> {
@@ -112,7 +284,6 @@ export async function sendMessage(
   const bodyPayload: Record<string, unknown> =
     mode === 'smart'
       ? {
-          conversation_id: conversationId,
           messages,
           workflow: {
             enabled: true,
@@ -123,14 +294,18 @@ export async function sendMessage(
           },
         }
       : {
-          conversation_id: conversationId,
           messages,
         };
+
+  if (conversationId) {
+    bodyPayload.conversation_id = conversationId;
+  }
 
   const response = await safeFetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
     },
     body: JSON.stringify(bodyPayload),
     signal,
@@ -178,38 +353,57 @@ function normalizeSources(sources: RetrievedSource[]): RetrievedSource[] {
   }));
 }
 
+async function readFileAsText(file: File): Promise<string> {
+  if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
+    throw new Error('PDF upload is not supported yet. Use .txt or .md files.');
+  }
+  return file.text();
+}
+
 export async function uploadDocuments(files: File[]): Promise<void> {
-  const formData = new FormData();
-  files.forEach((file) => {
-    formData.append('files', file);
-  });
+  const documents = await Promise.all(
+    files.map(async (file) => ({
+      text: await readFileAsText(file),
+      metadata: {
+        path: file.name,
+        title: file.name,
+      },
+    })),
+  );
 
-  const response = await safeFetch(`${BASE_URL}/ingest`, {
+  const response = await apiFetch('/ingest', {
     method: 'POST',
-    body: formData,
+    body: JSON.stringify({ documents }),
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || response.statusText);
+    const detail = await response.text();
+    throw new Error(detail || 'Upload failed');
+  }
+
+  const payload = (await response.json()) as { count?: number; job_id?: string; status?: string };
+  if (payload.job_id) {
+    await pollBackgroundJob(payload.job_id);
+    return;
   }
 }
 
-export async function switchPersona(persona: PersonaType): Promise<{ status: string; active: PersonaType }> {
-  const response = await safeFetch(`${BASE_URL}/personas/switch`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ persona }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || response.statusText);
+async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<void> {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const response = await apiFetch(`/jobs/${jobId}`);
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || 'Failed to check ingest job status');
+    }
+    const job = (await response.json()) as { status?: string; error?: string };
+    if (job.status === 'completed') {
+      return;
+    }
+    if (job.status === 'failed') {
+      throw new Error(job.error || 'Background ingest failed');
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-
-  return response.json();
+  throw new Error('Background ingest timed out');
 }
-
-

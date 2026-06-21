@@ -63,6 +63,7 @@ def _build_index(settings: Settings) -> Any:
 def ingest_documents_with_llamaindex(
     settings: Settings,
     docs: List[Dict[str, Any]],
+    user_id: str,
 ) -> int:
     """Ingest documents through LlamaIndex with sentence-window chunking."""
     if not docs:
@@ -78,7 +79,7 @@ def ingest_documents_with_llamaindex(
     nodes = []
     for item in docs:
         text = item.get("text", "")
-        metadata = item.get("metadata") or {}
+        metadata = {**(item.get("metadata") or {}), "user_id": user_id}
         doc = Document(text=text, metadata=metadata)
         nodes.extend(parser.get_nodes_from_documents([doc]))
 

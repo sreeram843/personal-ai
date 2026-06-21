@@ -15,6 +15,7 @@ from app.core.deps import (
     get_workflow_memory_store,
 )
 from app.main import create_app
+from tests.conftest import apply_db_auth_overrides
 from app.services.llm_gateway import StageModelConfig, WorkflowModelProfile
 from app.services.orchestrated_chat import OrchestratedChatService
 
@@ -127,7 +128,10 @@ class _SearchResult:
 
 
 class _StubVectorStore:
-    def search(self, vector, limit=4, score_threshold=None):
+    last_search_user_id: str | None = None
+
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+        self.last_search_user_id = user_id
         return [
             _SearchResult(
                 "doc-1",
@@ -158,12 +162,12 @@ class _StubWorkflowMemoryStore:
     def __init__(self) -> None:
         self.entries = []
 
-    async def get_summary(self, conversation_id: str, limit: int = 6) -> str:
+    async def get_summary(self, conversation_id: str, *, user_id: str | None = None, limit: int = 6) -> str:
         if self.entries:
             return '## Prior Workflow Memory\n- writer / Final answer: Previous summary'
         return ''
 
-    async def append_entries(self, conversation_id: str, entries):
+    async def append_entries(self, conversation_id: str, entries, *, user_id: str | None = None):
         self.entries.extend(entries)
 
 
@@ -183,7 +187,17 @@ class _StubLiveDataManager:
 
 class _StubResolvedLiveDataManager(_StubLiveDataManager):
     async def resolve(self, content: str):
-        return {"status": "ok"}
+        from app.schemas.adapter import AdapterResult
+
+        return AdapterResult(
+            domain="fx",
+            status="ok",
+            verified=True,
+            source="Stub",
+            fetched_at_utc="2026-04-01 00:00:00 UTC",
+            ttl_seconds=60,
+            data={},
+        )
 
     def render(self, result):
         return "LIVE RESULT", "2026-04-01 00:00:00 UTC"
@@ -207,6 +221,7 @@ def test_multi_agent_workflow_executes_fallback_plan() -> None:
             system_prompt="You are a principled assistant.",
             chat_history=[],
             conversation_id='conversation-1',
+            user_id='00000000-0000-0000-0000-0000000000aa',
             top_k=4,
             score_threshold=None,
             options={},
@@ -244,6 +259,7 @@ def test_multi_agent_workflow_skips_retrieval_when_disabled() -> None:
             system_prompt="You are a principled assistant.",
             chat_history=[],
             conversation_id='conversation-2',
+            user_id='00000000-0000-0000-0000-0000000000bb',
             top_k=4,
             score_threshold=None,
             options={},
@@ -260,8 +276,9 @@ def test_multi_agent_workflow_skips_retrieval_when_disabled() -> None:
     assert retriever_steps == []
 
 
-def test_workflow_chat_endpoint_returns_trace() -> None:
+def test_workflow_chat_endpoint_returns_trace(db_session) -> None:
     app = create_app()
+    apply_db_auth_overrides(app, db_session)
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
     app.dependency_overrides[get_llm_gateway] = lambda: _StubGateway()
     app.dependency_overrides[get_workflow_model_profile] = _stub_model_profile
@@ -274,7 +291,6 @@ def test_workflow_chat_endpoint_returns_trace() -> None:
     response = client.post(
         "/workflow_chat",
         json={
-            "conversation_id": "conversation-3",
             "messages": [{"role": "user", "content": "Cross-check the architecture with local docs and fresh context."}],
             "workflow": {
                 "enabled": True,
@@ -290,14 +306,16 @@ def test_workflow_chat_endpoint_returns_trace() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert "MACHINE_ALPHA_7" in payload["message"]
+    assert "Final coordinated answer." in payload["message"]
     assert len(payload["sources"]) == 2
     assert payload["workflow"]["mode"] == "multi_agent"
     assert any(step["agent"] == "writer" for step in payload["workflow"]["steps"])
+    assert payload.get("conversation_id")
 
 
-def test_workflow_chat_endpoint_short_circuits_live_data() -> None:
+def test_workflow_chat_endpoint_short_circuits_live_data(db_session) -> None:
     app = create_app()
+    apply_db_auth_overrides(app, db_session)
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
     app.dependency_overrides[get_llm_gateway] = lambda: _StubGateway()
     app.dependency_overrides[get_workflow_model_profile] = _stub_model_profile
@@ -320,8 +338,9 @@ def test_workflow_chat_endpoint_short_circuits_live_data() -> None:
     assert payload["workflow"] is None
 
 
-def test_workflow_stream_endpoint_emits_progress_and_final() -> None:
+def test_workflow_stream_endpoint_emits_progress_and_final(db_session) -> None:
     app = create_app()
+    apply_db_auth_overrides(app, db_session)
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
     app.dependency_overrides[get_llm_gateway] = lambda: _StubGateway()
     app.dependency_overrides[get_workflow_model_profile] = _stub_model_profile
@@ -334,7 +353,6 @@ def test_workflow_stream_endpoint_emits_progress_and_final() -> None:
     response = client.post(
         "/workflow_chat/stream",
         json={
-            "conversation_id": "conversation-4",
             "messages": [{"role": "user", "content": "Review the architecture with workflow trace."}],
             "workflow": {"enabled": True, "include_trace": True, "persist_memory": True},
         },
@@ -348,11 +366,12 @@ def test_workflow_stream_endpoint_emits_progress_and_final() -> None:
     payloads = [json.loads(frame.split('data: ', 1)[1]) for frame in frames if 'data: ' in frame]
     assert any(item['type'] == 'workflow' for item in payloads)
     final_payload = next(item for item in payloads if item['type'] == 'final')
-    assert 'MACHINE_ALPHA_7' in final_payload['response']['message']
+    assert "Final coordinated answer." in final_payload["response"]["message"]
 
 
-def test_smart_chat_endpoint_auto_routes_with_trace() -> None:
+def test_smart_chat_endpoint_auto_routes_with_trace(db_session) -> None:
     app = create_app()
+    apply_db_auth_overrides(app, db_session)
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
     app.dependency_overrides[get_llm_gateway] = lambda: _StubGateway()
     app.dependency_overrides[get_workflow_model_profile] = _stub_model_profile
@@ -365,7 +384,6 @@ def test_smart_chat_endpoint_auto_routes_with_trace() -> None:
     response = client.post(
         "/smart_chat",
         json={
-            "conversation_id": "conversation-smart-1",
             "messages": [{"role": "user", "content": "Analyze trade-offs and build a roadmap with current context."}],
         },
     )
@@ -374,13 +392,14 @@ def test_smart_chat_endpoint_auto_routes_with_trace() -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert "MACHINE_ALPHA_7" in payload["message"]
+    assert "Final coordinated answer." in payload["message"]
     assert payload["workflow"] is not None
     assert any(step["agent"] == "writer" for step in payload["workflow"]["steps"])
 
 
-def test_smart_chat_stream_sets_selected_mode_header() -> None:
+def test_smart_chat_stream_sets_selected_mode_header(db_session) -> None:
     app = create_app()
+    apply_db_auth_overrides(app, db_session)
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
     app.dependency_overrides[get_llm_gateway] = lambda: _StubGateway()
     app.dependency_overrides[get_workflow_model_profile] = _stub_model_profile
@@ -393,7 +412,6 @@ def test_smart_chat_stream_sets_selected_mode_header() -> None:
     response = client.post(
         "/smart_chat/stream",
         json={
-            "conversation_id": "conversation-smart-2",
             "messages": [{"role": "user", "content": "Please compare options and draft a strategy."}],
         },
     )
@@ -423,6 +441,7 @@ def test_multi_agent_workflow_uses_stage_provider_routing() -> None:
             system_prompt="You are a principled assistant.",
             chat_history=[],
             conversation_id='conversation-5',
+            user_id='00000000-0000-0000-0000-000000000005',
             top_k=4,
             score_threshold=None,
             options={},
@@ -456,6 +475,7 @@ def test_dual_phase_planner_runs_verifier_pass() -> None:
             system_prompt="You are a principled assistant.",
             chat_history=[],
             conversation_id='conversation-6',
+            user_id='00000000-0000-0000-0000-000000000006',
             top_k=4,
             score_threshold=None,
             options={"reviewer_quorum": 1},

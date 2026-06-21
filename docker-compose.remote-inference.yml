@@ -1,0 +1,48 @@
+# Remote inference overlay — no local Ollama container.
+# Chat: LM Studio on Mac Mini (LLM_OPENAI_BASE_URL, port 1234)
+# Embeddings: Ollama on Mac Mini (OLLAMA_BASE_URL, port 11434)
+#
+# Usage:
+#   cp .env.remote.example .env.remote
+#   make up-remote
+
+services:
+  app:
+    env_file:
+      - .env.remote
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://192.168.1.138:11434}
+      LLM_DEFAULT_PROVIDER: ${LLM_DEFAULT_PROVIDER:-openai}
+      LLM_OPENAI_BASE_URL: ${LLM_OPENAI_BASE_URL:-http://192.168.1.138:1234}
+      LLM_OPENAI_API_KEY: ${LLM_OPENAI_API_KEY:-lm-studio}
+      AUTH_DISABLED: ${AUTH_DISABLED:-true}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      JWT_SECRET: ${JWT_SECRET:-dev-change-me-in-production}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-10080}
+    depends_on: !reset
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started
+
+  worker:
+    env_file:
+      - .env.remote
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://192.168.1.138:11434}
+      LLM_DEFAULT_PROVIDER: ${LLM_DEFAULT_PROVIDER:-openai}
+      LLM_OPENAI_BASE_URL: ${LLM_OPENAI_BASE_URL:-http://192.168.1.138:1234}
+      LLM_OPENAI_API_KEY: ${LLM_OPENAI_API_KEY:-lm-studio}
+      AUTH_DISABLED: ${AUTH_DISABLED:-true}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      JWT_SECRET: ${JWT_SECRET:-dev-change-me-in-production}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-10080}
+    depends_on: !reset
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+      redis:
+        condition: service_started

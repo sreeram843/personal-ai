@@ -27,9 +27,9 @@ run_frontend_step() {
   )
 }
 
-run_step "Validating docker compose" docker compose -f "$ROOT_DIR/docker-compose.yml" config >/dev/null
+run_step "Validating docker compose profiles" make -C "$ROOT_DIR" compose-validate
 run_step "Running lightweight security checks" python "$ROOT_DIR/scripts/security_checks.py"
-run_step "Compiling Python sources" python -m compileall "$ROOT_DIR/app" "$ROOT_DIR/api" "$ROOT_DIR/tests"
+run_step "Compiling Python sources" python -m compileall "$ROOT_DIR/app" "$ROOT_DIR/tests"
 run_step "Running backend reliability tests" python -m pytest "$ROOT_DIR/tests"
 run_frontend_step "Linting frontend" "npm run lint"
 run_frontend_step "Building frontend" "npm run build"

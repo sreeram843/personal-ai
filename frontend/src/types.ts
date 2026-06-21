@@ -36,6 +36,7 @@ export interface ChatResponsePayload {
   message: string;
   sources?: RetrievedSource[];
   workflow?: WorkflowTrace;
+  conversation_id?: string;
 }
 
 export interface WorkflowEventPayload {
@@ -85,10 +86,3 @@ export interface UploadStatus {
 }
 
 export type ConversationMode = 'chat' | 'smart';
-
-export type PersonaType = 'ideal_chatbot' | 'therapist' | 'barney';
-
-export interface Persona {
-  name: PersonaType;
-  description: string;
-}

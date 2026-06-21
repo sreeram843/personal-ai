@@ -34,12 +34,10 @@ The following instructions apply when performing code reviews for this personal 
 - [ ] Component respects dark/light theme variables
 - [ ] No hardcoded colors—use CSS variables from `index.css`
 
-### Terminal/UI Mode Features
-- [ ] MACHINE_ALPHA_7 formatting is preserved in outputs
-- [ ] Phosphor theme toggle works correctly
-- [ ] Terminal mode text input integrates seamlessly without duplicates
-- [ ] CRT screen effects (scanlines, flicker) render correctly
-- [ ] Web Audio callbacks execute without blocking UI
+### Frontend UI
+- [ ] Light/dark theme and accent (phosphor) toggles work correctly
+- [ ] Chat input, voice, and attach actions work without layout issues
+- [ ] Web Audio feedback (optional key/send sounds) does not block the UI
 
 ---
 
@@ -62,10 +60,9 @@ The following instructions apply when performing code reviews for this personal 
 - [ ] Imports grouped: standard library, third-party, local (alphabetical)
 
 ### Persona/System Prompts
-- [ ] MACHINE_ALPHA_7 persona instructions are clear and consistent
-- [ ] Response formatting matches expected output structure
-- [ ] Timestamp prefixes `[HH:MM:SS] MACHINE_ALPHA_7: >` are included
-- [ ] Error codes and terminal-style responses are used appropriately
+- [ ] Persona and system instructions are clear and consistent
+- [ ] API responses return plain `message` text (readable in any chat UI)
+- [ ] User-facing error copy is short and clear (avoid cryptic error codes in the default path)
 
 ### Ollama/Qdrant Integration
 - [ ] Health checks for external services are in place
@@ -128,7 +125,7 @@ The following instructions apply when performing code reviews for this personal 
 - [ ] Backend syntax valid: `python -m py_compile app/**/*.py`
 - [ ] Docker build passes: `docker compose up --build`
 - [ ] API endpoints verified with curl or similar tool
-- [ ] Both Terminal and Classic UI modes tested
+- [ ] Primary chat UI flows tested (empty state, send, settings)
 
 ---
 
@@ -148,8 +145,7 @@ The following instructions apply when performing code reviews for this personal 
 2. **Safari Fetch Errors**: Ensure `safeFetch()` is used for network calls
 3. **Docker Build Failures**: Verify Node build stage completes before Python stage
 4. **Ollama Connectivity**: Ensure service is healthy before making inference calls
-5. **Terminal Mode Styling**: Check CRT effects render without layout shift
-6. **Phosphor Theme Sync**: Verify theme state persists across page refreshes
+5. **Phosphor Theme Sync**: Verify theme state persists across page refreshes
 
 ---
 

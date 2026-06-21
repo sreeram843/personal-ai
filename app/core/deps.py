@@ -10,14 +10,19 @@ from app.services.llm_gateway import (
     StageModelConfig,
     WorkflowModelProfile,
 )
+from app.services.geocoding import GeocodingService
 from app.services.live_data_manager import LiveDataManager
+from app.services.market_data import build_market_data_provider
 from app.services.ollama import OllamaClient
 from app.services.plan_linter import PlanLinter
-from app.services.run_store import RunStore
+from app.services.object_storage import ObjectStorage, build_object_storage
+from app.services.run_store import RunStore, build_run_store
 from app.services.tool_registry import ToolRegistry
 from app.services.vector_store import VectorStore
 from app.services.web_search import WebSearchService
-from app.services.workflow_memory import WorkflowMemoryStore
+from app.services.workflow_memory import WorkflowMemoryStore, build_workflow_memory_store
+from app.services.job_store import JobStore
+from app.db.session import get_db
 
 
 @lru_cache
@@ -30,7 +35,6 @@ def get_vector_store() -> VectorStore:
         vector_size=settings.embedding_dimension,
         distance=settings.qdrant_distance,
     )
-    store.ensure_collection()
     return store
 
 
@@ -47,7 +51,23 @@ def get_ollama_client() -> OllamaClient:
 
 @lru_cache
 def get_web_search() -> WebSearchService:
-    return WebSearchService(max_results=5, timeout=10)
+    settings = get_settings()
+    cache = build_adapter_cache(settings) if settings.enable_adapter_cache else None
+    geocoder = GeocodingService(
+        timeout=settings.llm_openai_timeout,
+        cache=cache,
+        cache_ttl_seconds=settings.geocoding_cache_ttl_seconds,
+    )
+    market_data = build_market_data_provider(
+        provider=settings.market_data_provider,
+        api_key=settings.finnhub_api_key,
+    )
+    return WebSearchService(
+        max_results=5,
+        timeout=10,
+        geocoder=geocoder,
+        market_data=market_data,
+    )
 
 
 @lru_cache
@@ -60,9 +80,11 @@ def get_live_data_manager() -> LiveDataManager:
 @lru_cache
 def get_workflow_memory_store() -> WorkflowMemoryStore:
     settings = get_settings()
-    return WorkflowMemoryStore(
+    return build_workflow_memory_store(
         file_path=settings.workflow_memory_path,
-        max_entries_per_conversation=settings.workflow_memory_max_entries,
+        max_entries=settings.workflow_memory_max_entries,
+        backend=settings.workflow_memory_backend,
+        redis_url=settings.redis_url,
     )
 
 
@@ -94,8 +116,12 @@ def get_workflow_model_profile() -> WorkflowModelProfile:
 
 @lru_cache
 def get_tool_registry() -> ToolRegistry:
-    """Return singleton tool registry instance."""
-    return ToolRegistry()
+    """Return singleton tool registry with built-in tools registered."""
+    from app.services.builtin_tools import register_builtin_tools
+
+    registry = ToolRegistry()
+    register_builtin_tools(registry, get_web_search())
+    return registry
 
 
 @lru_cache
@@ -114,7 +140,23 @@ def get_fallback_plan_manager() -> FallbackPlanManager:
 def get_run_store() -> RunStore:
     """Return singleton run store instance."""
     settings = get_settings()
-    return RunStore(storage_path=settings.workflow_runs_path)
+    return build_run_store(
+        storage_path=settings.workflow_runs_path,
+        backend=settings.run_store_backend,
+        redis_url=settings.redis_url,
+    )
+
+
+@lru_cache
+def get_object_storage() -> ObjectStorage:
+    settings = get_settings()
+    return build_object_storage(settings)
+
+
+@lru_cache
+def get_job_store() -> JobStore:
+    settings = get_settings()
+    return JobStore(redis_url=settings.redis_url)
 
 
 __all__ = [
@@ -129,4 +171,7 @@ __all__ = [
     "get_plan_linter",
     "get_fallback_plan_manager",
     "get_run_store",
+    "get_object_storage",
+    "get_job_store",
+    "get_db",
 ]

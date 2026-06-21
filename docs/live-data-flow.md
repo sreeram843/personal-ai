@@ -49,7 +49,7 @@ flowchart TD
     Unresolved[No adapter resolved] --> GuardRail[Return LIVE_DATA_NOT_VERIFIED\nguardrail error]
 
     CacheResp --> Render[Render response string\n+ append Data fetched timestamp]
-    Render --> Format([MACHINE_ALPHA_7 formatted\nresponse to client])
+    Render --> Format([Plain `message` string\nto client])
     GuardRail --> Format
 ```
 
@@ -57,15 +57,19 @@ flowchart TD
 
 ## Detection
 
-`LiveDataManager.is_live_intent_query()` marks a prompt as live-intent when it matches one of these domains:
+`LiveDataManager` uses `route_live_intent()` (`app/services/live_intent_router.py`) to classify queries into domains with structured slots before calling adapters:
 
-- FX conversion
-- commodity pricing
-- stock pricing
-- current weather
-- weather forecast
-- news
-- other freshness-sensitive prompts detected by the web-search heuristics
+| Domain | Slots | Example |
+|--------|-------|---------|
+| `fx` | `base`, `quote` | "usd to inr" |
+| `stock` | `ticker` | "msft stock price" |
+| `commodity` | `ticker`, `label` | "gold price" |
+| `weather_current` | `location` | "weather in Austin" |
+| `weather_forecast` | `location`, `days` | "forecast for Austin tomorrow" |
+| `news` | `topic` | "latest ai news" |
+| `generic_fresh` | _(none)_ | freshness wording only — does not fail closed |
+
+`LiveDataManager.is_live_intent_query()` returns true for any routed intent, including `generic_fresh`.
 
 ---
 

@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "penpot": {
+      "url": "https://design.penpot.app/mcp/stream?userToken=YOUR_PENPOT_MCP_KEY",
+      "type": "http"
+    },
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp?read_only=true",
+      "type": "http"
+    },
+    "github": {
+      "url": "https://api.githubcopilot.com/mcp/readonly",
+      "type": "http",
+      "headers": {
+        "Authorization": "Bearer YOUR_GITHUB_PAT"
+      }
+    },
+    "chroma-package-search": {
+      "url": "https://mcp.trychroma.com/package-search/v1",
+      "type": "http",
+      "headers": {
+        "x-chroma-token": "YOUR_CHROMA_API_KEY"
+      }
+    },
+    "code-review-graph": {
+      "command": "/path/to/python3.12",
+      "args": ["-m", "code_review_graph", "serve"],
+      "type": "stdio"
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"],
+      "type": "stdio"
+    }
+  }
+}

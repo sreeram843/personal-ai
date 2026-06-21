@@ -22,8 +22,8 @@ export function UploadStatusList({ items }: Props) {
             {item.error && <div className="text-[11px] text-[var(--ui-danger)]">{item.error}</div>}
           </div>
           <div className="flex items-center gap-1 text-[var(--phosphor-dim)]">
-            {item.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-[var(--phosphor)]" />}
-            {item.status === 'success' && <Check className="h-4 w-4 text-[var(--phosphor)]" />}
+            {item.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-[var(--ui-focus)]" />}
+            {item.status === 'success' && <Check className="h-4 w-4 text-[var(--ui-focus)]" />}
             {item.status === 'error' && <XCircle className="h-4 w-4 text-[var(--ui-danger)]" />}
             <span className="text-[11px]">{item.status.toUpperCase()}</span>
           </div>

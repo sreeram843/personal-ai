@@ -44,6 +44,7 @@ class WorkflowRun(BaseModel):
     parent_run_id: Optional[str] = Field(None, description="Parent run if this is a retry/branch")
     mode: str = Field(..., description="Mode: 'chat', 'rag', or 'workflow'")
     conversation_id: Optional[str] = Field(None, description="Associated conversation ID")
+    user_id: Optional[str] = Field(None, description="Owner user ID for multi-tenant isolation")
     status: RunStatus = Field(default=RunStatus.PENDING, description="Current run status")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
     started_at: Optional[datetime] = Field(None, description="Start execution timestamp")

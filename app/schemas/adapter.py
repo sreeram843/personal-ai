@@ -21,6 +21,7 @@ class AdapterResult(BaseModel):
     data: Dict[str, Any] = Field(default_factory=dict)
     error_code: Optional[str] = None
     error_message: Optional[str] = None
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
 
 
 __all__ = ["AdapterResult", "AdapterStatus"]

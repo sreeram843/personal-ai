@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react';
 import type { ChatMessage } from '../types';
+import { MessageContent } from './MessageContent';
 
 interface Props {
   message: ChatMessage;
@@ -63,99 +64,78 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
     return { readCount, writeCount, latestRead, latestWrite };
   }, [message.workflowMemoryEvents]);
 
-  const structuredParagraphs = useMemo(() => {
-    if (isUser) {
-      return [] as string[];
-    }
-    return message.content
-      .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .slice(0, 5);
-  }, [isUser, message.content]);
-
   return (
     <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <article className={`flex w-full max-w-3xl gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
-        <div className={`grid h-8 w-8 shrink-0 place-content-center rounded-full text-[11px] font-semibold ${isUser ? 'bg-[var(--ui-bg-elevated)] text-[var(--phosphor)] border border-[var(--ui-border)]' : 'bg-[var(--ui-focus)] text-white'}`}>
-          {isUser ? 'U1' : 'AI'}
+      <article className={`flex w-full max-w-full ${isUser ? 'max-w-[85%] flex-row-reverse' : 'flex-row'} gap-2.5`}>
+        <div
+          className={`mt-0.5 grid h-7 w-7 shrink-0 place-content-center rounded-full text-[10px] font-semibold ${
+            isUser
+              ? 'bg-[var(--ui-bg-elevated)] text-[var(--phosphor-dim)] ring-1 ring-[var(--ui-border)]'
+              : 'bg-[var(--ui-focus)] text-[var(--ui-accent-fg)]'
+          }`}
+        >
+          {isUser ? 'U' : 'AI'}
         </div>
 
-        <div className={`min-w-0 ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
+        <div className={`min-w-0 flex-1 ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
           <div
-            className={`w-full rounded-2xl border p-4 text-[var(--phosphor)] ${
+            className={
               isUser
-                ? 'border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] rounded-br-md'
-                : 'border-[var(--ui-border)] bg-[var(--ui-panel-strong)] rounded-bl-md'
-            }`}
+                ? 'rounded-2xl rounded-br-md bg-[var(--ui-bg-elevated)] px-3.5 py-2.5 text-[var(--phosphor)] ring-1 ring-[var(--ui-border)]'
+                : 'py-0.5 text-[var(--phosphor)]'
+            }
           >
-            {isUser ? (
-              <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--phosphor)]">{message.content || (isStreaming ? 'Loading...' : '')}</pre>
-            ) : (
-              <div className="space-y-2">
-                {structuredParagraphs.length > 1 ? (
-                  <div className="space-y-2">
-                    {structuredParagraphs.map((entry, index) => (
-                      <div key={`${message.id}-card-${index}`} className="rounded-lg bg-[var(--ui-bg-elevated)] px-3 py-2 text-sm leading-relaxed">
-                        {entry}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <pre className="whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--phosphor)]">{message.content || (isStreaming ? 'Loading...' : '')}</pre>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className={`mt-1 text-[11px] text-[var(--phosphor-dim)] ${isUser ? 'text-right' : 'text-left'}`}>
-            {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            <MessageContent content={message.content || (isStreaming ? 'Loading...' : '')} />
           </div>
 
           {!isUser && (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-1 flex items-center gap-0.5">
               <button
                 type="button"
                 onClick={() => onCopy?.(message)}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--ui-border)] px-2 py-1 text-[11px] text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)]"
+                className="grid h-7 w-7 shrink-0 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] active:scale-[0.98]"
+                aria-label="Copy message"
+                title="Copy"
               >
-                <Copy className="h-3.5 w-3.5" />
-                Copy
+                <Copy className="h-3.5 w-3.5" aria-hidden />
               </button>
               <button
                 type="button"
                 onClick={() => onRegenerate?.(message)}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--ui-border)] px-2 py-1 text-[11px] text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)]"
+                className="grid h-7 w-7 shrink-0 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] active:scale-[0.98]"
+                aria-label="Regenerate"
+                title="Regenerate"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
-                Regenerate
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden />
               </button>
               <button
                 type="button"
                 onClick={() => onFeedback?.(message, 'up')}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--ui-border)] px-2 py-1 text-[11px] text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)]"
+                className="grid h-7 w-7 shrink-0 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] active:scale-[0.98]"
                 aria-label="Thumbs up"
+                title="Helpful"
               >
-                <ThumbsUp className="h-3.5 w-3.5" />
+                <ThumbsUp className="h-3.5 w-3.5" aria-hidden />
               </button>
               <button
                 type="button"
                 onClick={() => onFeedback?.(message, 'down')}
-                className="inline-flex items-center gap-1 rounded-md border border-[var(--ui-border)] px-2 py-1 text-[11px] text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)]"
+                className="grid h-7 w-7 shrink-0 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] active:scale-[0.98]"
                 aria-label="Thumbs down"
+                title="Not helpful"
               >
-                <ThumbsDown className="h-3.5 w-3.5" />
+                <ThumbsDown className="h-3.5 w-3.5" aria-hidden />
               </button>
             </div>
           )}
 
           {message.latencyMs !== undefined && (
-            <div className="mt-1 text-[11px] text-[var(--phosphor-dim)]">{Math.round(message.latencyMs)} ms</div>
+            <div className="mt-0.5 text-xs text-[var(--phosphor-dim)]">{Math.round(message.latencyMs)} ms</div>
           )}
 
         {message.sources && message.sources.length > 0 && (
-          <div className="mt-2 rounded border border-[var(--ui-border)] p-2 text-[11px] text-[var(--phosphor-dim)]">
-            <div className="font-medium uppercase text-[var(--phosphor-bright)]">SOURCES</div>
+          <div className="mt-2 rounded-lg border border-[var(--ui-border)] p-2 text-xs text-[var(--phosphor-dim)]">
+            <div className="font-medium text-[var(--phosphor-bright)]">Sources</div>
             <ul className="mt-1 space-y-1">
               {message.sources.map((source) => {
                 const displayName =
@@ -163,7 +143,7 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
                 const pathValue = typeof source.metadata?.path === 'string' ? source.metadata.path : undefined;
 
                 return (
-                  <li key={source.id} className="rounded border border-[var(--ui-border)] p-1">
+                  <li key={source.id} className="rounded border border-[var(--ui-border)] p-1.5">
                     <div className="font-medium text-[var(--phosphor)]">{displayName}</div>
                     {pathValue && <div className="text-[var(--phosphor-dim)]">{pathValue}</div>}
                     {source.score !== undefined && (
@@ -177,12 +157,12 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
         )}
 
         {message.workflow && message.workflow.steps.length > 0 && (
-          <div className="mt-2 rounded border border-[var(--ui-border)] p-2 text-[11px] text-[var(--phosphor-dim)]">
-            <div className="font-medium uppercase text-[var(--phosphor-bright)]">WORKFLOW TRACE</div>
+          <div className="mt-2 rounded-lg border border-[var(--ui-border)] p-2 text-xs text-[var(--phosphor-dim)]">
+            <div className="font-medium text-[var(--phosphor-bright)]">Workflow trace</div>
             <div className="mt-1 text-[var(--phosphor)]">status {message.workflow.status}</div>
             <ul className="mt-1 space-y-1">
               {message.workflow.steps.map((step) => (
-                <li key={step.id} className="rounded border border-[var(--ui-border)] p-1">
+                <li key={step.id} className="rounded border border-[var(--ui-border)] p-1.5">
                   <div className="font-medium text-[var(--phosphor)]">{step.agent} · {step.title}</div>
                   <div className="text-[var(--phosphor-dim)]">{step.status}</div>
                   {step.summary && <div className="text-[var(--phosphor-dim)]">{step.summary}</div>}
@@ -193,9 +173,9 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
         )}
 
         {message.workflowMemoryEvents && message.workflowMemoryEvents.length > 0 && (
-          <div className="mt-2 rounded border border-[var(--ui-border)] p-2 text-[11px] text-[var(--phosphor-dim)]">
+          <div className="mt-2 rounded-lg border border-[var(--ui-border)] p-2 text-xs text-[var(--phosphor-dim)]">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-medium uppercase text-[var(--phosphor-bright)]">WORKFLOW MEMORY</div>
+              <div className="font-medium text-[var(--phosphor-bright)]">Workflow memory</div>
               <button
                 type="button"
                 onClick={() => setMemoryExpanded((prev) => !prev)}
@@ -216,7 +196,7 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
             {memoryExpanded && (
               <ul className="mt-1 space-y-1">
                 {message.workflowMemoryEvents.map((entry, index) => (
-                  <li key={`${entry.phase}-${index}`} className="rounded border border-[var(--ui-border)] p-1">
+                  <li key={`${entry.phase}-${index}`} className="rounded border border-[var(--ui-border)] p-1.5">
                     <div className="font-medium text-[var(--phosphor)]">{entry.phase === 'read' ? 'loaded' : 'saved'}</div>
                     <div className="text-[var(--phosphor-dim)]">{entry.summary}</div>
                   </li>
@@ -227,9 +207,9 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
         )}
 
         {message.workflowSourceEvents && message.workflowSourceEvents.length > 0 && (
-          <div className="mt-2 rounded border border-[var(--ui-border)] p-2 text-[11px] text-[var(--phosphor-dim)]">
+          <div className="mt-2 rounded-lg border border-[var(--ui-border)] p-2 text-xs text-[var(--phosphor-dim)]">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-medium uppercase text-[var(--phosphor-bright)]">STEP SOURCES</div>
+              <div className="font-medium text-[var(--phosphor-bright)]">Step sources</div>
               <button
                 type="button"
                 onClick={() => setSourcesExpanded((prev) => !prev)}
@@ -243,7 +223,7 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
             </div>
             <ul className="mt-1 space-y-1">
               {(sourcesExpanded ? groupedSourceEvents : groupedSourceEvents.slice(0, 3)).map((entry) => (
-                <li key={entry.key} className="rounded border border-[var(--ui-border)] p-1">
+                <li key={entry.key} className="rounded border border-[var(--ui-border)] p-1.5">
                   <div className="font-medium text-[var(--phosphor)]">{entry.agent} · {entry.stepId}</div>
                   <div className="text-[var(--phosphor-dim)]">{entry.total} source{entry.total === 1 ? '' : 's'} across {entry.events} event{entry.events === 1 ? '' : 's'}</div>
                 </li>
@@ -256,7 +236,7 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
         )}
 
           {isStreaming && !isUser && (
-            <div className="mt-2 text-[11px] text-[var(--phosphor-dim)]">Streaming response...</div>
+            <div className="mt-1 text-xs text-[var(--phosphor-dim)]">Streaming response...</div>
           )}
         </div>
       </article>

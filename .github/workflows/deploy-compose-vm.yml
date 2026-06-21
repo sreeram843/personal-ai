@@ -1,0 +1,64 @@
+# Deploy to a single VM via SSH + Docker Compose (staging / small prod).
+#
+# Use when you do NOT want Kubernetes yet — e.g. Hetzner, DigitalOcean, EC2.
+# The VM should have Docker + Compose installed and repo cloned to DEPLOY_PATH.
+#
+# Required GitHub secrets (Environment: staging or production):
+#   SSH_HOST            VM hostname or IP
+#   SSH_USER            e.g. ubuntu
+#   SSH_PRIVATE_KEY     PEM private key for SSH
+#   DEPLOY_PATH         e.g. /opt/personal-ai
+#   ENV_FILE            full contents of .env.cloud (multiline secret)
+#
+# Optional:
+#   COMPOSE_PROFILES    default: cloud-chat,workers
+
+name: Deploy to VM (Docker Compose)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-compose-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: SSH deploy
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write env file
+        run: |
+          printf '%s\n' "${{ secrets.ENV_FILE }}" > .env.cloud.deploy
+
+      - name: Rsync project to server
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude .git --exclude node_modules --exclude .venv
+          path: ./
+          remote_path: ${{ secrets.DEPLOY_PATH }}
+          remote_host: ${{ secrets.SSH_HOST }}
+          remote_user: ${{ secrets.SSH_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Copy env and restart stack
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            mv .env.cloud.deploy .env.cloud
+            docker compose \
+              --profile cloud-chat --profile workers \
+              -f docker-compose.yml -f docker-compose.cloud.yml \
+              --env-file .env.cloud \
+              up -d --build
+            docker compose --env-file .env.cloud exec -T app alembic upgrade head
+            curl -fsS http://127.0.0.1:8000/health

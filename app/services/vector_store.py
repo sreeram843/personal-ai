@@ -6,7 +6,10 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import UUID, uuid4
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PointStruct, VectorParams
+
+
+USER_ID_PAYLOAD_KEY = "user_id"
 
 
 logger = logging.getLogger(__name__)
@@ -82,37 +85,59 @@ class VectorStore:
             vectors_config=VectorParams(size=self._vector_size, distance=self._distance),
         )
 
-    def upsert(self, embeddings: Sequence[Sequence[float]], documents: Sequence[StoredDocument]) -> None:
-        """Upsert document chunks and their embeddings into Qdrant."""
+    def upsert(
+        self,
+        embeddings: Sequence[Sequence[float]],
+        documents: Sequence[StoredDocument],
+        *,
+        user_id: str,
+    ) -> List[str]:
+        """Upsert document chunks and their embeddings into Qdrant for one user."""
 
         if len(embeddings) != len(documents):
             raise ValueError("Embeddings and documents collections must have the same length")
 
-        points = []
+        points: List[PointStruct] = []
+        point_ids: List[str] = []
         for vector, document in zip(embeddings, documents):
-            payload = {**document.metadata, "text": document.text}
+            payload = {**document.metadata, "text": document.text, USER_ID_PAYLOAD_KEY: user_id}
             point_id = self._resolve_point_id(document)
+            point_ids.append(str(point_id))
             points.append(PointStruct(id=point_id, vector=list(vector), payload=payload))
 
         if points:
+            self.ensure_collection()
             self._client.upsert(collection_name=self._collection, points=points)
+        return point_ids
+
+    def _user_filter(self, user_id: str) -> Filter:
+        return Filter(
+            must=[
+                FieldCondition(
+                    key=USER_ID_PAYLOAD_KEY,
+                    match=MatchValue(value=user_id),
+                )
+            ]
+        )
 
     def search(
         self,
         query_vector: Sequence[float],
         *,
+        user_id: str,
         limit: int,
         score_threshold: Optional[float] = None,
     ) -> List[Any]:
-        """Return the raw Qdrant search results."""
+        """Return Qdrant search results scoped to a single user."""
 
         return self._client.search(
             collection_name=self._collection,
             query_vector=list(query_vector),
             limit=limit,
             score_threshold=score_threshold,
+            query_filter=self._user_filter(user_id),
             with_payload=True,
         )
 
 
-__all__ = ["VectorStore", "StoredDocument"]
+__all__ = ["VectorStore", "StoredDocument", "USER_ID_PAYLOAD_KEY"]

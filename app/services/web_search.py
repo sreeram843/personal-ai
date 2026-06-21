@@ -14,6 +14,14 @@ from duckduckgo_search import DDGS
 
 logger = logging.getLogger(__name__)
 
+# ISO-4217 alphabetic codes used to reject false currency pairs from plain English
+# (e.g. "our" / "nda" were previously treated as OUR/NDA).
+_KNOWN_CCY_ALPHA3: frozenset[str] = frozenset(
+    "AED ARS AUD BGN BHD BRL CAD CHF CLP CNY COP CZK DKK EGP ETB EUR GBP GHS HKD HUF ILS "
+    "INR ISK JOD JPY KRW LKR MXN MYR NGN NOK NPR NZD PHP PLN RON RUB SEK SGD THB TRY TWD UAH "
+    "UGX USD UYU UZS VND XAF XOF ZAR".split()
+)
+
 
 def _fmt_utc() -> str:
     """Return a human-readable UTC timestamp: 'YYYY-MM-DD HH:MM:SS UTC'."""
@@ -23,15 +31,19 @@ def _fmt_utc() -> str:
 class WebSearchService:
     """Search the web using DuckDuckGo."""
 
-    def __init__(self, max_results: int = 5, timeout: int = 10):
-        """Initialize web search service.
-        
-        Args:
-            max_results: Maximum number of search results to return
-            timeout: HTTP request timeout in seconds
-        """
+    def __init__(
+        self,
+        max_results: int = 5,
+        timeout: int = 10,
+        *,
+        geocoder=None,
+        market_data=None,
+    ):
+        """Initialize web search service."""
         self.max_results = max_results
         self.timeout = timeout
+        self._geocoder = geocoder
+        self._market_data = market_data
 
     async def search(self, query: str) -> list[dict]:
         """Search DuckDuckGo for query results.
@@ -60,9 +72,9 @@ class WebSearchService:
         """
         base = base_currency.upper().strip()
         quote = quote_currency.upper().strip()
-        url = f"https://api.frankfurter.app/latest?from={base}&to={quote}"
+        url = f"https://api.frankfurter.dev/v1/latest?from={base}&to={quote}"
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
                 response = await client.get(url)
                 response.raise_for_status()
                 payload = response.json()
@@ -104,7 +116,9 @@ class WebSearchService:
         )
 
     async def get_live_commodity_price(self, ticker: str) -> dict | None:
-        """Fetch live commodity/crypto price from Yahoo Finance v8 API (no API key needed)."""
+        """Fetch live commodity/crypto price via configured market data provider."""
+        if self._market_data is not None:
+            return await self._market_data.get_commodity_price(ticker)
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}"
         headers = {"User-Agent": "Mozilla/5.0 (compatible; personal-ai-bot/1.0)"}
         try:
@@ -127,7 +141,9 @@ class WebSearchService:
             return None
 
     async def get_live_stock_quote(self, ticker: str) -> dict | None:
-        """Fetch enriched live stock/ETF quote from Yahoo Finance v8 API."""
+        """Fetch enriched live stock/ETF quote via configured market data provider."""
+        if self._market_data is not None:
+            return await self._market_data.get_stock_quote(ticker)
         symbol = ticker.upper().strip()
         if not symbol:
             return None
@@ -224,6 +240,8 @@ class WebSearchService:
 
     async def _geocode_location(self, location: str) -> dict | None:
         """Resolve place name to geocoding payload via Open-Meteo."""
+        if self._geocoder is not None:
+            return await self._geocoder.resolve(location)
         place = location.strip()
         if not place:
             return None
@@ -390,19 +408,22 @@ class WebSearchService:
         fetched_at = _fmt_utc()
         code = weather.get("weather_code")
         code_label = WEATHER_CODE_LABELS.get(code, "Unknown condition")
+        location = weather["location"]
+        temp = weather["temperature"]
+        temp_unit = weather["temperature_unit"]
+        feels = weather["feels_like"]
+        humidity = weather["humidity"]
+        humidity_unit = weather["humidity_unit"]
+        precip = weather["precipitation"]
+        precip_unit = weather["precipitation_unit"]
+        wind = weather["wind_speed"]
+        wind_unit = weather["wind_speed_unit"]
 
         return (
-            "Verified current weather:\n"
-            f"- Location: {weather['location']}\n"
-            f"- Observation time: {weather['time']}\n"
-            f"- Condition: {code_label} (code={code})\n"
-            f"- Temperature: {weather['temperature']} {weather['temperature_unit']}\n"
-            f"- Feels like: {weather['feels_like']} {weather['temperature_unit']}\n"
-            f"- Humidity: {weather['humidity']}{weather['humidity_unit']}\n"
-            f"- Precipitation: {weather['precipitation']} {weather['precipitation_unit']}\n"
-            f"- Wind: {weather['wind_speed']} {weather['wind_speed_unit']}\n"
-            f"- Fetched: {fetched_at}\n"
-            f"- Source: {weather['source']}"
+            f"**{location}** — **{code_label}, {temp} {temp_unit}**\n\n"
+            f"Feels like {feels} {temp_unit} · Humidity {humidity}{humidity_unit} · "
+            f"Wind {wind} {wind_unit} · Rain {precip} {precip_unit}\n\n"
+            f"Source: {weather['source']} · Fetched: {fetched_at}"
         )
 
     async def build_weather_forecast_context(self, user_query: str) -> str:
@@ -421,28 +442,41 @@ class WebSearchService:
             return ""
 
         fetched_at = _fmt_utc()
-        lines = [
-            "Verified weather forecast:",
-            f"- Location: {forecast['location']}",
-            f"- Horizon: {len(forecast['days'])} day(s)",
-        ]
+        location = forecast["location"]
+        temp_unit = forecast["temp_unit"]
+        precip_unit = forecast["precip_unit"]
+        wind_unit = forecast["wind_unit"]
+        day_lines: list[str] = []
         for row in forecast["days"]:
             code = row.get("code")
             code_label = WEATHER_CODE_LABELS.get(code, "Unknown condition")
-            lines.append(
-                (
-                    f"- {row.get('date')}: {code_label} (code={code}), "
-                    f"max={row.get('temp_max')} {forecast['temp_unit']}, "
-                    f"min={row.get('temp_min')} {forecast['temp_unit']}, "
-                    f"precip={row.get('precip')} {forecast['precip_unit']}, "
-                    f"wind_max={row.get('wind_max')} {forecast['wind_unit']}"
-                )
-            )
-        lines.extend([
-            f"- Fetched: {fetched_at}",
-            f"- Source: {forecast['source']}",
-        ])
-        return "\n".join(lines)
+            date_str = str(row.get("date", ""))
+            try:
+                day_label = datetime.strptime(date_str[:10], "%Y-%m-%d").strftime("%a, %b %d").replace(" 0", " ")
+            except ValueError:
+                day_label = date_str
+            min_t = row.get("temp_min")
+            max_t = row.get("temp_max")
+            if min_t is not None and max_t is not None:
+                temps = f"{float(min_t):.0f}–{float(max_t):.0f} {temp_unit}"
+            else:
+                temps = ""
+            parts = [code_label]
+            if temps:
+                parts.append(temps)
+            precip = row.get("precip")
+            if precip is not None and float(precip) > 0:
+                parts.append(f"{float(precip):.1f} {precip_unit} rain")
+            wind = row.get("wind_max")
+            if wind is not None:
+                parts.append(f"winds to {float(wind):.0f} {wind_unit}")
+            day_lines.append(f"**{day_label}** — {' · '.join(parts)}")
+
+        return (
+            f"**{location}** — {len(forecast['days'])}-day forecast\n\n"
+            f"{chr(10).join(day_lines)}\n\n"
+            f"Source: {forecast['source']} · Fetched: {fetched_at}"
+        )
 
     async def get_live_news(self, topic: str, limit: int = 5) -> list[dict]:
         """Fetch latest headlines from Google News RSS (no API key)."""
@@ -662,12 +696,19 @@ def should_use_web_search(response_text: str) -> bool:
 
 
 def should_prioritize_fresh_web_data(user_query: str) -> bool:
-    """Detect queries that usually need fresh internet data."""
+    """Detect queries that usually need fresh internet data.
+
+    Currency pairs are always treated as live. ``value``/``version`` are removed from
+    loose substring matches (noisy for general questions). "current" is only counted
+    when it is probably not a path/UI reference (e.g. not "current directory").
+    """
+    if extract_currency_pair(user_query) is not None:
+        return True
     text = user_query.lower()
 
     freshness_terms = [
         "latest",
-        "current",
+        "fresh",
         "today",
         "now",
         "recent",
@@ -679,7 +720,6 @@ def should_prioritize_fresh_web_data(user_query: str) -> bool:
         "stock",
         "market",
         "release",
-        "version",
         "weather",
         "forecast",
         "headline",
@@ -688,14 +728,25 @@ def should_prioritize_fresh_web_data(user_query: str) -> bool:
         "weekly",
         "score",
         "election",
-        "value",
         "convert",
         "conversion",
         "exchange",
         "fx",
         "forex",
+        "yesterday",
+        "last week",
+        "last month",
+        "this week",
+        "as of",
+        "breaking",
     ]
-    return any(term in text for term in freshness_terms) or extract_currency_pair(user_query) is not None
+    if any(term in text for term in freshness_terms):
+        return True
+    if re.search(r"\bcurrent\b", text) and "current directory" not in text and "current folder" not in text:
+        return True
+    if re.search(r"\b(versions?|v\d+\.\d+)\b", text):
+        return True
+    return False
 
 
 def extract_currency_pair(user_query: str) -> tuple[str, str] | None:
@@ -736,7 +787,7 @@ def extract_currency_pair(user_query: str) -> tuple[str, str] | None:
         mapped = alias_to_code.get(token)
         if mapped:
             codes.append(mapped)
-        elif len(token) == 3 and token.isalpha():
+        elif len(token) == 3 and token.isalpha() and token.upper() in _KNOWN_CCY_ALPHA3:
             codes.append(token.upper())
 
     slash_match = re.search(r"\b([a-zA-Z]{3})\s*/\s*([a-zA-Z]{3})\b", text)
@@ -814,7 +865,7 @@ _WEATHER_KEYWORDS = {
 def is_weather_query(user_query: str) -> bool:
     """Return True when query appears to ask for weather conditions."""
     text = user_query.lower()
-    return any(keyword in text for keyword in _WEATHER_KEYWORDS)
+    return any(re.search(r"\b" + re.escape(kw) + r"\b", text) for kw in _WEATHER_KEYWORDS)
 
 
 def extract_weather_location(user_query: str) -> str | None:
@@ -824,16 +875,26 @@ def extract_weather_location(user_query: str) -> str | None:
 
     text = user_query.strip()
 
-    # Prefer explicit "in <location>" capture.
-    in_match = re.search(r"\bin\s+([a-zA-Z][a-zA-Z\s,.-]{1,80})\??$", text, flags=re.IGNORECASE)
-    if in_match:
-        candidate = in_match.group(1).strip(" .?,-")
-        if candidate:
-            return candidate
+    # Prefer explicit "in <location>" or "for <location>" capture.
+    for pattern in (
+        r"\bin\s+([a-zA-Z][a-zA-Z\s,.-]{1,80})\??$",
+        r"\bfor\s+([a-zA-Z][a-zA-Z\s,.-]{1,80})\??$",
+    ):
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            candidate = match.group(1).strip(" .?,-")
+            candidate = re.sub(
+                r"\s*\b(today|tonight|now|currently|right now|tomorrow|this (?:morning|afternoon|evening|week))\b\s*$",
+                "",
+                candidate,
+                flags=re.IGNORECASE,
+            ).strip(" .?,-")
+            if candidate:
+                return candidate
 
     # Fallback: remove common weather terms and use remaining words as place.
     cleaned = re.sub(
-        r"\b(tell me|what is|what's|current|now|today|the|weather|temperature|forecast|humidity|rain|snow|wind|in)\b",
+        r"\b(tell me|what is|what's|current|now|today|the|weather|temperature|forecast|humidity|rain|snow|wind|in|for)\b",
         " ",
         text,
         flags=re.IGNORECASE,
@@ -905,7 +966,7 @@ def detect_commodity_query(user_query: str) -> tuple[str, str] | None:
     """Return (yahoo_ticker, label) if the query is about a tradable commodity/crypto."""
     text = user_query.lower()
     for keywords, ticker, label in _COMMODITY_MAP:
-        if any(kw in text for kw in keywords):
+        if any(re.search(r"\b" + re.escape(kw) + r"\b", text) for kw in keywords):
             return ticker, label
     return None
 
@@ -922,19 +983,21 @@ _NON_TICKER_WORDS = {
     # Common English words that pattern-match as 1-5 char tickers
     "STOCK", "SHARE", "PRICE", "QUOTE", "WHAT", "GIVE", "SHOW", "TELL",
     "LIVE", "LAST", "OPEN", "REAL", "TIME", "DATA", "RATE", "NEWS",
-    "GET", "CAN", "HAS", "ITS", "ALL", "ANY",
+    "GET", "CAN", "HAS", "ITS", "ALL", "ANY", "IS", "OF", "A", "AN", "IN",
+    "ON", "AT", "TO", "DO", "IF", "OR", "AS", "BY", "UP", "SO", "NO", "GO",
     # Commodity/energy names
     "OIL", "GAS", "GOLD", "CORN", "COAL",
 }
 
 _STOCK_PATTERNS = [
+    # "stock price of TDOC", "price of AAPL" — check before bare TICKER stock
+    r"\b(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Z]{1,5})\b",
+    # "what is the stock price of TDOC"
+    r"\bwhat\s+is\s+(?:the\s+)?(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Z]{1,5})\b",
+    # "what is TDOC stock", "what is MSFT price"
+    r"\bwhat\s+is\s+(?:the\s+)?([A-Z]{1,5})\s+(?:stock|share|price|quote)\b",
     # "TDOC stock price", "AAPL stock", "TSLA shares"
     r"\b([A-Z]{1,5})\s+(?:stock|share|shares|price|quote)\b",
-    # "stock price of NVDA", "price of AAPL"
-    r"\b(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Z]{1,5})\b",
-    # "what is TDOC stock", "what is MSFT price"
-    r"\bwhat\s+is\s+([A-Z]{1,5})\s+(?:stock|share|price|quote)\b",
-    # case-insensitive variants via separate pass
 ]
 
 

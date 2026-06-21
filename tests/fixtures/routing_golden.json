@@ -1,0 +1,44 @@
+[
+  {
+    "query": "hi",
+    "expected_mode": "chat",
+    "expect_web_research": false,
+    "expect_workflow": false
+  },
+  {
+    "query": "thanks",
+    "expected_mode": "chat",
+    "expect_web_research": false,
+    "expect_workflow": false
+  },
+  {
+    "query": "Rewrite this email to be friendlier",
+    "expected_mode": "rag",
+    "expect_web_research": false,
+    "expect_workflow": false
+  },
+  {
+    "query": "Summarize my uploaded notes with citations",
+    "expected_mode": "rag",
+    "expect_web_research": false,
+    "expect_workflow": false
+  },
+  {
+    "query": "Compare three deployment strategies for multi-tenant RAG and recommend a roadmap with trade-offs",
+    "expected_mode": "workflow",
+    "expect_web_research": true,
+    "expect_workflow": true
+  },
+  {
+    "query": "What is the current EUR/USD exchange rate and how does it compare to last week?",
+    "expected_mode": "workflow",
+    "expect_web_research": true,
+    "expect_workflow": true
+  },
+  {
+    "query": "Explain how cosine similarity works in embeddings",
+    "expected_mode": "rag",
+    "expect_web_research": false,
+    "expect_workflow": false
+  }
+]

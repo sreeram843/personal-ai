@@ -73,7 +73,9 @@ def test_chat_returns_deterministic_adapter_response_with_provenance() -> None:
         assert "LIVE DATA RETRIEVED" in message
         assert "Source: Frankfurter API" in message
         assert "Fetched: 2026-03-22 23:58:00 UTC" in message
-        assert "Data fetched: 2026-03-22 23:58:00 UTC" in message
+        assert payload["live"]["domain"] == "fx"
+        assert payload["live"]["source"] == "Frankfurter API"
+        assert payload["live"]["verified"] is True
     finally:
         app.dependency_overrides.clear()
 
@@ -102,7 +104,7 @@ def test_rag_chat_returns_deterministic_adapter_response_with_provenance() -> No
         assert "LIVE DATA RETRIEVED" in message
         assert "Source: Open-Meteo" in message
         assert "Fetched: 2026-03-22 23:58:00 UTC" in message
-        assert "Data fetched: 2026-03-22 23:58:00 UTC" in message
+        assert "Fetched: 2026-03-22 23:58:00 UTC" in message
         assert payload["sources"] == []
     finally:
         app.dependency_overrides.clear()
@@ -121,7 +123,7 @@ def test_chat_live_intent_unresolved_returns_guardrail_error() -> None:
         message = payload["message"]
         assert "ERROR 404: LIVE DATA NOT VERIFIED" in message
         assert "Source: Live Adapter Router" in message
-        assert "Data fetched: 2026-03-22 23:59:59 UTC" in message
+        assert "Fetched: 2026-03-22 23:59:59 UTC" in message
     finally:
         app.dependency_overrides.clear()
 
@@ -139,7 +141,7 @@ def test_rag_chat_live_intent_unresolved_returns_guardrail_error() -> None:
         message = payload["message"]
         assert "ERROR 404: LIVE DATA NOT VERIFIED" in message
         assert "Source: Live Adapter Router" in message
-        assert "Data fetched: 2026-03-22 23:59:59 UTC" in message
+        assert "Fetched: 2026-03-22 23:59:59 UTC" in message
     finally:
         app.dependency_overrides.clear()
 

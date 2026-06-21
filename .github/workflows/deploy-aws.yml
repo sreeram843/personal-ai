@@ -1,0 +1,159 @@
+# Build the app image, push to ECR, and roll out on EKS via Helm.
+#
+# Prerequisites (one-time):
+#   1. EKS cluster + RDS + Redis (terraform/aws or existing infra)
+#   2. ECR repository for personal-ai
+#   3. GitHub Environment "production" with secrets below
+#   4. IAM role for GitHub OIDC (recommended) or AWS access keys
+#
+# Required GitHub secrets (Environment: production):
+#   AWS_REGION                  e.g. us-east-1
+#   AWS_DEPLOY_ROLE_ARN         IAM role with ECR push + EKS deploy (OIDC)
+#   ECR_REPOSITORY              e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/personal-ai
+#   EKS_CLUSTER_NAME            e.g. personal-ai-prod
+#   HELM_DATABASE_URL           postgresql+psycopg2://...
+#   HELM_REDIS_URL              redis://...
+#   HELM_QDRANT_URL             https://....cloud.qdrant.io
+#   HELM_JWT_SECRET             long random string
+#   HELM_QDRANT_API_KEY         optional
+#   HELM_LLM_CLOUD_API_KEY      Groq/Together key (cloud-chat mode)
+#
+# Optional secrets:
+#   HELM_GOOGLE_CLIENT_ID
+#   HELM_EXTRA_HELM_SET         extra `--set` args, space-separated key=val pairs
+
+name: Deploy to AWS (EKS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Image tag (default = git sha)
+        required: false
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: deploy-aws-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Build, push, Helm upgrade
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: meta
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          IMAGE: ${{ secrets.ECR_REPOSITORY }}:${{ steps.meta.outputs.tag }}
+        run: |
+          docker build -f Dockerfile.backend -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - uses: azure/setup-kubectl@v4
+
+      - uses: azure/setup-helm@v4
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --region "${{ secrets.AWS_REGION }}" \
+            --name "${{ secrets.EKS_CLUSTER_NAME }}"
+
+      - name: Helm upgrade
+        env:
+          EXTRA_SET: ${{ secrets.HELM_EXTRA_HELM_SET }}
+        run: |
+          set -euo pipefail
+          HELM_ARGS=(
+            upgrade --install personal-ai ./helm/personal-ai
+            --namespace personal-ai
+            --create-namespace
+            --set "image.repository=${{ secrets.ECR_REPOSITORY }}"
+            --set "image.tag=${{ steps.meta.outputs.tag }}"
+            --set "worker.enabled=true"
+            --set "env.AUTH_DISABLED=false"
+            --set "env.ENABLE_BACKGROUND_WORKERS=true"
+            --set "env.RUN_STORE_BACKEND=redis"
+            --set "env.WORKFLOW_MEMORY_BACKEND=redis"
+            --set "env.OBJECT_STORAGE_BACKEND=s3"
+            --set "env.LLM_DEFAULT_PROVIDER=openai"
+            --set "env.LLM_OPENAI_BASE_URL=https://api.groq.com/openai"
+            --set-string "env.DATABASE_URL=${{ secrets.HELM_DATABASE_URL }}"
+            --set-string "env.REDIS_URL=${{ secrets.HELM_REDIS_URL }}"
+            --set-string "env.QDRANT_URL=${{ secrets.HELM_QDRANT_URL }}"
+            --set-string "env.JWT_SECRET=${{ secrets.HELM_JWT_SECRET }}"
+            --set-string "env.LLM_OPENAI_API_KEY=${{ secrets.HELM_LLM_CLOUD_API_KEY }}"
+          )
+          if [ -n "${{ secrets.HELM_QDRANT_API_KEY }}" ]; then
+            HELM_ARGS+=(--set-string "env.QDRANT_API_KEY=${{ secrets.HELM_QDRANT_API_KEY }}")
+          fi
+          if [ -n "${{ secrets.HELM_GOOGLE_CLIENT_ID }}" ]; then
+            HELM_ARGS+=(--set-string "env.GOOGLE_CLIENT_ID=${{ secrets.HELM_GOOGLE_CLIENT_ID }}")
+          fi
+          if [ -n "$EXTRA_SET" ]; then
+            for pair in $EXTRA_SET; do
+              HELM_ARGS+=(--set "$pair")
+            done
+          fi
+          helm "${HELM_ARGS[@]}"
+
+      - name: Run database migrations
+        run: |
+          kubectl delete job personal-ai-db-migrate -n personal-ai --ignore-not-found=true
+          kubectl apply -n personal-ai -f - <<EOF
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: personal-ai-db-migrate
+          spec:
+            ttlSecondsAfterFinished: 300
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: migrate
+                    image: ${IMAGE}
+                    command: ["alembic", "upgrade", "head"]
+                    env:
+                      - name: DATABASE_URL
+                        value: "${{ secrets.HELM_DATABASE_URL }}"
+          EOF
+          kubectl wait -n personal-ai --for=condition=complete job/personal-ai-db-migrate --timeout=120s
+
+      - name: Smoke test (in-cluster port-forward)
+        run: |
+          kubectl rollout status deployment/personal-ai-app -n personal-ai --timeout=180s
+          kubectl port-forward -n personal-ai svc/personal-ai 8000:8000 &
+          sleep 3
+          curl -fsS http://127.0.0.1:8000/health
+          curl -fsS http://127.0.0.1:8000/ready

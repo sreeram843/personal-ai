@@ -4,6 +4,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
+from app.schemas.jobs import BackgroundJobStatus
+
 
 class IngestDocument(BaseModel):
     id: Optional[str] = None
@@ -16,7 +18,9 @@ class IngestRequest(BaseModel):
 
 
 class IngestResponse(BaseModel):
-    count: int
+    count: Optional[int] = None
+    job_id: Optional[str] = None
+    status: Optional[BackgroundJobStatus] = None
 
 
 __all__ = ["IngestDocument", "IngestRequest", "IngestResponse"]

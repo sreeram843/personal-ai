@@ -1,5 +1,4 @@
 let ctx: AudioContext | null = null;
-let lastPrintAt = 0;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') {
@@ -46,13 +45,4 @@ export function playKeyClick() {
 
 export function playSendChirp() {
   beep({ frequency: 540, durationMs: 35, gain: 0.03, type: 'triangle' });
-}
-
-export function playPrintTick() {
-  const now = Date.now();
-  if (now - lastPrintAt < 24) {
-    return;
-  }
-  lastPrintAt = now;
-  beep({ frequency: 1240, durationMs: 12, gain: 0.015, type: 'square' });
 }

@@ -9,7 +9,8 @@ from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.schemas.chat import ChatResponse, RetrievedChunk, WorkflowStep, WorkflowTrace
 from app.services.ollama import OllamaClient
 from app.services.vector_store import VectorStore
-from app.services.web_search import WebSearchService, should_prioritize_fresh_web_data
+from app.services.information_routing import should_run_web_research
+from app.services.web_search import WebSearchService
 from app.services.workflow_memory import WorkflowMemoryStore
 from app.services.workflow_roles import DEFAULT_WORKFLOW_ROLES
 
@@ -68,6 +69,7 @@ class OrchestratedChatService:
         system_prompt: str,
         chat_history: Sequence[Dict[str, str]],
         conversation_id: Optional[str],
+        user_id: Optional[str],
         top_k: int,
         score_threshold: Optional[float],
         options: Dict[str, Any],
@@ -83,6 +85,7 @@ class OrchestratedChatService:
             system_prompt=system_prompt,
             chat_history=chat_history,
             conversation_id=conversation_id,
+            user_id=user_id,
             top_k=top_k,
             score_threshold=score_threshold,
             options=options,
@@ -105,6 +108,7 @@ class OrchestratedChatService:
         system_prompt: str,
         chat_history: Sequence[Dict[str, str]],
         conversation_id: Optional[str],
+        user_id: Optional[str],
         top_k: int,
         score_threshold: Optional[float],
         options: Dict[str, Any],
@@ -115,7 +119,7 @@ class OrchestratedChatService:
     ) -> AsyncIterator[Dict[str, Any]]:
         memory_summary = ""
         if persist_memory and conversation_id:
-            memory_summary = await self._memory_store.get_summary(conversation_id)
+            memory_summary = await self._memory_store.get_summary(conversation_id, user_id=user_id)
             summary_text = memory_summary or "No prior workflow memory found for this conversation."
             yield {
                 "type": "memory",
@@ -129,6 +133,7 @@ class OrchestratedChatService:
             "system_prompt": system_prompt,
             "chat_history": list(chat_history),
             "conversation_id": conversation_id,
+            "user_id": user_id,
             "memory_summary": memory_summary,
             "retrieval_context": "",
             "web_context": "",
@@ -248,6 +253,7 @@ class OrchestratedChatService:
             await self._memory_store.append_entries(
                 conversation_id,
                 memory_entries,
+                user_id=user_id,
             )
             yield {
                 "type": "memory",
@@ -429,8 +435,14 @@ class OrchestratedChatService:
             return TaskOutcome(status="skipped", summary="Local retrieval disabled for this run.")
 
         embeddings = await self._embed_client.embed([state["query"]])
+        user_id = state.get("user_id")
+        if not user_id:
+            state["retrieval_context"] = ""
+            return TaskOutcome(status="skipped", summary="User scope missing for retrieval.")
+
         results = self._vector_store.search(
             embeddings[0],
+            user_id=str(user_id),
             limit=top_k,
             score_threshold=score_threshold,
         )
@@ -465,7 +477,8 @@ class OrchestratedChatService:
         )
 
     async def _run_researcher(self, state: Dict[str, Any]) -> TaskOutcome:
-        should_search = should_prioritize_fresh_web_data(state["query"]) or not state.get("retrieval_context")
+        has_internal = bool((state.get("retrieval_context") or "").strip())
+        should_search = should_run_web_research(state["query"], has_internal_hits=has_internal)
         if not should_search:
             state["web_context"] = ""
             return TaskOutcome(status="skipped", summary="Fresh web research was not needed for this query.")

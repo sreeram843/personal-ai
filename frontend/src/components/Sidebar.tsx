@@ -1,268 +1,110 @@
 import { clsx } from 'clsx';
-import { ChevronLeft, ChevronRight, FileUp, MessageCirclePlus, MessageSquare, Settings, Sparkles, X } from 'lucide-react';
-import type { ConversationMode, PersonaType } from '../types';
-
-interface ConversationSummary {
-  id: string;
-  title: string;
-  updatedAt?: number;
-  messageCount: number;
-}
+import { ChevronLeft, MessageCirclePlus, MessageSquare, PanelLeft, Sparkles } from 'lucide-react';
+import type { CurrentUser } from '../api';
+import type { ConversationMode } from '../types';
+import { ConversationListItem, type ConversationListItemData } from './ConversationListItem';
+import { UserMenu } from './UserMenu';
 
 interface Props {
   mode: ConversationMode;
   onModeChange: (mode: ConversationMode) => void;
   onNewChat: () => void;
-  onUpload: () => void;
-  theme: 'light' | 'dark';
-  onSetTheme: (theme: 'light' | 'dark') => void;
-  onSetUiMode: (mode: 'classic' | 'terminal') => void;
-  phosphor: 'green' | 'amber';
-  onSetPhosphor: (phosphor: 'green' | 'amber') => void;
-  persona: import('../types').PersonaType;
-  onPersonaChange: (persona: import('../types').PersonaType) => void;
-  conversations: ConversationSummary[];
+  conversations: ConversationListItemData[];
   activeConversationId: string;
   onSelectConversation: (id: string) => void;
-  uiMode: 'classic' | 'terminal';
+  onRenameConversation: (id: string, title: string) => void;
+  onTogglePinConversation: (id: string, pinned: boolean) => void;
+  onDeleteConversation: (id: string, title: string) => void;
   sidebarCollapsed: boolean;
   onToggleSidebarCollapsed: () => void;
-  settingsOpen: boolean;
-  onOpenSettings: () => void;
-  onCloseSettings: () => void;
+  theme: 'light' | 'dark';
+  user: CurrentUser;
+  onOpenAbout: () => void;
+  onLogout: () => void;
 }
 
 export function Sidebar({
   mode,
   onModeChange,
   onNewChat,
-  onUpload,
-  theme,
-  onSetTheme,
-  onSetUiMode,
-  phosphor,
-  onSetPhosphor,
-  persona,
-  onPersonaChange,
   conversations,
   activeConversationId,
   onSelectConversation,
-  uiMode,
+  onRenameConversation,
+  onTogglePinConversation,
+  onDeleteConversation,
   sidebarCollapsed,
   onToggleSidebarCollapsed,
-  settingsOpen,
-  onOpenSettings,
-  onCloseSettings,
+  theme,
+  user,
+  onOpenAbout,
+  onLogout,
 }: Props) {
-  const isTerminalUI = uiMode === 'terminal';
-  const iconButtonBase =
-    'grid h-10 w-10 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] focus-visible:ring-2 focus-visible:ring-[var(--ui-focus)]';
-
   const menus = [
-    {
-      id: 'chat',
-      label: 'QUICK CHAT',
-      icon: MessageSquare,
-      description: 'FAST DIRECT RESPONSES',
-    },
-    {
-      id: 'smart',
-      label: 'SMART CHAT',
-      icon: Sparkles,
-      description: 'AUTO-ROUTES CHAT/RAG/WORKFLOW',
-    },
-  ] as const;
+    { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
+    { id: 'smart' as const, label: 'Smart', icon: Sparkles },
+  ];
 
-  const personas = [
-    { id: 'ideal_chatbot', label: 'IDEAL CHATBOT', description: 'Principled Assistant' },
-    { id: 'therapist', label: 'THERAPIST', description: 'Empathetic & Validating' },
-    { id: 'barney', label: 'BARNEY', description: 'Charismatic Mentor' },
-  ] as const;
+  const pinned = conversations.filter((item) => item.pinned);
+  const recent = conversations.filter((item) => !item.pinned);
 
-  const settingsPanel = settingsOpen ? (
-    <div className="absolute inset-0 z-20 flex items-start justify-end bg-black/30 p-2 md:p-3">
-      <div className="w-full max-w-xs rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] p-3 shadow-xl">
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <div className="text-xs uppercase tracking-[0.28em] text-[var(--phosphor-dim)]">User Settings</div>
-            <div className="text-sm font-semibold text-[var(--phosphor-bright)]">Interface Controls</div>
-          </div>
-          <button
-            type="button"
-            onClick={onCloseSettings}
-            className="grid h-8 w-8 place-content-center rounded border border-[var(--ui-border)] transition hover:bg-[var(--ui-bg-elevated)]"
-            aria-label="Close user settings"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+  const handleDelete = (id: string, title: string) => {
+    const confirmed = window.confirm(`Delete "${title}"? This cannot be undone.`);
+    if (confirmed) {
+      onDeleteConversation(id, title);
+    }
+  };
 
-        <div className="space-y-3">
-          <div>
-            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[var(--phosphor-dim)]">Theme</div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => onSetTheme('light')}
-                className={clsx(
-                  'rounded border px-2 py-1.5 text-xs transition',
-                  theme === 'light'
-                    ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                    : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                )}
-              >
-                Light
-              </button>
-              <button
-                type="button"
-                onClick={() => onSetTheme('dark')}
-                className={clsx(
-                  'rounded border px-2 py-1.5 text-xs transition',
-                  theme === 'dark'
-                    ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                    : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                )}
-              >
-                Dark
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[var(--phosphor-dim)]">UI Mode</div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => onSetUiMode('classic')}
-                className={clsx(
-                  'rounded border px-2 py-1.5 text-xs transition',
-                  uiMode === 'classic'
-                    ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                    : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                )}
-              >
-                Classic
-              </button>
-              <button
-                type="button"
-                onClick={() => onSetUiMode('terminal')}
-                className={clsx(
-                  'rounded border px-2 py-1.5 text-xs transition',
-                  uiMode === 'terminal'
-                    ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                    : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                )}
-              >
-                Terminal
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[var(--phosphor-dim)]">Phosphor</div>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => onSetPhosphor('green')}
-                className={clsx(
-                  'rounded border px-2 py-1.5 text-xs transition',
-                  phosphor === 'green'
-                    ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                    : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                )}
-              >
-                Green
-              </button>
-              <button
-                type="button"
-                onClick={() => onSetPhosphor('amber')}
-                className={clsx(
-                  'rounded border px-2 py-1.5 text-xs transition',
-                  phosphor === 'amber'
-                    ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                    : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                )}
-              >
-                Amber
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+  const renderConversationGroup = (items: ConversationListItemData[]) => (
+    <div className="space-y-1">
+      {items.map((item) => (
+        <ConversationListItem
+          key={item.id}
+          item={item}
+          isActive={item.id === activeConversationId}
+          onSelect={onSelectConversation}
+          onRename={onRenameConversation}
+          onTogglePin={onTogglePinConversation}
+          onDelete={handleDelete}
+        />
+      ))}
     </div>
-  ) : null;
+  );
 
-  if (isTerminalUI) {
+  if (sidebarCollapsed) {
     return (
-      <aside className="relative flex border-b border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] text-[var(--phosphor)] md:h-full md:w-[88px] md:min-w-[88px] md:flex-col md:border-b-0 md:border-r">
-        <div className="flex w-full items-center justify-between px-3 py-3 md:flex-col md:justify-start md:gap-3 md:px-2 md:py-4">
-          <div className="terminal-font text-[11px] tracking-[0.2em] text-[var(--phosphor-dim)] md:text-[10px]">TERM</div>
+      <aside className="relative flex min-h-0 border-b border-[var(--ui-border)] bg-[var(--ui-panel)] md:h-full md:w-[52px] md:min-w-[52px] md:max-w-[52px] md:flex-col md:border-b-0 md:border-r">
+        <div className="flex h-full min-h-[3rem] items-start justify-center py-3 md:min-h-0 md:pt-4">
           <button
             type="button"
-            onClick={() => onModeChange('chat')}
-            aria-label="Chat mode"
-            title="Chat mode"
-            className="grid h-9 w-9 place-content-center rounded border border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]"
+            onClick={onToggleSidebarCollapsed}
+            className="grid h-9 w-9 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] focus-visible:ring-2 focus-visible:ring-[var(--ui-focus)]"
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
           >
-            <MessageSquare className="h-4 w-4" />
+            <PanelLeft className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            onClick={onNewChat}
-            title="New conversation"
-            aria-label="Start new conversation"
-            className={iconButtonBase}
-          >
-            <MessageCirclePlus className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onUpload}
-            title="Upload docs"
-            aria-label="Upload documents"
-            className={iconButtonBase}
-          >
-            <FileUp className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="User settings"
-            aria-label="Open user settings"
-            className={iconButtonBase}
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-          <div className="hidden w-full border-t border-[var(--ui-border)] pt-2 text-center md:block">
-            <div className="text-[10px] text-[var(--phosphor-dim)]">U1</div>
-          </div>
         </div>
-        {settingsPanel}
       </aside>
     );
   }
 
   return (
-    <aside
-      className={clsx(
-        'relative flex border-b border-[var(--ui-border-strong)] bg-[color-mix(in_srgb,var(--ui-panel),transparent_2%)] text-[var(--phosphor)] transition-all duration-200 md:h-full md:flex-col md:border-b-0 md:border-r',
-        sidebarCollapsed ? 'md:w-[74px] md:min-w-[74px]' : 'md:w-[280px] md:min-w-[280px]',
-      )}
-    >
-      <div className="w-full px-3 py-3 md:px-4 md:py-4">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="grid h-7 w-7 place-content-center rounded-md bg-[var(--ui-focus)] text-[var(--ui-bg)]">
+    <aside className="relative flex min-h-0 border-b border-[var(--ui-border)] bg-[var(--ui-panel)] text-[var(--phosphor)] transition-all duration-200 md:h-full md:w-[260px] md:min-w-[260px] md:flex-col md:border-b-0 md:border-r">
+      <div className="flex h-full min-h-0 w-full min-w-0 flex-col px-3 py-3 md:px-3.5 md:py-3.5">
+        <div className="mb-3 flex shrink-0 items-center gap-2">
+          <div className="grid h-7 w-7 shrink-0 place-content-center rounded-md bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm">
             <Sparkles className="h-4 w-4" />
           </div>
-          {!sidebarCollapsed && <div className="text-sm font-semibold text-[var(--phosphor-bright)]">Smart Chat</div>}
+          <div className="min-w-0 flex-1 text-sm font-semibold text-[var(--phosphor-bright)]">Smart Chat</div>
           <button
             type="button"
             onClick={onToggleSidebarCollapsed}
-            className="ml-auto grid h-8 w-8 place-content-center rounded border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="grid h-8 w-8 shrink-0 place-content-center rounded border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+            title="Collapse sidebar"
+            aria-label="Collapse sidebar"
           >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            <ChevronLeft className="h-4 w-4" />
           </button>
         </div>
 
@@ -271,114 +113,55 @@ export function Sidebar({
           onClick={onNewChat}
           title="New conversation"
           aria-label="Start new conversation"
-          className="mb-3 flex w-full items-center gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-panel-strong)] px-3 py-2 text-sm text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+          className="mb-3 flex w-full shrink-0 items-center gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-panel-strong)] px-3 py-2 text-sm font-medium text-[var(--phosphor)] transition hover:border-[var(--ui-border-strong)] hover:bg-[var(--ui-bg-elevated)] active:scale-[0.99]"
         >
           <MessageCirclePlus className="h-4 w-4" />
-          {!sidebarCollapsed && 'New conversation'}
+          New conversation
         </button>
 
-        {!sidebarCollapsed && (
-          <>
-            <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--phosphor-dim)]">Router</div>
-            <div className="mb-3 grid grid-cols-2 gap-2">
-              {menus.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onModeChange(item.id)}
-                  title={`${item.label}: ${item.description}`}
-                  aria-label={item.label}
-                  className={clsx(
-                    'rounded-md border px-2 py-1.5 text-xs font-medium transition',
-                    mode === item.id
-                      ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                      : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-                  )}
-                >
-                  {item.id === 'chat' ? <MessageSquare className="mr-1 inline h-3.5 w-3.5" /> : <Sparkles className="mr-1 inline h-3.5 w-3.5" />}
-                  {item.id === 'chat' ? 'Chat' : 'Smart'}
-                </button>
-              ))}
-            </div>
-
-            <div className="mb-3">
-              <select
-                value={persona}
-                onChange={(e) => onPersonaChange(e.target.value as PersonaType)}
-                title="Select active persona"
-                aria-label="Select persona"
-                className={clsx(
-                  'h-9 w-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-panel-strong)] text-[var(--phosphor)] transition',
-                  'hover:bg-[var(--ui-bg-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--ui-focus)]',
-                  'text-xs font-semibold cursor-pointer appearance-none px-2',
-                )}
-              >
-                {personas.map((p) => (
-                  <option key={p.id} value={p.id} className="bg-[var(--ui-panel)] text-[var(--phosphor)]">
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
-        )}
-
-        {!sidebarCollapsed && <div className="mb-2 text-[10px] uppercase tracking-[0.25em] text-[var(--phosphor-dim)]">Recent</div>}
-        <div className={clsx('space-y-1 overflow-y-auto pr-1', sidebarCollapsed ? 'max-h-[220px]' : 'max-h-[280px] md:max-h-[380px]')}>
-          {conversations.map((item) => (
+        <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--phosphor-dim)]">Mode</div>
+        <div className="mb-3 grid grid-cols-2 gap-1.5">
+          {menus.map((item) => (
             <button
               key={item.id}
               type="button"
-              onClick={() => onSelectConversation(item.id)}
+              onClick={() => onModeChange(item.id)}
+              title={item.label}
+              aria-label={item.label}
               className={clsx(
-                'w-full rounded-md px-2 py-2 text-left transition',
-                item.id === activeConversationId
-                  ? 'bg-[var(--ui-bg-elevated)] ring-1 ring-[var(--ui-border-strong)] shadow-[0_1px_0_rgba(24,95,165,0.06)]'
-                  : 'hover:bg-[var(--ui-bg-elevated)]',
+                'flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-xs font-medium transition',
+                mode === item.id
+                  ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
+                  : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
               )}
             >
-              <div className="truncate text-xs font-medium text-[var(--phosphor)]">{sidebarCollapsed ? item.title.slice(0, 1) : item.title}</div>
-              {!sidebarCollapsed && (
-                <div className="mt-0.5 text-[10px] text-[var(--phosphor-dim)]">
-                  {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Today'} · {item.messageCount} messages
-                </div>
-              )}
+              <item.icon className="h-3.5 w-3.5" />
+              {item.label}
             </button>
           ))}
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onUpload}
-            title="Upload docs"
-            aria-label="Upload documents"
-            className={iconButtonBase}
-          >
-            <FileUp className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="User settings"
-            aria-label="Open user settings"
-            className={iconButtonBase}
-          >
-            <Settings className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 border-t border-[var(--ui-border)] pt-3">
-          <div className="grid h-8 w-8 place-content-center rounded-full bg-[var(--ui-bg-elevated)] text-[11px] font-semibold text-[var(--phosphor)]">U1</div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-semibold text-[var(--phosphor-bright)]">USER1</div>
-            <div className="text-[10px] text-[var(--phosphor-dim)]">{theme === 'dark' ? 'Dark theme' : 'Light theme'}</div>
+        <div className="sidebar-conversation-list min-h-0 flex-1 space-y-3 overflow-y-auto px-1 py-0.5 pr-2 max-h-[min(46vh,320px)] md:max-h-none">
+          {pinned.length > 0 && (
+            <div>
+              <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--phosphor-dim)]">Pinned</div>
+              {renderConversationGroup(pinned)}
+            </div>
+          )}
+          <div>
+            <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--phosphor-dim)]">
+              {pinned.length > 0 ? 'Recent' : 'Recent'}
+            </div>
+            {recent.length > 0 ? (
+              renderConversationGroup(recent)
+            ) : pinned.length === 0 ? (
+              <div className="rounded-lg px-2.5 py-3 text-xs text-[var(--phosphor-dim)]">No conversations yet</div>
+            ) : null}
           </div>
-          <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
         </div>
-      </div>
 
-      {settingsPanel}
+        <UserMenu user={user} theme={theme} onOpenAbout={onOpenAbout} onLogout={onLogout} />
+      </div>
     </aside>
   );
 }

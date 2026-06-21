@@ -1,0 +1,45 @@
+image:
+  repository: personal-ai
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: personal-ai.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  AUTH_DISABLED: "false"
+  ENABLE_BACKGROUND_WORKERS: "true"
+  WORKER_QUEUE_BACKEND: arq
+  RUN_STORE_BACKEND: redis
+  WORKFLOW_MEMORY_BACKEND: redis
+  OBJECT_STORAGE_BACKEND: s3
+  DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/personal_ai
+  REDIS_URL: redis://redis:6379/0
+  QDRANT_URL: http://qdrant:6333
+  OLLAMA_BASE_URL: http://ollama:11434
+
+worker:
+  enabled: true
+  replicaCount: 1
+
+probes:
+  liveness:
+    path: /health
+    port: 8000
+  readiness:
+    path: /ready
+    port: 8000
+
+resources: {}

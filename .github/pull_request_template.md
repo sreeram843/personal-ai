@@ -65,7 +65,7 @@ How to test these changes:
 2. Run `docker compose up --build` to rebuild
 3. Run `./scripts/quality_gate.sh`
 4. Test endpoints at `http://localhost:8000`
-5. Verify UI in both Terminal and Classic modes
+5. Verify chat UI (empty state, send, settings)
 
 ---
 

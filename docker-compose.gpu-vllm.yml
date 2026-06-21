@@ -1,0 +1,48 @@
+# GPU vLLM inference override
+# Routes chat through a local vLLM OpenAI-compatible server on NVIDIA GPU.
+# Ollama still runs for embeddings (nomic-embed-text).
+#
+# Requirements:
+#   - NVIDIA GPU + Container Toolkit (nvidia-docker)
+#   - Enough VRAM for the chosen model (8B ~16GB recommended)
+#
+# Usage:
+#   cp .env.gpu-vllm.example .env.gpu-vllm
+#   docker compose --profile gpu-vllm -f docker-compose.yml -f docker-compose.gpu-vllm.yml --env-file .env.gpu-vllm up -d
+#   # or: make up-gpu-vllm
+
+x-gpu-llm-env: &gpu-llm-env
+  LLM_OPENAI_BASE_URL: http://vllm:8000/v1
+  LLM_OPENAI_API_KEY: ${VLLM_API_KEY:-local-vllm}
+  LLM_OPENAI_TIMEOUT: ${VLLM_TIMEOUT:-120.0}
+  LLM_DEFAULT_PROVIDER: openai
+  LLM_DEFAULT_MODEL: ${VLLM_CHAT_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+  LLM_PLANNER_PROVIDER: openai
+  LLM_PLANNER_MODEL: ${VLLM_PLANNER_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+  LLM_SYNTHESIZER_PROVIDER: openai
+  LLM_SYNTHESIZER_MODEL: ${VLLM_SYNTHESIZER_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+  LLM_REVIEWER_PROVIDER: openai
+  LLM_REVIEWER_MODEL: ${VLLM_REVIEWER_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+  LLM_WRITER_PROVIDER: openai
+  LLM_WRITER_MODEL: ${VLLM_WRITER_MODEL:-meta-llama/Meta-Llama-3.1-8B-Instruct}
+  OLLAMA_BASE_URL: http://ollama:11434
+  OLLAMA_EMBED_MODEL: nomic-embed-text
+
+services:
+  app:
+    depends_on:
+      ollama:
+        condition: service_started
+      vllm:
+        condition: service_started
+    environment:
+      <<: *gpu-llm-env
+
+  worker:
+    depends_on:
+      ollama:
+        condition: service_started
+      vllm:
+        condition: service_started
+    environment:
+      <<: *gpu-llm-env

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ChangeEvent } from 'react';
 import { Mic, MicOff, Paperclip, Send } from 'lucide-react';
 import { playKeyClick, playSendChirp } from '../utils/terminalAudio';
@@ -6,15 +6,17 @@ import { playKeyClick, playSendChirp } from '../utils/terminalAudio';
 interface Props {
   disabled?: boolean;
   onSend: (message: string) => void;
-  terminalMode?: boolean;
-  suggestions?: string[];
   onAttach?: () => void;
 }
 
-export function ChatInput({ disabled, onSend, terminalMode = false, suggestions = [], onAttach }: Props) {
+const MIN_TA = 44;
+const MAX_TA = 200;
+
+export function ChatInput({ disabled, onSend, onAttach }: Props) {
   const [value, setValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const textRef = useRef<HTMLTextAreaElement>(null);
   const inputId = useId();
 
   useEffect(() => {
@@ -59,6 +61,16 @@ export function ChatInput({ disabled, onSend, terminalMode = false, suggestions 
     };
   }, [isRecording]);
 
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) {
+      return;
+    }
+    el.style.height = '0px';
+    const h = Math.min(MAX_TA, Math.max(MIN_TA, el.scrollHeight));
+    el.style.height = `${h}px`;
+  }, [value]);
+
   const handleSend = () => {
     if (!value.trim() || disabled) {
       return;
@@ -68,69 +80,25 @@ export function ChatInput({ disabled, onSend, terminalMode = false, suggestions 
     setValue('');
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSend();
     }
   };
 
-  if (terminalMode) {
-    return (
-      <div className="w-full bg-transparent px-0 py-0">
-        <label htmlFor={inputId} className="sr-only">Terminal command input</label>
-        <label className="flex items-center gap-2 text-[var(--phosphor)]">
-          <span className="terminal-font hidden text-xl sm:inline">[USER1: &gt;]</span>
-          <span className="terminal-font text-lg sm:hidden">&gt;</span>
-          <textarea
-            id={inputId}
-            className="terminal-font h-8 min-w-0 w-full resize-none bg-transparent text-lg leading-8 text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] outline-none sm:text-xl"
-            placeholder="type command and press Enter"
-            aria-label="Type command and press Enter"
-            value={value}
-            onChange={(event) => {
-              if (event.target.value.length > value.length) {
-                playKeyClick();
-              }
-              setValue(event.target.value.replace(/\n/g, ''));
-            }}
-            onKeyDown={handleKeyDown}
-            disabled={disabled}
-            rows={1}
-          />
-          <span className="terminal-cursor text-lg sm:text-xl">█</span>
-        </label>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-3">
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => setValue(item)}
-              className="rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-1 text-xs text-[var(--phosphor-dim)] transition hover:text-[var(--phosphor)]"
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-panel)] px-3 py-2 sm:gap-3">
+    <div className="input-composer flex items-center gap-1.5 rounded-3xl border border-[var(--ui-border)] bg-[var(--ui-panel)] px-3 py-2 shadow-lg sm:gap-2">
         <label htmlFor={inputId} className="sr-only">Message input</label>
-        <input
+        <textarea
+          ref={textRef}
           id={inputId}
-          type="text"
-          className="min-w-0 flex-1 bg-transparent text-sm text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] outline-none sm:text-base"
-          placeholder="Ask a follow-up..."
+          rows={1}
+          className="composer-textarea min-h-[44px] min-w-0 max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base leading-normal text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] placeholder:opacity-80"
+          placeholder="Message…"
           aria-label="Message input"
           value={value}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => {
+          onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
             if (event.target.value.length > value.length) {
               playKeyClick();
             }
@@ -143,7 +111,7 @@ export function ChatInput({ disabled, onSend, terminalMode = false, suggestions 
           type="button"
           onClick={onAttach}
           aria-label="Attach file"
-          className="grid h-9 w-9 shrink-0 place-content-center rounded border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="grid h-9 w-9 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center"
           title="Attach"
         >
           <Paperclip className="h-4 w-4" />
@@ -154,7 +122,7 @@ export function ChatInput({ disabled, onSend, terminalMode = false, suggestions 
           disabled={disabled}
           aria-pressed={isRecording}
           aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
-          className="grid h-9 w-9 shrink-0 place-content-center rounded border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] disabled:cursor-not-allowed disabled:opacity-50"
+          className="grid h-9 w-9 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center"
           title={isRecording ? 'Stop recording' : 'Voice input'}
         >
           {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -164,12 +132,11 @@ export function ChatInput({ disabled, onSend, terminalMode = false, suggestions 
           onClick={handleSend}
           disabled={disabled || !value.trim()}
           aria-label="Send message"
-          className="grid h-9 w-9 shrink-0 place-content-center rounded bg-[var(--ui-focus)] text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+          className="grid h-9 w-9 shrink-0 place-content-center self-center rounded-lg bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           title="Send"
         >
           <Send className="h-4 w-4" />
         </button>
-      </div>
     </div>
   );
 }

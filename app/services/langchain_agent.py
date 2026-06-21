@@ -3,28 +3,60 @@ from __future__ import annotations
 import importlib
 from typing import Any, Dict, List
 
-from app.services.web_search import WebSearchService
+from app.core.config import Settings
+from app.services.builtin_tools import CHAT_AGENT_ROLE, build_langchain_tools_from_registry
+from app.services.llm_metrics import observe_llm_call
+from app.services.tool_registry import ToolRegistry
 
 
 def _import_langchain() -> Dict[str, Any]:
     """Lazy-import LangChain modules so base app works without optional deps."""
     lc_agents = importlib.import_module("langchain.agents")
     lc_prompts = importlib.import_module("langchain.prompts")
-    lc_tools = importlib.import_module("langchain.tools")
     lc_messages = importlib.import_module("langchain_core.messages")
     lc_ollama = importlib.import_module("langchain_ollama")
 
-    return {
+    mods: Dict[str, Any] = {
         "AgentExecutor": getattr(lc_agents, "AgentExecutor"),
         "create_tool_calling_agent": getattr(lc_agents, "create_tool_calling_agent"),
         "ChatPromptTemplate": getattr(lc_prompts, "ChatPromptTemplate"),
         "MessagesPlaceholder": getattr(lc_prompts, "MessagesPlaceholder"),
-        "tool": getattr(lc_tools, "tool"),
+        "tool": importlib.import_module("langchain.tools").tool,
         "AIMessage": getattr(lc_messages, "AIMessage"),
         "HumanMessage": getattr(lc_messages, "HumanMessage"),
         "SystemMessage": getattr(lc_messages, "SystemMessage"),
         "ChatOllama": getattr(lc_ollama, "ChatOllama"),
     }
+    return mods
+
+
+def _openai_compatible_base_url(base_url: str) -> str:
+    """Normalize base URL for LangChain OpenAI client (expects .../v1 suffix)."""
+    url = base_url.rstrip("/")
+    if not url.endswith("/v1"):
+        url = f"{url}/v1"
+    return url
+
+
+def _build_chat_llm(settings: Settings, mods: Dict[str, Any]) -> Any:
+    """Use OpenAI-compatible cloud LLM when configured, otherwise local Ollama."""
+    if settings.llm_default_provider == "openai" and settings.llm_openai_base_url:
+        lc_openai = importlib.import_module("langchain_openai")
+        ChatOpenAI = getattr(lc_openai, "ChatOpenAI")
+        return ChatOpenAI(
+            model=settings.llm_default_model,
+            base_url=_openai_compatible_base_url(settings.llm_openai_base_url),
+            api_key=settings.llm_openai_api_key or "not-needed",
+            temperature=0,
+            timeout=settings.llm_openai_timeout,
+        )
+
+    ChatOllama = mods["ChatOllama"]
+    return ChatOllama(
+        model=settings.ollama_chat_model,
+        base_url=settings.ollama_base_url.rstrip("/"),
+        temperature=0,
+    )
 
 
 async def run_langchain_agent(
@@ -32,12 +64,10 @@ async def run_langchain_agent(
     query: str,
     system_prompt: str,
     chat_history: List[Dict[str, str]],
-    web_search: WebSearchService,
-    model: str,
-    base_url: str,
-    timeout: float,
+    tool_registry: ToolRegistry,
+    settings: Settings,
 ) -> str:
-    """Run a LangChain tool-calling agent with project-specific data tools."""
+    """Run a LangChain tool-calling agent backed by the centralized ToolRegistry."""
     mods = _import_langchain()
     AgentExecutor = mods["AgentExecutor"]
     create_tool_calling_agent = mods["create_tool_calling_agent"]
@@ -47,54 +77,17 @@ async def run_langchain_agent(
     AIMessage = mods["AIMessage"]
     HumanMessage = mods["HumanMessage"]
     SystemMessage = mods["SystemMessage"]
-    ChatOllama = mods["ChatOllama"]
 
-    @tool
-    async def fx_rate_tool(user_query: str) -> str:
-        """Get a live FX rate for queries like 'usd to inr'."""
-        context = await web_search.build_live_fx_context(user_query)
-        return context or "ERROR 404: LIVE DATA NOT VERIFIED"
-
-    @tool
-    async def market_price_tool(user_query: str) -> str:
-        """Get live stock/commodity/crypto market prices from Yahoo/market APIs."""
-        stock_ctx = await web_search.build_live_stock_context(user_query)
-        if stock_ctx:
-            return stock_ctx
-        commodity_ctx = await web_search.build_live_commodity_context(user_query)
-        if commodity_ctx:
-            return commodity_ctx
-        return "ERROR 404: LIVE DATA NOT VERIFIED"
-
-    @tool
-    async def weather_tool(user_query: str) -> str:
-        """Get live weather conditions for a city/location (temperature, humidity, wind, rain)."""
-        weather_ctx = await web_search.build_live_weather_context(user_query)
-        return weather_ctx or "ERROR 404: LIVE DATA NOT VERIFIED"
-
-    @tool
-    async def weather_forecast_tool(user_query: str) -> str:
-        """Get live weather forecast (next days) for a city/location."""
-        forecast_ctx = await web_search.build_weather_forecast_context(user_query)
-        return forecast_ctx or "ERROR 404: LIVE DATA NOT VERIFIED"
-
-    @tool
-    async def news_tool(user_query: str) -> str:
-        """Get latest verified news headlines for a topic."""
-        news_ctx = await web_search.build_live_news_context(user_query)
-        return news_ctx or "ERROR 404: LIVE DATA NOT VERIFIED"
-
-    @tool
-    async def web_context_tool(user_query: str) -> str:
-        """Search the web for current events and fresh public information."""
-        results = await web_search.search_with_page_excerpts(user_query)
-        return WebSearchService.format_results_for_context(results) or "ERROR 404: LIVE DATA NOT VERIFIED"
-
-    llm = ChatOllama(
-        model=model,
-        base_url=base_url,
-        temperature=0,
+    llm = _build_chat_llm(settings, mods)
+    provider = settings.llm_default_provider
+    model = settings.llm_default_model if provider == "openai" else settings.ollama_chat_model
+    tools = build_langchain_tools_from_registry(
+        tool_registry,
+        role=CHAT_AGENT_ROLE,
+        tool_decorator=tool,
     )
+    if not tools:
+        raise RuntimeError("No tools registered for chat agent")
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -105,14 +98,6 @@ async def run_langchain_agent(
         ]
     )
 
-    tools = [
-        fx_rate_tool,
-        market_price_tool,
-        weather_tool,
-        weather_forecast_tool,
-        news_tool,
-        web_context_tool,
-    ]
     agent = create_tool_calling_agent(llm, tools, prompt)
     executor = AgentExecutor(
         agent=agent,
@@ -135,7 +120,8 @@ async def run_langchain_agent(
         else:
             normalized_history.append(HumanMessage(content=content))
 
-    result = await executor.ainvoke({"input": query, "chat_history": normalized_history})
+    async with observe_llm_call(provider=provider, model=model):
+        result = await executor.ainvoke({"input": query, "chat_history": normalized_history})
     return str(result.get("output", "ERROR 500: AGENT RETURNED NO OUTPUT"))
 
 

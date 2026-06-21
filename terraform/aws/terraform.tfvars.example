@@ -1,0 +1,7 @@
+aws_region          = "us-east-1"
+vpc_cidr            = "10.20.0.0/16"
+postgres_password   = "change-me"
+jwt_secret          = "change-me"
+qdrant_url          = "https://your-cluster.qdrant.io"
+qdrant_api_key      = ""
+container_image     = "your-registry/personal-ai:latest"

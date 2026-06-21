@@ -12,6 +12,7 @@ This runbook covers the local stack, observability endpoints, common verificatio
 - Redis: `redis://localhost:6379/0`
 - Prometheus: `http://localhost:9090`
 - Grafana: `http://localhost:3000`
+- Loki: `http://localhost:3100` (logs; query via Grafana Explore or **App Logs** dashboard)
 
 ## Start and Stop
 
@@ -31,6 +32,7 @@ curl -I http://localhost:6333/collections
 curl -s http://localhost:11434/api/tags
 curl -s http://localhost:9090/-/healthy
 curl -s http://localhost:3000/api/health
+curl -s http://localhost:3100/ready
 ```
 
 ## Logs
@@ -42,7 +44,11 @@ docker compose logs -f qdrant
 docker compose logs -f redis
 docker compose logs -f prometheus
 docker compose logs -f grafana
+docker compose logs -f loki
+docker compose logs -f promtail
 ```
+
+For searchable logs in Grafana (Loki), open **Explore** → datasource **loki**, or the **App Logs** dashboard. See `monitoring/loki-log-queries.md` for LogQL examples.
 
 ## Models
 
@@ -67,6 +73,7 @@ cd frontend && npm run test:visual
 
 - Prometheus should scrape `app:8000/metrics` from inside compose.
 - Grafana should use `http://prometheus:9090` as its datasource URL.
+- Loki receives container logs via Promtail (`personal-ai-*` containers only); Grafana uses `http://loki:3100`.
 - The default admin user is `admin`; override the password with `GRAFANA_ADMIN_PASSWORD`.
 
 ## Troubleshooting

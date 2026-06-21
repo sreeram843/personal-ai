@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { installApiBootstrapMocks } from './utils/apiMocks';
 import { assertQaGuards, installQaGuards } from './utils/qaGuards';
 
 async function preparePage(page: import('@playwright/test').Page) {
+  await installApiBootstrapMocks(page);
   await page.goto('/');
   await page.evaluate(() => {
     localStorage.clear();
@@ -24,14 +26,15 @@ test.describe('browser interaction flows', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          message: '[12:00:00] MACHINE_ALPHA_7: > CACHE PIPELINE VERIFIED',
+          message: 'CACHE PIPELINE VERIFIED',
+          conversation_id: 'conv-1',
         }),
       });
     });
 
     await preparePage(page);
     await page.getByRole('button', { name: 'QUICK CHAT', exact: true }).click();
-    await page.getByPlaceholder('Ask a follow-up...').fill('Explain the cache path');
+    await page.getByPlaceholder(/Message/).fill('Explain the cache path');
     await page.getByRole('button', { name: 'Send' }).click();
 
     await expect(page.getByRole('log').getByText('Explain the cache path', { exact: true })).toBeVisible();
@@ -50,7 +53,7 @@ test.describe('browser interaction flows', () => {
         body: `data: ${JSON.stringify({
           type: 'final',
           response: {
-            message: '[12:00:00] MACHINE_ALPHA_7: > SMART RESPONSE READY',
+            message: 'SMART RESPONSE READY',
             sources: [
               {
                 id: 'doc-1',
@@ -67,7 +70,7 @@ test.describe('browser interaction flows', () => {
     });
 
     await preparePage(page);
-    await page.getByPlaceholder('Ask a follow-up...').fill('Summarize the ops guidance');
+    await page.getByPlaceholder(/Message/).fill('Summarize the ops guidance');
     await page.getByRole('button', { name: 'Send' }).click();
 
     await expect(page.getByText('SMART RESPONSE READY')).toBeVisible();
@@ -95,15 +98,5 @@ test.describe('browser interaction flows', () => {
 
     await expect(page.getByText('sample-notes.md')).toBeVisible();
     await expect(page.getByText('SUCCESS')).toBeVisible();
-  });
-
-  test('terminal mode toggle persists after reload', async ({ page }) => {
-    await preparePage(page);
-    await page.getByRole('button', { name: 'Open user settings' }).first().click();
-    await page.getByRole('button', { name: 'Terminal' }).click();
-    await expect(page.getByText('CHAT MODE ONLY')).toBeVisible();
-
-    await page.reload();
-    await expect(page.getByText('CHAT MODE ONLY')).toBeVisible();
   });
 });

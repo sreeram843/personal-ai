@@ -47,6 +47,10 @@ Useful pages:
 
 - live_adapter_requests_total (Counter)
 - live_adapter_latency_seconds (Histogram)
+- model_calls_total (Counter) — each call to the language model
+- model_response_seconds (Histogram) — how long one model call takes
+- chat_replies_total (Counter) — completed chat requests (/chat, /rag_chat, /workflow_chat)
+- chat_reply_seconds (Histogram) — user send → full assistant reply
 - python_gc_objects_collected_total and other runtime metrics
 
 ## 4) Core PromQL Queries (Copy/Paste)
@@ -130,6 +134,25 @@ Purpose: P95 latency by domain/source.
 histogram_quantile(0.99, sum by (le, domain, source) (rate(live_adapter_latency_seconds_bucket[5m])))
 ```
 Purpose: P99 latency by domain/source.
+
+### 4.6 Model response time
+
+```promql
+histogram_quantile(0.95, sum by (le, provider, model) (rate(model_response_seconds_bucket[5m])))
+```
+Purpose: P95 time for one model call (by provider and model name).
+
+```promql
+sum by (provider, model) (rate(model_calls_total[5m]))
+```
+Purpose: Model calls per second.
+
+### 4.7 Chat reply time (end-to-end)
+
+```promql
+histogram_quantile(0.95, sum by (le, mode) (rate(chat_reply_seconds_bucket[5m])))
+```
+Purpose: P95 wait from user send to full reply (includes tools, RAG, multi-step flows).
 
 ## 5) Debugging Workflow
 

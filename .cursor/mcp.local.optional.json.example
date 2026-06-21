@@ -1,0 +1,56 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "type": "stdio"
+    },
+    "postgres": {
+      "command": "npx",
+      "args": ["-y", "pg-mcp-server", "--transport", "stdio"],
+      "env": {
+        "DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
+      },
+      "type": "stdio"
+    },
+    "supabase-local": {
+      "url": "http://127.0.0.1:54321/mcp",
+      "type": "http"
+    },
+    "chroma-local": {
+      "command": "uvx",
+      "args": [
+        "chroma-mcp",
+        "--client-type",
+        "persistent",
+        "--data-dir",
+        "./memory/chroma-data"
+      ],
+      "type": "stdio"
+    },
+    "pglite": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "pglite-mcp",
+        "--db",
+        "./memory/pglite-data",
+        "--extensions",
+        "vector"
+      ],
+      "type": "stdio"
+    },
+    "git-local": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-v",
+        "/absolute/path/to/personal-ai:/workspace",
+        "mcp/git"
+      ],
+      "type": "stdio"
+    }
+  }
+}

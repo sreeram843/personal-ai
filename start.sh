@@ -36,7 +36,7 @@ docker compose build
 
 echo ""
 echo "🚀 Starting all services..."
-docker compose up -d
+docker compose --profile local up -d
 
 echo ""
 echo "⏳ Waiting for services to be healthy..."

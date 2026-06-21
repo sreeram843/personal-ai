@@ -85,7 +85,7 @@ def test_unresolved_live_intent_render_is_deterministic() -> None:
 
     assert result.status == "error"
     assert result.error_code == "LIVE_DATA_NOT_VERIFIED"
-    assert "ERROR 404: LIVE DATA NOT VERIFIED" in msg
+    assert "couldn't fetch verified live" in msg.lower()
     assert "Source: Live Adapter Router" in msg
     assert fetched == result.fetched_at_utc
 
@@ -117,8 +117,84 @@ def test_render_news_response_includes_provider_metadata() -> None:
 
     message, fetched = manager.render(result)
 
-    assert "LIVE NEWS DATA RETRIEVED" in message
-    assert "AI headline" in message
-    assert "link=https://example.com/story" in message
+    assert "LIVE NEWS DATA RETRIEVED" not in message
+    assert "**Latest on ai**" in message
+    assert "**AI headline**" in message
+    assert "Example News" in message
+    assert "link=https://example.com/story" not in message
     assert "Source: Google News RSS" in message
+    assert "Fetched: 2026-03-23 00:00:01 UTC" in message
     assert fetched == "2026-03-23 00:00:01 UTC"
+
+
+def test_render_weather_forecast_is_human_readable() -> None:
+    web = _WebStub()
+    manager = LiveDataManager(web_search=web, cache=_TestCache(), settings=Settings())
+
+    result = AdapterResult(
+        domain="weather_forecast",
+        status="ok",
+        verified=True,
+        source="Open-Meteo",
+        fetched_at_utc="2026-06-20 06:12:20 UTC",
+        ttl_seconds=900,
+        data={
+            "location": "Austin, Texas, United States",
+            "temp_unit": "°C",
+            "precip_unit": "mm",
+            "wind_unit": "km/h",
+            "days": [
+                {
+                    "date": "2026-06-20",
+                    "code": 95,
+                    "temp_max": 31.7,
+                    "temp_min": 24.1,
+                    "precip": 19.5,
+                    "wind_max": 16.6,
+                },
+                {
+                    "date": "2026-06-21",
+                    "code": 3,
+                    "temp_max": 33.0,
+                    "temp_min": 25.0,
+                    "precip": 0.0,
+                    "wind_max": 12.0,
+                },
+            ],
+        },
+    )
+
+    message, fetched = manager.render(result)
+
+    assert "LIVE WEATHER" not in message
+    assert "code=95" not in message
+    assert "**Austin, Texas, United States**" in message
+    assert "2-day forecast" in message
+    assert "Thunderstorm" in message
+    assert "24–32 °C" in message
+    assert "19.5 mm rain" in message
+    assert "Overcast" in message
+    assert "Source: Open-Meteo · Fetched: 2026-06-20 06:12:20 UTC" in message
+    assert fetched == "2026-06-20 06:12:20 UTC"
+
+
+def test_render_fx_is_human_readable() -> None:
+    web = _WebStub()
+    manager = LiveDataManager(web_search=web, cache=_TestCache(), settings=Settings())
+
+    result = AdapterResult(
+        domain="fx",
+        status="ok",
+        verified=True,
+        source="Frankfurter API",
+        fetched_at_utc="2026-03-22 23:58:00 UTC",
+        ttl_seconds=60,
+        data={"base": "USD", "quote": "INR", "rate": 93.62, "date": "2026-03-22"},
+    )
+
+    message, _ = manager.render(result)
+
+    assert "LIVE CURRENCY" not in message
+    assert "**1 USD = 93.6200 INR**" in message
+    assert "As of 2026-03-22" in message
+    assert "Source: Frankfurter API · Fetched:" in message

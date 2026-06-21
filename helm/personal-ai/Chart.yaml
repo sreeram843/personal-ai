@@ -1,0 +1,6 @@
+apiVersion: v2
+name: personal-ai
+description: Personal AI chat, RAG, and workflow stack
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

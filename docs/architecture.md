@@ -92,7 +92,7 @@ flowchart TD
     ChatMode --> Orchestrator[OrchestratedChatService]
     RAGMode --> Orchestrator
     WorkflowMode --> Orchestrator
-    Orchestrator --> FinalResponse([MACHINE_ALPHA_7 formatted response])
+    Orchestrator --> FinalResponse([Plain assistant message in JSON response])
 ```
 
 ---
@@ -136,7 +136,7 @@ sequenceDiagram
     Routes->>LD: resolve(last_user_message)
     alt Verified live data
         LD-->>Routes: AdapterResult (verified=true)
-        Routes-->>Browser: MACHINE_ALPHA_7 response + Data fetched timestamp
+        Routes-->>Browser: JSON response (plain `message` + Data fetched timestamp)
     else Live-intent but unverified
         LD-->>Routes: None (is_live_intent=true)
         Routes-->>Browser: LIVE_DATA_NOT_VERIFIED guardrail error
@@ -146,7 +146,7 @@ sequenceDiagram
         Orch->>LLM: generate(messages, system_prompt)
         LLM-->>Orch: raw text
         Orch-->>Routes: ChatResponse
-        Routes-->>Browser: MACHINE_ALPHA_7 formatted response
+        Routes-->>Browser: JSON response with plain `message` text
     end
 ```
 
@@ -180,7 +180,7 @@ sequenceDiagram
         Orch->>LLM: writer(draft + review_notes)
         LLM-->>Orch: final answer
         Orch-->>Routes: ChatResponse {message, sources}
-        Routes-->>Browser: MACHINE_ALPHA_7 response + sources
+        Routes-->>Browser: JSON response with plain `message` + `sources`
     end
 ```
 
@@ -325,19 +325,12 @@ flowchart TD
 ```mermaid
 stateDiagram-v2
     direction LR
-    [*] --> ClassicMode : default uiMode=classic
-    ClassicMode --> TerminalMode : Toggle UI Mode
-    TerminalMode --> ClassicMode : Toggle UI Mode
-
-    state ClassicMode {
-        [*] --> SmartConversation : mode=smart (default)
-        SmartConversation --> ChatOnly : setMode(chat)
-        ChatOnly --> SmartConversation : setMode(smart)
-    }
+    [*] --> SmartConversation : mode=smart (default)
+    SmartConversation --> ChatOnly : setMode(chat)
+    ChatOnly --> SmartConversation : setMode(smart)
 
     state "LocalStorage (persisted)" as LS {
         personal_ai_mode
-        personal_ai_ui_mode
         personal_ai_persona
         personal_ai_phosphor
         personal_ai_history
@@ -350,9 +343,8 @@ stateDiagram-v2
 | Key | Values | Description |
 |-----|--------|-------------|
 | `personal-ai-mode` | `smart`, `chat` | Conversation routing mode |
-| `personal-ai-ui-mode` | `classic`, `terminal` | UI render mode |
 | `personal-ai-persona` | `ideal_chatbot`, `therapist`, `barney` | Active persona |
-| `personal-ai-phosphor` | `green`, `amber` | Terminal phosphor color |
+| `personal-ai-phosphor` | `green`, `amber` | Accent color for dark theme |
 | `personal-ai-history` | `ChatMessage[]` | Full chat history |
 | `personal-ai-conversation-id` | UUID | Workflow memory key |
 
