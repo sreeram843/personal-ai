@@ -469,6 +469,10 @@ html.dark .curai-logo__bulb-thread {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .curai-logo[data-state='idle'] .curai-logo__bulb-pulse {
+    animation: curai-logo-bulb-breathe 4.8s ease-in-out infinite;
+  }
+
   .curai-logo[data-state='thinking'] .curai-logo__bulb-pulse {
     animation: curai-logo-bulb-breathe 2.4s ease-in-out infinite;
   }

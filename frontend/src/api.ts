@@ -142,7 +142,16 @@ export async function exchangeGoogleToken(idToken: string): Promise<TokenRespons
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || 'Google sign-in failed');
+    let message = errorText || 'Google sign-in failed';
+    try {
+      const parsed = JSON.parse(errorText) as { detail?: string };
+      if (parsed.detail) {
+        message = parsed.detail;
+      }
+    } catch {
+      // keep raw text
+    }
+    throw new Error(message);
   }
 
   const payload = (await response.json()) as TokenResponsePayload;

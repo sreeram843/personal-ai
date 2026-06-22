@@ -58,14 +58,24 @@ async def execute_chat_mode(
         )
 
     if strategy == "tools":
-        text = await run_langchain_agent(
-            query=query,
-            system_prompt=get_system_prompt(),
-            chat_history=history,
-            tool_registry=tool_registry,
-            settings=settings,
-        )
-        return ChatResponse(message=text, sources=[])
+        try:
+            text = await run_langchain_agent(
+                query=query,
+                system_prompt=get_system_prompt(),
+                chat_history=history,
+                tool_registry=tool_registry,
+                settings=settings,
+            )
+            return ChatResponse(message=text, sources=[])
+        except Exception:
+            # Cloud providers may reject tool-calling or LangChain wiring can fail;
+            # fall back to a single LLM call instead of returning HTTP 500 to the UI.
+            return await run_fast_chat(
+                query=query,
+                chat_history=history,
+                llm_gateway=llm_gateway,
+                settings=settings,
+            )
 
     # Legacy multi-agent chat pipeline (researcher → synthesizer → reviewer → writer).
     from app.services.orchestrated_runner import build_orchestrated_service, merge_workflow_options

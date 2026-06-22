@@ -69,5 +69,9 @@ printf '\n[%s] Health checks\n' "$(date '+%H:%M:%S')"
 curl -fsS http://127.0.0.1:8000/health
 curl -fsS http://127.0.0.1:8000/ready
 
+printf '\n[%s] Auth / OAuth configuration\n' "$(date '+%H:%M:%S')"
+chmod +x scripts/verify_prod_auth.sh
+APP_URL=http://127.0.0.1:8000 ./scripts/verify_prod_auth.sh || true
+
 printf '\n[%s] Deploy complete\n' "$(date '+%H:%M:%S')"
 compose ps

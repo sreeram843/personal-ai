@@ -59,19 +59,41 @@ const ORBIT_CONFIG = [
   { rotate: 60, path: ORBIT_PATH_CW, duration: '4.2s', begin: '-0.6s', idleX: CX + ORBIT_RX, idleY: CY },
 ] as const;
 
+function orbitDurationScale(state: CuraiLogoState): number {
+  if (state === 'active') {
+    return 0.85;
+  }
+  if (state === 'thinking') {
+    return 1;
+  }
+  if (state === 'idle') {
+    return 1.6;
+  }
+  return 1;
+}
+
+function scaledDuration(duration: string, scale: number): string {
+  const value = Number.parseFloat(duration);
+  if (Number.isNaN(value)) {
+    return duration;
+  }
+  return `${value * scale}s`;
+}
+
 interface OrbitingElectronProps {
   orbit: (typeof ORBIT_CONFIG)[number];
   animate: boolean;
   motionClassName: string;
+  durationScale: number;
 }
 
-function OrbitingElectron({ orbit, animate, motionClassName }: OrbitingElectronProps) {
+function OrbitingElectron({ orbit, animate, motionClassName, durationScale }: OrbitingElectronProps) {
   const electron = (
     <circle className="curai-logo__electron" r="3.75">
       {animate ? (
         <animateMotion
           className={motionClassName}
-          dur={orbit.duration}
+          dur={scaledDuration(orbit.duration, durationScale)}
           begin={orbit.begin}
           repeatCount="indefinite"
           path={orbit.path}
@@ -96,9 +118,11 @@ function OrbitingElectron({ orbit, animate, motionClassName }: OrbitingElectronP
 function CuraiLogoMark({
   gradientId,
   animateElectrons,
+  durationScale,
 }: {
   gradientId: string;
   animateElectrons: boolean;
+  durationScale: number;
 }) {
   return (
     <svg viewBox="0 0 128 128" className="curai-logo__svg h-full w-full" aria-hidden focusable="false">
@@ -144,6 +168,7 @@ function CuraiLogoMark({
           orbit={orbit}
           animate={animateElectrons}
           motionClassName="curai-logo__electron-motion"
+          durationScale={durationScale}
         />
       ))}
     </svg>
@@ -154,8 +179,8 @@ function CuraiLogoMark({
 export function CuraiLogo({ state = 'idle', size = 32, className, title }: CuraiLogoProps) {
   const gradientId = `curai-bulb-${useId().replace(/:/g, '')}`;
   const prefersReducedMotion = usePrefersReducedMotion();
-  const animateElectrons =
-    !prefersReducedMotion && (state === 'thinking' || state === 'active');
+  const animateElectrons = !prefersReducedMotion && state !== 'error';
+  const durationScale = orbitDurationScale(state);
 
   return (
     <span
@@ -166,7 +191,11 @@ export function CuraiLogo({ state = 'idle', size = 32, className, title }: Curai
       style={{ width: size, height: size }}
     >
       <span className="curai-logo__stage">
-        <CuraiLogoMark gradientId={gradientId} animateElectrons={animateElectrons} />
+        <CuraiLogoMark
+          gradientId={gradientId}
+          animateElectrons={animateElectrons}
+          durationScale={durationScale}
+        />
       </span>
     </span>
   );

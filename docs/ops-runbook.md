@@ -77,6 +77,38 @@ docker exec personal-ai-app python -c \
 
 - Fix (after code update): app startup and RAG search auto-create the collection; `./scripts/deploy_prod.sh` also runs ensure step.
 
+### Google OAuth / login not working
+
+Symptoms: no Google button, “not configured” banner, `origin_mismatch` in browser console, or sign-in returns 401/503.
+
+1. **Check server config** (on the VM):
+
+```bash
+cd /opt/personal-ai
+./scripts/verify_prod_auth.sh
+```
+
+2. **`.env.cloud` must include** (then `./scripts/deploy_prod.sh`):
+
+```bash
+AUTH_DISABLED=false
+GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+JWT_SECRET=<long-random-secret>
+CORS_ORIGINS=http://YOUR_PUBLIC_HOST:8000
+```
+
+3. **Google Cloud Console** → OAuth client → **Authorized JavaScript origins** must list the exact URL users open (scheme + host + port), e.g. `http://35.x.x.x:8000`. A mismatch causes the button to fail silently or with `origin_mismatch`.
+
+4. **`AUTH_DISABLED=true`** (default) bypasses login entirely — OAuth will appear “broken” if you expected a login screen.
+
+5. After changing `.env.cloud`, rebuild the app container (`compose up -d --build`) so env vars reload.
+
+### Logo animation looks static
+
+- Electrons orbit whenever motion is allowed (`prefers-reduced-motion` off).
+- OS “Reduce motion” disables SVG/CSS animation by design.
+- Redeploy latest image if the sidebar still shows a flat PNG — older builds predate the animated `CuraiLogo` component.
+
 ## Logs (local)
 
 ```bash

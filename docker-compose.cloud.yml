@@ -53,18 +53,19 @@ services:
       LLM_WRITER_MODEL: ${LLM_CLOUD_WRITER_MODEL}
 
       ENABLE_FAST_CHAT: ${ENABLE_FAST_CHAT:-true}
-      ENABLE_LANGCHAIN_AGENT: ${ENABLE_LANGCHAIN_AGENT:-true}
+      ENABLE_LANGCHAIN_AGENT: ${ENABLE_LANGCHAIN_AGENT:-false}
 
       # Ollama still serves embeddings — keep pointing at the local container.
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_CHAT_MODEL: ""         # unused in cloud mode; all chat goes via gateway
       OLLAMA_EMBED_MODEL: nomic-embed-text
 
-      # Authentication (optional — set in .env.cloud)
+      # Authentication (set in .env.cloud — see .env.cloud.example)
       AUTH_DISABLED: ${AUTH_DISABLED:-true}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       JWT_SECRET: ${JWT_SECRET:-dev-change-me-in-production}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-10080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000}
 
   worker:
     environment:
