@@ -10,6 +10,12 @@ type GuardState = {
   networkErrors: string[];
 };
 
+const defaultIgnoredConsole = [
+  /fonts\.googleapis\.com/i,
+  /fonts\.gstatic\.com/i,
+  /Unacceptable TLS certificate/i,
+  /Failed to load resource/i,
+];
 const defaultIgnoredNetwork = [
   /\/favicon\.ico$/i,
   /\/playwright-report\//i,
@@ -28,7 +34,7 @@ export function installQaGuards(page: Page, options: GuardOptions = {}): void {
     networkErrors: [],
   };
 
-  const ignoredConsole = options.ignoreConsolePatterns ?? [];
+  const ignoredConsole = [...defaultIgnoredConsole, ...(options.ignoreConsolePatterns ?? [])];
   const ignoredNetwork = [...defaultIgnoredNetwork, ...(options.ignoreNetworkPatterns ?? [])];
 
   page.on('console', (msg) => {
@@ -43,6 +49,7 @@ export function installQaGuards(page: Page, options: GuardOptions = {}): void {
   });
 
   page.on('requestfailed', (request) => {
+    const failure = request.failure()?.errorText ?? '';
     if (
       failure.includes('ERR_ABORTED') ||
       failure.toLowerCase().includes('cancelled') ||

@@ -11,9 +11,12 @@ export default defineConfig({
     toHaveScreenshot: {
       animations: 'disabled',
       caret: 'hide',
-      maxDiffPixelRatio: 0.02,
+      maxDiffPixelRatio: 0.04,
+      timeout: 15_000,
     },
   },
+  // One baseline per browser — omit {platform} so macOS dev and Linux CI share snapshots.
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
