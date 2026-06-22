@@ -35,10 +35,6 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Install Playwright browsers
-        working-directory: frontend
-        run: npx playwright install --with-deps chromium firefox webkit
-
       - name: Run shared quality gate
         run: |
           chmod +x scripts/quality_gate.sh
