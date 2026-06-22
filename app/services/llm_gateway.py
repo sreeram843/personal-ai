@@ -1,12 +1,31 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Protocol, Sequence
+from typing import Any, Dict, List, Optional, Protocol, Sequence
 
 import httpx
 
 from app.services.llm_metrics import observe_llm_call
 from app.services.ollama import OllamaClient
+
+# OpenAI-compatible chat completion parameters (Groq, Together, etc.).
+_OPENAI_CHAT_OPTION_KEYS = frozenset(
+    {
+        "temperature",
+        "max_tokens",
+        "max_completion_tokens",
+        "top_p",
+        "stop",
+        "presence_penalty",
+        "frequency_penalty",
+        "seed",
+        "response_format",
+        "n",
+        "logprobs",
+        "top_logprobs",
+        "user",
+    }
+)
 
 
 class LLMAdapter(Protocol):
@@ -36,6 +55,41 @@ class OllamaLLMAdapter:
         return content or "ERROR 500: AGENT RETURNED NO OUTPUT"
 
 
+def _coerce_openai_chat_options(options: Dict[str, Any]) -> Dict[str, Any]:
+    """Keep only parameters accepted by OpenAI-compatible chat completion APIs."""
+    coerced: Dict[str, Any] = {}
+    for key, value in options.items():
+        if key not in _OPENAI_CHAT_OPTION_KEYS or value is None:
+            continue
+        coerced[key] = value
+    return coerced
+
+
+def _normalize_openai_messages(messages: Sequence[Dict[str, str]]) -> List[Dict[str, str]]:
+    """Merge consecutive system messages for stricter OpenAI-compatible providers."""
+    normalized: List[Dict[str, str]] = []
+    for message in messages:
+        role = str(message.get("role") or "user")
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        if normalized and role == "system" and normalized[-1]["role"] == "system":
+            normalized[-1]["content"] = f"{normalized[-1]['content']}\n\n{content}"
+            continue
+        normalized.append({"role": role, "content": content})
+    return normalized
+
+
+def _format_openai_provider_error(exc: httpx.HTTPError) -> str:
+    if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+        try:
+            error_body = exc.response.json()
+        except ValueError:
+            error_body = exc.response.text
+        return f"OpenAI-compatible provider request failed ({exc.response.status_code}): {error_body}"
+    return f"OpenAI-compatible provider request failed: {exc}"
+
+
 class OpenAICompatibleLLMAdapter:
     """Adapter for OpenAI-compatible chat completion endpoints.
 
@@ -60,9 +114,9 @@ class OpenAICompatibleLLMAdapter:
 
         payload: Dict[str, Any] = {
             "model": model,
-            "messages": list(messages),
+            "messages": _normalize_openai_messages(messages),
             "stream": False,
-            **options,
+            **_coerce_openai_chat_options(options),
         }
 
         try:
@@ -74,7 +128,7 @@ class OpenAICompatibleLLMAdapter:
                 )
             response.raise_for_status()
         except httpx.HTTPError as exc:
-            raise RuntimeError(f"OpenAI-compatible provider request failed: {exc}") from exc
+            raise RuntimeError(_format_openai_provider_error(exc)) from exc
 
         body = response.json()
         choices = body.get("choices") or []

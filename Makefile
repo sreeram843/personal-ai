@@ -154,7 +154,7 @@ status:
 	docker ps --filter name=personal-ai
 
 test-backend:
-	python -m pytest
+	python -m pytest --cov-fail-under=35
 
 test-frontend:
 	cd frontend && npm run test:ui

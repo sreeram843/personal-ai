@@ -4,7 +4,12 @@ import asyncio
 
 import httpx
 
-from app.services.llm_gateway import LLMGateway, OpenAICompatibleLLMAdapter
+from app.services.llm_gateway import (
+    LLMGateway,
+    OpenAICompatibleLLMAdapter,
+    _coerce_openai_chat_options,
+    _normalize_openai_messages,
+)
 
 
 class _RecordingAdapter:
@@ -77,3 +82,82 @@ def test_openai_compatible_adapter_parses_chat_completion() -> None:
         httpx.AsyncClient = original_client
 
     assert output == "Adapter output"
+
+
+def test_openai_compatible_adapter_strips_workflow_options() -> None:
+    import json
+
+    captured_payload: dict[str, object] = {}
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        captured_payload.update(json.loads(request.content.decode("utf-8")))
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"role": "assistant", "content": "ok"}, "finish_reason": "stop"}],
+            },
+        )
+
+    transport = httpx.MockTransport(_handler)
+
+    class _MockAsyncClient(httpx.AsyncClient):
+        def __init__(self, *args, **kwargs):
+            kwargs["transport"] = transport
+            super().__init__(*args, **kwargs)
+
+    original_client = httpx.AsyncClient
+    httpx.AsyncClient = _MockAsyncClient
+    try:
+        adapter = OpenAICompatibleLLMAdapter(base_url="http://localhost:1234", api_key=None, timeout=10.0)
+        asyncio.run(
+            adapter.generate(
+                messages=[
+                    {"role": "system", "content": "base"},
+                    {"role": "system", "content": "extra"},
+                    {"role": "user", "content": "hello"},
+                ],
+                model="local-model",
+                options={
+                    "temperature": 0.2,
+                    "reviewer_quorum": 2,
+                    "require_evidence_markers": True,
+                    "trust_lanes_enabled": True,
+                    "progressive_disclosure_level": "compact",
+                    "token_budget": None,
+                },
+            )
+        )
+    finally:
+        httpx.AsyncClient = original_client
+
+    assert captured_payload["temperature"] == 0.2
+    assert "reviewer_quorum" not in captured_payload
+    assert "trust_lanes_enabled" not in captured_payload
+    assert captured_payload["messages"] == [
+        {"role": "system", "content": "base\n\nextra"},
+        {"role": "user", "content": "hello"},
+    ]
+
+
+def test_coerce_openai_chat_options_ignores_unknown_keys() -> None:
+    assert _coerce_openai_chat_options(
+        {
+            "temperature": 0.1,
+            "max_tokens": 256,
+            "reviewer_quorum": 2,
+            "token_budget": None,
+        }
+    ) == {"temperature": 0.1, "max_tokens": 256}
+
+
+def test_normalize_openai_messages_merges_system_prompts() -> None:
+    assert _normalize_openai_messages(
+        [
+            {"role": "system", "content": "one"},
+            {"role": "system", "content": "two"},
+            {"role": "user", "content": "question"},
+        ]
+    ) == [
+        {"role": "system", "content": "one\n\ntwo"},
+        {"role": "user", "content": "question"},
+    ]
