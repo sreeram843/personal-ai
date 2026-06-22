@@ -11,15 +11,14 @@ export default defineConfig({
     toHaveScreenshot: {
       animations: 'disabled',
       caret: 'hide',
-      maxDiffPixelRatio: 0.04,
+      maxDiffPixelRatio: 0.02,
       timeout: 15_000,
     },
   },
-  // One baseline per browser — omit {platform} so macOS dev and Linux CI share snapshots.
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}',
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
+    reducedMotion: 'reduce',
   },
   webServer: {
     command: 'VITE_API_BASE_URL= npm run build && npm run preview -- --host 127.0.0.1 --port 4173',

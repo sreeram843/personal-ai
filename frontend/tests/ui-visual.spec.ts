@@ -12,6 +12,7 @@ const stableUiStyles = `
 
 async function preparePage(page: import('@playwright/test').Page) {
   await prepareAuthenticatedPage(page, { mode: 'smart' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.addStyleTag({ content: stableUiStyles });
 }
 

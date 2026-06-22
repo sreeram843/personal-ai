@@ -24,7 +24,8 @@
     "test:e2e": "playwright test tests/ui-flows.spec.ts",
     "test:ui": "playwright test",
     "test:visual": "playwright test tests/ui-visual.spec.ts",
-    "test:ui:update": "playwright test --update-snapshots"
+    "test:ui:update": "playwright test --update-snapshots",
+    "test:visual:update:linux": "bash ../scripts/update_playwright_linux_snapshots.sh"
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.2",
