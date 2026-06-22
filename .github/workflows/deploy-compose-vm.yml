@@ -1,64 +1,118 @@
-# Deploy to a single VM via SSH + Docker Compose (staging / small prod).
+# Deploy Personal AI to a single VM (GCP, Hetzner, EC2, etc.) via SSH + Docker Compose.
 #
-# Use when you do NOT want Kubernetes yet — e.g. Hetzner, DigitalOcean, EC2.
-# The VM should have Docker + Compose installed and repo cloned to DEPLOY_PATH.
+# Automatic: runs after the "Quality Gate" workflow succeeds on push to `main`.
+# Manual: Actions → "Deploy to VM (Docker Compose)" → Run workflow.
 #
-# Required GitHub secrets (Environment: staging or production):
-#   SSH_HOST            VM hostname or IP
-#   SSH_USER            e.g. ubuntu
-#   SSH_PRIVATE_KEY     PEM private key for SSH
-#   DEPLOY_PATH         e.g. /opt/personal-ai
-#   ENV_FILE            full contents of .env.cloud (multiline secret)
+# ── GitHub Environment: production ─────────────────────────────────────────────
+# Create Environment "production" under Settings → Environments and add secrets:
 #
-# Optional:
-#   COMPOSE_PROFILES    default: cloud-chat,workers
+#   SSH_HOST          VM IP or hostname (e.g. 35.254.92.211)
+#   SSH_USER          SSH user (e.g. ubuntu, or your gcloud login user)
+#   SSH_PRIVATE_KEY   PEM private key (generate: ssh-keygen -t ed25519 -f deploy_key)
+#   DEPLOY_PATH       Repo path on VM (e.g. /opt/personal-ai)
+#
+# Optional (manual rsync deploy only):
+#   ENV_FILE          Full contents of .env.cloud (multiline). Not needed for git deploy
+#                     because .env.cloud stays on the server.
+#
+# ── VM setup (one time) ───────────────────────────────────────────────────────
+#   1. Install Docker + Docker Compose plugin
+#   2. Clone repo: git clone https://github.com/<you>/personal-ai.git /opt/personal-ai
+#   3. Copy .env.cloud to /opt/personal-ai/.env.cloud (never commit this file)
+#   4. Add the public half of deploy_key to ~/.ssh/authorized_keys
+#   5. For private repos: add a GitHub deploy key on the VM (read-only) so git pull works
+#
+# Stack started on each deploy:
+#   docker compose --profile cloud-chat --profile workers \
+#     -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud up -d --build
+#   alembic upgrade head  +  /health + /ready smoke checks
 
 name: Deploy to VM (Docker Compose)
 
 on:
+  workflow_run:
+    workflows: ["Quality Gate"]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      method:
+        description: "git = pull origin/main on VM; rsync = copy workspace from CI"
+        required: true
+        default: git
+        type: choice
+        options:
+          - git
+          - rsync
 
 concurrency:
-  group: deploy-compose-${{ github.ref_name }}
-  cancel-in-progress: true
+  group: deploy-compose-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
 
 jobs:
   deploy:
-    name: SSH deploy
+    name: Deploy to VM
     runs-on: ubuntu-latest
-    environment: staging
+    environment: production
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    env:
+      DEPLOY_METHOD: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.method || 'git' }}
 
     steps:
       - uses: actions/checkout@v4
+        if: env.DEPLOY_METHOD == 'rsync'
 
-      - name: Write env file
-        run: |
-          printf '%s\n' "${{ secrets.ENV_FILE }}" > .env.cloud.deploy
+      - name: Write env file for rsync deploy
+        if: env.DEPLOY_METHOD == 'rsync'
+        run: printf '%s\n' "${{ secrets.ENV_FILE }}" > .env.cloud.deploy
 
       - name: Rsync project to server
+        if: env.DEPLOY_METHOD == 'rsync'
         uses: burnett01/rsync-deployments@7.0.1
         with:
-          switches: -avzr --delete --exclude .git --exclude node_modules --exclude .venv
+          switches: -avzr --delete --exclude .git --exclude node_modules --exclude .venv --exclude .env.cloud
           path: ./
           remote_path: ${{ secrets.DEPLOY_PATH }}
           remote_host: ${{ secrets.SSH_HOST }}
           remote_user: ${{ secrets.SSH_USER }}
           remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Copy env and restart stack
+      - name: Deploy stack on VM
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          envs: DEPLOY_METHOD
           script: |
             set -euo pipefail
             cd "${{ secrets.DEPLOY_PATH }}"
-            mv .env.cloud.deploy .env.cloud
-            docker compose \
-              --profile cloud-chat --profile workers \
-              -f docker-compose.yml -f docker-compose.cloud.yml \
-              --env-file .env.cloud \
-              up -d --build
-            docker compose --env-file .env.cloud exec -T app alembic upgrade head
+
+            if [ "${DEPLOY_METHOD}" = "git" ]; then
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              mv -f .env.cloud.deploy .env.cloud
+            fi
+
+            compose() {
+              docker compose \
+                --profile cloud-chat --profile workers \
+                -f docker-compose.yml -f docker-compose.cloud.yml \
+                --env-file .env.cloud \
+                "$@"
+            }
+
+            compose up -d --build
+            compose exec -T app alembic upgrade head
             curl -fsS http://127.0.0.1:8000/health
+            curl -fsS http://127.0.0.1:8000/ready
+            compose ps

@@ -371,6 +371,158 @@ html.dark .input-composer:focus-within {
   background: var(--ui-panel-strong);
 }
 
+/* CurAI logo — fixed orbit rings, electrons travel paths, bulb nucleus static */
+.curai-logo {
+  line-height: 0;
+  --curai-logo-stroke: var(--palette-gray-900);
+}
+
+html.dark .curai-logo {
+  --curai-logo-stroke: var(--palette-white);
+}
+
+.curai-logo__stage {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.curai-logo__svg {
+  display: block;
+  overflow: visible;
+}
+
+.curai-logo__orbit {
+  fill: none;
+  stroke: var(--curai-logo-stroke);
+  stroke-width: 1.65;
+}
+
+.curai-logo__electron {
+  fill: var(--curai-logo-stroke);
+}
+
+.curai-logo__bulb-pulse {
+  transform-box: view-box;
+  transform-origin: 50% 42%;
+}
+
+.curai-logo__bulb {
+  transition: filter 0.45s ease, opacity 0.45s ease;
+}
+
+.curai-logo__bulb-stroke,
+.curai-logo__bulb-base {
+  stroke: var(--curai-logo-stroke);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  fill: var(--curai-logo-stroke);
+}
+
+.curai-logo__bulb-stroke {
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+}
+
+.curai-logo__filament {
+  stroke: var(--curai-logo-stroke);
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.88;
+}
+
+.curai-logo__bulb-thread {
+  stroke: var(--palette-white);
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+
+html.dark .curai-logo__bulb-thread {
+  stroke: var(--palette-gray-900);
+}
+
+.curai-logo[data-state='idle'] .curai-logo__bulb {
+  filter: none;
+  opacity: 1;
+}
+
+.curai-logo[data-state='thinking'] .curai-logo__bulb {
+  filter: saturate(0.96) brightness(0.99);
+  opacity: 0.98;
+}
+
+.curai-logo[data-state='active'] .curai-logo__bulb {
+  filter: saturate(1.14) brightness(1.1);
+  opacity: 1;
+}
+
+.curai-logo[data-state='error'] .curai-logo__bulb {
+  filter: grayscale(1) brightness(1.15) contrast(0.85);
+  opacity: 0.42;
+}
+
+.curai-logo[data-state='error'] .curai-logo__orbit,
+.curai-logo[data-state='error'] .curai-logo__electron {
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .curai-logo[data-state='thinking'] .curai-logo__bulb-pulse {
+    animation: curai-logo-bulb-breathe 2.4s ease-in-out infinite;
+  }
+
+  .curai-logo[data-state='active'] .curai-logo__bulb-pulse {
+    animation: curai-logo-bulb-breathe 1.7s ease-in-out infinite;
+  }
+
+  .curai-logo[data-state='active'] .curai-logo__bulb {
+    animation: curai-logo-bulb-glow 2s ease-in-out infinite;
+  }
+}
+
+@keyframes curai-logo-bulb-breathe {
+  0%,
+  100% {
+    transform: scale(0.86);
+  }
+  50% {
+    transform: scale(1.16);
+  }
+}
+
+@keyframes curai-logo-bulb-glow {
+  0%,
+  100% {
+    filter: saturate(1.1) brightness(1.06);
+  }
+  50% {
+    filter: saturate(1.22) brightness(1.14);
+  }
+}
+
+/* Sidebar wordmark — gentle fade cycle (Figma lockup rhythm) */
+.curai-sidebar-wordmark {
+  line-height: 1.2;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .curai-sidebar-wordmark {
+    animation: curai-wordmark-fade 5s ease-in-out infinite;
+  }
+}
+
+@keyframes curai-wordmark-fade {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.28;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -1,14 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { installApiBootstrapMocks } from './utils/apiMocks';
+import { prepareAuthenticatedPage, mockConversationMessages } from './utils/apiMocks';
 import { assertQaGuards, installQaGuards } from './utils/qaGuards';
 
-async function preparePage(page: import('@playwright/test').Page) {
-  await installApiBootstrapMocks(page);
-  await page.goto('/');
-  await page.evaluate(() => {
-    localStorage.clear();
-  });
-  await page.goto('/');
+async function preparePage(page: import('@playwright/test').Page, mode?: 'chat' | 'smart') {
+  await prepareAuthenticatedPage(page, { mode });
 }
 
 test.describe('browser interaction flows', () => {
@@ -21,7 +16,16 @@ test.describe('browser interaction flows', () => {
   });
 
   test('classic quick chat sends a prompt and new chat clears history', async ({ page }) => {
+    await mockConversationMessages(page, 'conv-1', [
+      { id: 'u1', role: 'user', content: 'Explain the cache path' },
+      { id: 'a1', role: 'assistant', content: 'CACHE PIPELINE VERIFIED' },
+    ]);
+
     await page.route('**/chat', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -32,10 +36,9 @@ test.describe('browser interaction flows', () => {
       });
     });
 
-    await preparePage(page);
-    await page.getByRole('button', { name: 'QUICK CHAT', exact: true }).click();
+    await preparePage(page, 'chat');
     await page.getByPlaceholder(/Message/).fill('Explain the cache path');
-    await page.getByRole('button', { name: 'Send' }).click();
+    await page.getByRole('button', { name: 'Send message' }).click();
 
     await expect(page.getByRole('log').getByText('Explain the cache path', { exact: true })).toBeVisible();
     await expect(page.getByText('CACHE PIPELINE VERIFIED')).toBeVisible();
@@ -46,7 +49,32 @@ test.describe('browser interaction flows', () => {
   });
 
   test('smart flow renders returned citations', async ({ page }) => {
+    await mockConversationMessages(page, 'conv-smart-1', [
+      { id: 'u1', role: 'user', content: 'Summarize the ops guidance' },
+      {
+        id: 'a1',
+        role: 'assistant',
+        content: 'SMART RESPONSE READY',
+        metadata: {
+          sources: [
+            {
+              id: 'doc-1',
+              score: 0.982,
+              metadata: {
+                name: 'ops-runbook.md',
+                path: 'docs/ops-runbook.md',
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
     await page.route('**/smart_chat/stream', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
       await route.fulfill({
         status: 200,
         contentType: 'text/event-stream',
@@ -54,6 +82,7 @@ test.describe('browser interaction flows', () => {
           type: 'final',
           response: {
             message: 'SMART RESPONSE READY',
+            conversation_id: 'conv-smart-1',
             sources: [
               {
                 id: 'doc-1',
@@ -71,16 +100,20 @@ test.describe('browser interaction flows', () => {
 
     await preparePage(page);
     await page.getByPlaceholder(/Message/).fill('Summarize the ops guidance');
-    await page.getByRole('button', { name: 'Send' }).click();
+    await page.getByRole('button', { name: 'Send message' }).click();
 
     await expect(page.getByText('SMART RESPONSE READY')).toBeVisible();
-    await expect(page.getByText('SOURCES', { exact: true })).toBeVisible();
+    await expect(page.getByText('Sources', { exact: true })).toBeVisible();
     await expect(page.getByText('ops-runbook.md', { exact: true })).toBeVisible();
     await expect(page.getByText('docs/ops-runbook.md')).toBeVisible();
   });
 
   test('document upload shows a success status', async ({ page }) => {
     await page.route('**/ingest', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -89,7 +122,7 @@ test.describe('browser interaction flows', () => {
     });
 
     await preparePage(page);
-    await page.getByRole('button', { name: 'Upload documents' }).click();
+    await page.getByRole('button', { name: 'Attach file' }).click();
     await page.locator('input[type="file"]').setInputFiles({
       name: 'sample-notes.md',
       mimeType: 'text/markdown',

@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { CuraiLogo } from './CuraiLogo';
 
 interface Props {
   open: boolean;
@@ -15,7 +16,7 @@ export function AboutPanel({ open, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-start justify-end bg-black/30 p-3 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
-      aria-label="About Personal AI"
+      aria-label="About CurAI"
       onClick={onClose}
     >
       <div
@@ -23,9 +24,12 @@ export function AboutPanel({ open, onClose }: Props) {
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <div className="text-xs uppercase tracking-[0.28em] text-[var(--phosphor-dim)]">About</div>
-            <div className="text-lg font-semibold text-[var(--phosphor-bright)]">Personal AI</div>
+          <div className="flex items-center gap-3">
+            <CuraiLogo state="idle" size={36} />
+            <div>
+              <div className="text-xs uppercase tracking-[0.28em] text-[var(--phosphor-dim)]">About</div>
+              <div className="text-lg font-semibold text-[var(--phosphor-bright)]">CurAI</div>
+            </div>
           </div>
           <button
             type="button"
@@ -39,8 +43,8 @@ export function AboutPanel({ open, onClose }: Props) {
 
         <div className="space-y-4 text-sm leading-relaxed text-[var(--phosphor)]">
           <p>
-            Personal AI is a private assistant workspace for grounded chat, document retrieval, and smart
-            multi-step workflows — all scoped to your account.
+            CurAI is a private assistant workspace for grounded chat, document retrieval, and smart multi-step
+            workflows — inspired by the spirit of discovery. Everything is scoped to your account.
           </p>
 
           <div>

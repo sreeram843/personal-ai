@@ -161,7 +161,8 @@ compose-validate:
 	docker compose --profile local config >/dev/null
 	docker compose --profile cloud-chat -f docker-compose.yml -f docker-compose.cloud.yml config >/dev/null
 	docker compose --profile gpu-vllm -f docker-compose.yml -f docker-compose.gpu-vllm.yml config >/dev/null
-	docker compose --env-file .env.remote.example -f docker-compose.yml -f docker-compose.remote-inference.yml config >/dev/null
+	@if [ ! -f .env.remote ]; then cp .env.remote.example .env.remote; fi
+	docker compose --env-file .env.remote -f docker-compose.yml -f docker-compose.remote-inference.yml config >/dev/null
 	docker compose --profile local --profile workers config >/dev/null
 	@echo "docker compose profiles validated (local, cloud-chat, gpu-vllm, remote, workers)"
 

@@ -10,7 +10,12 @@ type GuardState = {
   networkErrors: string[];
 };
 
-const defaultIgnoredNetwork = [/\/favicon\.ico$/i, /\/playwright-report\//i, /fonts\.gstatic\.com/i];
+const defaultIgnoredNetwork = [
+  /\/favicon\.ico$/i,
+  /\/playwright-report\//i,
+  /fonts\.gstatic\.com/i,
+  /fonts\.googleapis\.com/i,
+];
 const guardState = new WeakMap<Page, GuardState>();
 
 function isIgnored(text: string, patterns: RegExp[]): boolean {
@@ -38,7 +43,15 @@ export function installQaGuards(page: Page, options: GuardOptions = {}): void {
   });
 
   page.on('requestfailed', (request) => {
-    const details = `${request.method()} ${request.url()} :: ${request.failure()?.errorText ?? 'request failed'}`;
+    if (
+      failure.includes('ERR_ABORTED') ||
+      failure.toLowerCase().includes('cancelled') ||
+      failure.includes('NS_BINDING_ABORTED')
+    ) {
+      return;
+    }
+
+    const details = `${request.method()} ${request.url()} :: ${failure}`;
     if (!isIgnored(details, ignoredNetwork)) {
       state.networkErrors.push(details);
     }

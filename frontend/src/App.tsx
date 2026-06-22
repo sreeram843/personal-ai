@@ -2,9 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AuthConfig, CurrentUser } from './api';
 import { sendMessage, uploadDocuments } from './api';
+import { MessageSquare } from 'lucide-react';
 import { AboutPanel } from './components/AboutPanel';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatInput } from './components/ChatInput';
+import { resolveCuraiLogoState } from './components/curaiLogoState';
 import { VirtualizedMessageList } from './components/VirtualizedMessageList';
 import { SettingsPanel } from './components/SettingsPanel';
 import { Sidebar } from './components/Sidebar';
@@ -97,6 +99,17 @@ export default function App({ user }: AppProps) {
 
   const isBootstrapping = authReady && conversationsQuery.isLoading && !conversationsQuery.data;
 
+  const logoState = useMemo(() => {
+    if (isBootstrapping) {
+      return 'thinking';
+    }
+    return resolveCuraiLogoState({
+      isLoading,
+      hasBootstrapError: Boolean(bootstrapError),
+      messages,
+    });
+  }, [isBootstrapping, isLoading, bootstrapError, messages]);
+
   const handleRetryBootstrap = () => {
     if (conversationsQuery.isError) {
       void conversationsQuery.refetch();
@@ -168,7 +181,6 @@ export default function App({ user }: AppProps) {
         if (event.type === 'workflow' && event.workflow) {
           updateCachedMessage(queryClient, activeConversationId, assistantMessage.id, (msg) => ({
             ...msg,
-            content: msg.content || 'Coordinating workflow...',
             workflow: event.workflow,
           }));
           return;
@@ -179,7 +191,6 @@ export default function App({ user }: AppProps) {
           const summary = event.summary;
           updateCachedMessage(queryClient, activeConversationId, assistantMessage.id, (msg) => ({
             ...msg,
-            content: msg.content || 'Coordinating workflow...',
             workflowMemoryEvents: [
               ...(msg.workflowMemoryEvents ?? []),
               {
@@ -197,7 +208,6 @@ export default function App({ user }: AppProps) {
           const sourceCount = event.sources.length;
           updateCachedMessage(queryClient, activeConversationId, assistantMessage.id, (msg) => ({
             ...msg,
-            content: msg.content || 'Coordinating workflow...',
             workflowSourceEvents: [
               ...(msg.workflowSourceEvents ?? []),
               {
@@ -478,7 +488,7 @@ export default function App({ user }: AppProps) {
         <ChatHeader
           mode={mode}
           latency={latency}
-          isLoading={isLoading}
+          logoState={logoState}
           conversationTitle={activeConversationTitle}
           settingsOpen={settingsOpen}
           onShareConversation={() => {
@@ -502,9 +512,16 @@ export default function App({ user }: AppProps) {
             )}
             {messages.length === 0 && (
               <div className="elevated-panel rounded-xl p-4 text-left sm:p-5">
-                <div className="text-xs uppercase tracking-[0.2em] text-[var(--phosphor-dim)]">System ready</div>
-                <div className="mt-2 text-xl font-semibold leading-snug text-[var(--phosphor-bright)] sm:text-2xl">
-                  {mode === 'smart' ? 'Start a smart-routed conversation' : 'Start a direct model conversation'}
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 shrink-0 place-content-center rounded-xl bg-[var(--ui-bg-elevated)] text-[var(--phosphor)] ring-1 ring-[var(--ui-border)]">
+                    <MessageSquare className="h-5 w-5" aria-hidden />
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-[0.2em] text-[var(--phosphor-dim)]">New conversation</div>
+                    <div className="mt-1 text-xl font-semibold leading-snug text-[var(--phosphor-bright)] sm:text-2xl">
+                      {mode === 'smart' ? 'Start a smart-routed conversation' : 'Start a direct model conversation'}
+                    </div>
+                  </div>
                 </div>
                 <div className="mt-2 text-base leading-relaxed text-[var(--phosphor)]">
                   {mode === 'smart'

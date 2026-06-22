@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Copy, RefreshCw, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Copy, RefreshCw, ThumbsDown, ThumbsUp, User } from 'lucide-react';
 import type { ChatMessage } from '../types';
+import { CuraiLogo } from './CuraiLogo';
+import { resolveAssistantLogoState } from './curaiLogoState';
 import { MessageContent } from './MessageContent';
 
 interface Props {
@@ -9,6 +11,11 @@ interface Props {
   onCopy?: (message: ChatMessage) => void;
   onRegenerate?: (message: ChatMessage) => void;
   onFeedback?: (message: ChatMessage, value: 'up' | 'down') => void;
+}
+
+function isPlaceholderAssistantContent(content: string): boolean {
+  const trimmed = content.trim();
+  return trimmed === '' || trimmed === 'Coordinating workflow...';
 }
 
 export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, onFeedback }: Props) {
@@ -64,18 +71,37 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
     return { readCount, writeCount, latestRead, latestWrite };
   }, [message.workflowMemoryEvents]);
 
+  const assistantLogoState = resolveAssistantLogoState(message, Boolean(isStreaming));
+  const streamingLogoOnly =
+    !isUser && Boolean(isStreaming) && isPlaceholderAssistantContent(message.content);
+  const showAssistantActions =
+    !isUser &&
+    !isStreaming &&
+    !isPlaceholderAssistantContent(message.content) &&
+    !message.content.startsWith('⚠️');
+
+  if (streamingLogoOnly) {
+    return (
+      <div className="flex w-full justify-start py-3">
+        <CuraiLogo state={assistantLogoState} size={52} title="Assistant" />
+        <span className="sr-only">Assistant is responding</span>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex w-full ${isUser ? 'justify-end' : 'justify-start'}`}>
       <article className={`flex w-full max-w-full ${isUser ? 'max-w-[85%] flex-row-reverse' : 'flex-row'} gap-2.5`}>
-        <div
-          className={`mt-0.5 grid h-7 w-7 shrink-0 place-content-center rounded-full text-[10px] font-semibold ${
-            isUser
-              ? 'bg-[var(--ui-bg-elevated)] text-[var(--phosphor-dim)] ring-1 ring-[var(--ui-border)]'
-              : 'bg-[var(--ui-focus)] text-[var(--ui-accent-fg)]'
-          }`}
-        >
-          {isUser ? 'U' : 'AI'}
-        </div>
+        {isUser ? (
+          <div className="mt-0.5 grid h-7 w-7 shrink-0 place-content-center rounded-full bg-[var(--ui-bg-elevated)] text-[var(--phosphor-dim)] ring-1 ring-[var(--ui-border)]">
+            <User className="h-3.5 w-3.5" aria-hidden />
+            <span className="sr-only">You</span>
+          </div>
+        ) : (
+          <div className="mt-0.5 grid h-7 w-7 shrink-0 place-content-center">
+            <CuraiLogo state={assistantLogoState} size={28} title="Assistant" />
+          </div>
+        )}
 
         <div className={`min-w-0 flex-1 ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
           <div
@@ -85,10 +111,10 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
                 : 'py-0.5 text-[var(--phosphor)]'
             }
           >
-            <MessageContent content={message.content || (isStreaming ? 'Loading...' : '')} />
+            <MessageContent content={message.content} />
           </div>
 
-          {!isUser && (
+          {showAssistantActions && (
             <div className="mt-1 flex items-center gap-0.5">
               <button
                 type="button"
@@ -235,9 +261,6 @@ export function ChatMessageBubble({ message, isStreaming, onCopy, onRegenerate, 
           </div>
         )}
 
-          {isStreaming && !isUser && (
-            <div className="mt-1 text-xs text-[var(--phosphor-dim)]">Streaming response...</div>
-          )}
         </div>
       </article>
     </div>

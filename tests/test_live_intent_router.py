@@ -22,6 +22,14 @@ def test_route_weather_forecast_before_current() -> None:
     assert intent.slots["days"] >= 2
 
 
+def test_route_houston_coming_sunday_uses_forecast_and_city_only() -> None:
+    intent = route_live_intent("What is the weather in Houston for coming Sunday?")
+    assert intent is not None
+    assert intent.domain == "weather_forecast"
+    assert intent.slots["location"] == "Houston"
+    assert intent.slots["days"] >= 1
+
+
 def test_generic_freshness_is_not_structured_adapter_intent() -> None:
     intent = route_live_intent("what is happening tomorrow with the product launch")
     assert intent is not None

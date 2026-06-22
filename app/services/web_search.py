@@ -868,6 +868,36 @@ def is_weather_query(user_query: str) -> bool:
     return any(re.search(r"\b" + re.escape(kw) + r"\b", text) for kw in _WEATHER_KEYWORDS)
 
 
+_WEEKDAY_INDEX = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
+
+_WEATHER_LOCATION_TIME_TAIL = re.compile(
+    r"\s+\bfor\b\s+(?:the\s+)?(?:(?:coming|this|next)\s+)?"
+    r"(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|weekend|tomorrow)\b.*$",
+    re.IGNORECASE,
+)
+
+
+def _normalize_weather_location_candidate(candidate: str) -> str:
+    """Strip trailing time phrases accidentally captured as part of the place name."""
+    normalized = candidate.strip(" .?,-")
+    normalized = _WEATHER_LOCATION_TIME_TAIL.sub("", normalized).strip(" .?,-")
+    normalized = re.sub(
+        r"\s*\b(today|tonight|now|currently|right now|tomorrow|this (?:morning|afternoon|evening|week))\b\s*$",
+        "",
+        normalized,
+        flags=re.IGNORECASE,
+    ).strip(" .?,-")
+    return normalized
+
+
 def extract_weather_location(user_query: str) -> str | None:
     """Extract location phrase from weather query, e.g. 'weather in Austin'."""
     if not is_weather_query(user_query):
@@ -882,13 +912,7 @@ def extract_weather_location(user_query: str) -> str | None:
     ):
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
-            candidate = match.group(1).strip(" .?,-")
-            candidate = re.sub(
-                r"\s*\b(today|tonight|now|currently|right now|tomorrow|this (?:morning|afternoon|evening|week))\b\s*$",
-                "",
-                candidate,
-                flags=re.IGNORECASE,
-            ).strip(" .?,-")
+            candidate = _normalize_weather_location_candidate(match.group(1))
             if candidate:
                 return candidate
 
@@ -899,11 +923,32 @@ def extract_weather_location(user_query: str) -> str | None:
         text,
         flags=re.IGNORECASE,
     )
+    cleaned = re.sub(
+        r"\b(?:coming|this|next)\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|week|weekend|tomorrow)\b",
+        " ",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .?,-")
     if cleaned:
         return cleaned
 
     return None
+
+
+def is_weather_forecast_query(user_query: str) -> bool:
+    """True when the user asks for future weather, not conditions right now."""
+    text = user_query.lower()
+    if any(term in text for term in ("forecast", "tomorrow", "week", "weekly", "next", "coming")):
+        return True
+    if re.search(r"\bday\b", text):
+        return True
+    if re.search(
+        r"\b(?:this|next|coming)?\s*(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+        text,
+    ):
+        return True
+    return False
 
 
 def extract_forecast_days(user_query: str) -> int:
@@ -919,6 +964,22 @@ def extract_forecast_days(user_query: str) -> int:
         return 7
     if "tomorrow" in text:
         return 2
+
+    weekday_match = re.search(
+        r"\b(?:(next|coming|this)\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
+        text,
+    )
+    if weekday_match:
+        modifier = weekday_match.group(1) or ""
+        target = _WEEKDAY_INDEX[weekday_match.group(2)]
+        from datetime import datetime, timezone
+
+        today = datetime.now(timezone.utc).date()
+        days_ahead = (target - today.weekday()) % 7
+        if modifier == "next" and days_ahead == 0:
+            days_ahead = 7
+        return max(1, min(days_ahead + 1, 7))
+
     return 3
 
 
@@ -1025,6 +1086,7 @@ __all__ = [
     "detect_commodity_query",
     "detect_stock_query",
     "is_weather_query",
+    "is_weather_forecast_query",
     "extract_weather_location",
     "extract_forecast_days",
     "is_news_query",

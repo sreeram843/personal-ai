@@ -3,6 +3,7 @@ import { ChevronLeft, MessageCirclePlus, MessageSquare, PanelLeft, Sparkles } fr
 import type { CurrentUser } from '../api';
 import type { ConversationMode } from '../types';
 import { ConversationListItem, type ConversationListItemData } from './ConversationListItem';
+import { CuraiLogo } from './CuraiLogo';
 import { UserMenu } from './UserMenu';
 
 interface Props {
@@ -92,11 +93,11 @@ export function Sidebar({
   return (
     <aside className="relative flex min-h-0 border-b border-[var(--ui-border)] bg-[var(--ui-panel)] text-[var(--phosphor)] transition-all duration-200 md:h-full md:w-[260px] md:min-w-[260px] md:flex-col md:border-b-0 md:border-r">
       <div className="flex h-full min-h-0 w-full min-w-0 flex-col px-3 py-3 md:px-3.5 md:py-3.5">
-        <div className="mb-3 flex shrink-0 items-center gap-2">
-          <div className="grid h-7 w-7 shrink-0 place-content-center rounded-md bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm">
-            <Sparkles className="h-4 w-4" />
+        <div className="mb-3.5 flex shrink-0 items-center gap-2.5">
+          <CuraiLogo state="idle" size={36} />
+          <div className="curai-sidebar-wordmark min-w-0 flex-1 text-lg font-semibold tracking-tight text-[var(--phosphor-bright)]">
+            CurAI
           </div>
-          <div className="min-w-0 flex-1 text-sm font-semibold text-[var(--phosphor-bright)]">Smart Chat</div>
           <button
             type="button"
             onClick={onToggleSidebarCollapsed}

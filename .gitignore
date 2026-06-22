@@ -68,6 +68,13 @@ htmlcov/
 dist/
 build/
 
+# Branding dev assets (canonical logo #7 is tracked)
+frontend/public/logo-demo.html
+frontend/public/curai-favicon.svg
+frontend/public/branding/curai-logo-animated.svg
+frontend/public/branding/logos/*
+!frontend/public/branding/logos/curai-logo-07-motion-trails.png
+
 # OS
 .DS_Store
 Thumbs.db

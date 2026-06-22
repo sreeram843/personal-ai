@@ -12,16 +12,10 @@ from app.services.web_search import (
     extract_news_topic,
     extract_weather_location,
     is_news_query,
+    is_weather_forecast_query,
     is_weather_query,
     should_prioritize_fresh_web_data,
 )
-
-_FORECAST_TERMS = ("forecast", "tomorrow", "week", "weekly", "next")
-
-
-def _is_forecast_query(query: str) -> bool:
-    lower = query.lower()
-    return any(term in lower for term in _FORECAST_TERMS) or bool(re.search(r"\bday\b", lower))
 
 
 def route_live_intent(query: str) -> Optional[LiveIntent]:
@@ -62,7 +56,7 @@ def route_live_intent(query: str) -> Optional[LiveIntent]:
     if is_weather_query(text):
         location = extract_weather_location(text)
         if location:
-            if _is_forecast_query(text):
+            if is_weather_forecast_query(text):
                 return LiveIntent(
                     domain="weather_forecast",
                     slots={"location": location, "days": extract_forecast_days(text)},

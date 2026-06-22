@@ -1,17 +1,17 @@
-import { Sparkles } from 'lucide-react';
+import { CuraiLogo } from './CuraiLogo';
 
 interface Props {
   label?: string;
+  state?: 'thinking' | 'error';
 }
 
-export function BootstrapScreen({ label = 'Loading…' }: Props) {
+export function BootstrapScreen({ label, state = 'thinking' }: Props) {
   return (
     <div className="classic-font flex min-h-screen items-center justify-center bg-[var(--ui-bg)] text-[var(--phosphor)]">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="grid h-11 w-11 place-content-center rounded-xl bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm">
-          <Sparkles className="h-5 w-5" />
-        </div>
-        <div className="text-sm text-[var(--phosphor-dim)]">{label}</div>
+      <div className="flex flex-col items-center text-center">
+        <CuraiLogo state={state} size={80} />
+        {label ? <p className="mt-4 max-w-sm text-sm text-[var(--phosphor-dim)]">{label}</p> : null}
+        <p className="sr-only">{label ?? 'Loading'}</p>
       </div>
     </div>
   );

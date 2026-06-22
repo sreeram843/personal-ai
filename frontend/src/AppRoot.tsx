@@ -11,12 +11,13 @@ export function AppRoot() {
   const configQuery = useAuthConfig();
 
   if (configQuery.isLoading) {
-    return <BootstrapScreen label="Loading app…" />;
+    return <BootstrapScreen />;
   }
 
   if (configQuery.isError || !configQuery.data) {
     return (
       <BootstrapScreen
+        state="error"
         label={configQuery.error instanceof Error ? configQuery.error.message : 'Failed to load app configuration'}
       />
     );
@@ -58,12 +59,13 @@ function AuthenticatedGate({ authConfig }: { authConfig: AuthConfig }) {
   }, []);
 
   if (authConfig.auth_disabled && devAuthQuery.isLoading) {
-    return <BootstrapScreen label="Starting session…" />;
+    return <BootstrapScreen />;
   }
 
   if (authConfig.auth_disabled && devAuthQuery.isError) {
     return (
       <BootstrapScreen
+        state="error"
         label={devAuthQuery.error instanceof Error ? devAuthQuery.error.message : 'Failed to start dev session'}
       />
     );
@@ -79,7 +81,7 @@ function AuthenticatedGate({ authConfig }: { authConfig: AuthConfig }) {
   }
 
   if (sessionActive && currentUserQuery.isLoading) {
-    return <BootstrapScreen label="Verifying session…" />;
+    return <BootstrapScreen />;
   }
 
   if (requiresLogin && sessionActive && (currentUserQuery.isError || !currentUserQuery.data)) {
@@ -92,7 +94,7 @@ function AuthenticatedGate({ authConfig }: { authConfig: AuthConfig }) {
   }
 
   if (!currentUserQuery.data) {
-    return <BootstrapScreen label="Loading profile…" />;
+    return <BootstrapScreen />;
   }
 
   return <App authConfig={authConfig} user={currentUserQuery.data} />;

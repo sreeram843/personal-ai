@@ -1,10 +1,10 @@
 import { GoogleLogin } from '@react-oauth/google';
-import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AuthConfig } from '../api';
 import { exchangeGoogleToken } from '../api';
 import { queryKeys } from '../query/keys';
+import { CuraiLogo } from './CuraiLogo';
 
 interface Props {
   authConfig: AuthConfig;
@@ -40,12 +40,10 @@ export function LoginPage({ authConfig, onAuthenticated }: Props) {
     <div className="classic-font flex min-h-screen items-center justify-center bg-[var(--ui-bg)] px-4 py-10 text-[var(--phosphor)]">
       <div className="elevated-panel w-full max-w-md rounded-2xl border border-[var(--ui-border)] p-6 shadow-xl sm:p-8">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 grid h-12 w-12 place-content-center rounded-xl bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm">
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <h1 className="text-2xl font-semibold text-[var(--phosphor-bright)]">Personal AI</h1>
+          <CuraiLogo state={isSubmitting ? 'thinking' : error ? 'error' : 'idle'} size={48} className="mb-4" />
+          <h1 className="text-2xl font-semibold text-[var(--phosphor-bright)]">CurAI</h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">
-            Sign in to access your conversations, documents, and smart chat history.
+            Sign in to access your conversations, documents, and smart-routed chat history.
           </p>
         </div>
 

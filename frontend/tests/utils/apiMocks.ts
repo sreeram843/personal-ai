@@ -107,7 +107,11 @@ export async function installApiBootstrapMocks(page: Page): Promise<void> {
     await route.continue();
   });
 
-  await page.route('**/conversations/*/messages', async (route) => {
+  await page.route('**/conversations/new-conversation-id/messages', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -117,4 +121,51 @@ export async function installApiBootstrapMocks(page: Page): Promise<void> {
       }),
     });
   });
+}
+
+export async function mockConversationMessages(
+  page: Page,
+  conversationId: string,
+  messages: Array<{
+    id: string;
+    role: 'user' | 'assistant';
+    content: string;
+    metadata?: Record<string, unknown>;
+  }>,
+): Promise<void> {
+  await page.route(`**/conversations/${conversationId}/messages`, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        messages: messages.map((message) => ({
+          ...message,
+          created_at: nowIso(),
+        })),
+      }),
+    });
+  });
+}
+
+export async function prepareAuthenticatedPage(
+  page: Page,
+  options: { mode?: 'chat' | 'smart' } = {},
+): Promise<void> {
+  await installApiBootstrapMocks(page);
+  await page.addInitScript(({ mode }) => {
+    localStorage.clear();
+    localStorage.setItem('personal-ai-auth-token', 'playwright-test-token');
+    if (mode) {
+      localStorage.setItem('personal-ai-mode', JSON.stringify(mode));
+    }
+  }, options);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const readyText =
+    options.mode === 'chat' ? 'Start a direct model conversation' : 'Start a smart-routed conversation';
+  await page.getByText(readyText).waitFor({ state: 'visible', timeout: 15000 });
 }
