@@ -19,15 +19,32 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:capacitor": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test tests/ui-flows.spec.ts",
+    "test:capacitor": "playwright test tests/capacitor-mobile.spec.ts",
     "test:ui": "playwright test",
     "test:visual": "playwright test tests/ui-visual.spec.ts",
     "test:ui:update": "playwright test --update-snapshots",
-    "test:visual:update:linux": "bash ../scripts/update_playwright_linux_snapshots.sh"
+    "test:visual:update:linux": "bash ../scripts/update_playwright_linux_snapshots.sh",
+    "cap:sync": "npm run build:capacitor && npx cap sync",
+    "cap:copy": "npx cap copy",
+    "cap:ios": "npx cap open ios",
+    "cap:run:ios": "npx cap run ios",
+    "cap:android": "npx cap open android",
+    "cap:doctor": "npx cap doctor"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
+    "@capgo/capacitor-social-login": "^8.3.30",
     "@react-oauth/google": "^0.12.2",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-virtual": "^3.14.3",
@@ -38,6 +55,8 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@eslint/js": "^9.36.0",
     "@playwright/test": "^1.58.2",
     "@types/node": "^24.6.0",
@@ -53,6 +72,7 @@
     "tailwindcss": "^3.4.15",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "vitest": "^4.1.9"
   }
 }

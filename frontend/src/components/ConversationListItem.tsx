@@ -132,8 +132,8 @@ export function ConversationListItem({
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
             className={clsx(
-              'grid h-8 w-8 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)]',
-              menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+              'conversation-menu-btn touch-target grid h-10 w-10 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] md:h-8 md:w-8',
+              menuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100',
             )}
             aria-label={`Actions for ${item.title}`}
             aria-expanded={menuOpen}

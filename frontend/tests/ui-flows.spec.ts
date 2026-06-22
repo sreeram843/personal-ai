@@ -48,7 +48,7 @@ test.describe('browser interaction flows', () => {
     await expect(page.getByText('CACHE PIPELINE VERIFIED')).not.toBeVisible();
   });
 
-  test('smart flow renders returned citations', async ({ page }) => {
+  test('smart flow returns assistant response without metadata panels', async ({ page }) => {
     await mockConversationMessages(page, 'conv-smart-1', [
       { id: 'u1', role: 'user', content: 'Summarize the ops guidance' },
       {
@@ -103,9 +103,8 @@ test.describe('browser interaction flows', () => {
     await page.getByRole('button', { name: 'Send message' }).click();
 
     await expect(page.getByText('SMART RESPONSE READY')).toBeVisible();
-    await expect(page.getByText('Sources', { exact: true })).toBeVisible();
-    await expect(page.getByText('ops-runbook.md', { exact: true })).toBeVisible();
-    await expect(page.getByText('docs/ops-runbook.md')).toBeVisible();
+    await expect(page.getByText('Sources', { exact: true })).not.toBeVisible();
+    await expect(page.getByText('Workflow trace', { exact: true })).not.toBeVisible();
   });
 
   test('document upload shows a success status', async ({ page }) => {

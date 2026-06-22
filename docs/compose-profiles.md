@@ -63,16 +63,30 @@ Requires NVIDIA GPU + [Container Toolkit](https://docs.nvidia.com/datacenter/clo
 
 ### Remote inference (Mac Mini / LM Studio)
 
-App on one machine, chat + embeddings on another (e.g. MacBook runs Docker, Mac Mini at `192.168.1.138` runs LM Studio + Ollama):
+App on one machine, chat + embeddings on another. **Current dev setup:** MacBook runs Docker; Mac Mini at **`192.168.10.1`** (Ethernet) runs LM Studio + Ollama.
 
 ```bash
 cp .env.remote.example .env.remote
-# Set LLM_*_MODEL to the id from: curl http://192.168.1.138:1234/v1/models
+# Set LLM_*_MODEL to loaded model id, e.g. qwen-3-14b-instruct
 make up-remote
 make db-migrate   # first run
 ```
 
-Mac Mini must expose LM Studio on port **1234** (local network) and Ollama on **11434** (`OLLAMA_HOST=0.0.0.0:11434`).
+**Verify Mac Mini:**
+
+```bash
+curl http://192.168.10.1:1234/api/v1/models   # LM Studio native API
+curl http://192.168.10.1:1234/v1/models       # OpenAI-compatible list ("id" for .env)
+curl http://192.168.10.1:11434/api/tags       # Ollama embeddings
+```
+
+Mac Mini must expose LM Studio on port **1234** (serve on local network) and Ollama on **11434** (`OLLAMA_HOST=0.0.0.0:11434`).
+
+**Recommended model (2026-06-22):** [Qwen3-14B-Instruct GGUF Q4_K_M](https://huggingface.co/lm-kit/qwen-3-14b-instruct-gguf) in LM Studio — set all `LLM_*_MODEL=qwen-3-14b-instruct`. Unload other loaded models to free RAM.
+
+Tailscale IP (`100.67.46.46`) is documented in `.env.remote.example` as a Wi‑Fi fallback.
+
+Load benchmarks: [model-stress-testing.md](./model-stress-testing.md).
 
 ### Background workers
 
@@ -95,8 +109,10 @@ docker compose exec app env | grep -E "LLM_DEFAULT_PROVIDER|LLM_OPENAI_BASE_URL|
 | local | `ollama` (or unset) | empty |
 | cloud-chat | `openai` | `https://api.*` |
 | gpu-vllm | `openai` | `http://vllm:8000/v1` |
+| remote | `openai` | `http://192.168.10.1:1234` (Mac Mini LM Studio) |
 
-`OLLAMA_BASE_URL=http://ollama:11434` should be set in all modes for embeddings.
+For **remote**, `OLLAMA_BASE_URL` points at Mac Mini (`http://192.168.10.1:11434`), not the in-compose Ollama container.
+For **local/cloud/gpu**, `OLLAMA_BASE_URL=http://ollama:11434` serves embeddings.
 
 ## Validate compose files
 

@@ -8,11 +8,12 @@ import { ChatHeader } from './components/ChatHeader';
 import { ChatInput } from './components/ChatInput';
 import { resolveCuraiLogoState } from './components/curaiLogoState';
 import { VirtualizedMessageList } from './components/VirtualizedMessageList';
-import { SettingsPanel } from './components/SettingsPanel';
 import { Sidebar } from './components/Sidebar';
 import { UploadStatusList } from './components/UploadStatusList';
+import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useTheme } from './hooks/useTheme';
+import { useVisualViewportOffset } from './hooks/useVisualViewport';
 import {
   useCreateConversation,
   useDeleteConversation,
@@ -66,10 +67,9 @@ export default function App({ user }: AppProps) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [latency, setLatency] = useState<number | undefined>(undefined);
   const controllerRef = useRef<AbortController | null>(null);
   const sendInFlightRef = useRef(false);
   const messageLogRef = useRef<HTMLDivElement | null>(null);
@@ -83,6 +83,9 @@ export default function App({ user }: AppProps) {
   const updateConversationMutation = useUpdateConversation();
   const logout = useLogout();
   const { invalidateAfterSend } = useInvalidateConversationData();
+
+  useVisualViewportOffset();
+  useBodyScrollLock(mobileSidebarOpen);
 
   const conversations = conversationsQuery.data ?? [];
   const messages = messagesQuery.data ?? [];
@@ -221,7 +224,6 @@ export default function App({ user }: AppProps) {
       });
 
       const elapsed = performance.now() - startedAt;
-      setLatency(elapsed);
 
       const finalMessage = response.message;
       let nextConversationId = response.conversation_id ?? activeConversationId;
@@ -235,7 +237,7 @@ export default function App({ user }: AppProps) {
       updateCachedMessage(queryClient, nextConversationId, assistantMessage.id, (msg) => ({
         ...msg,
         content: finalMessage,
-        latencyMs: elapsed,
+        latencyMs: response.latency_ms ?? elapsed,
         sources: response.sources,
         workflow: response.workflow,
       }));
@@ -259,7 +261,6 @@ export default function App({ user }: AppProps) {
 
   const handleNewChat = async () => {
     controllerRef.current?.abort();
-    setLatency(undefined);
     writeCachedMessages(queryClient, null, []);
 
     try {
@@ -282,7 +283,7 @@ export default function App({ user }: AppProps) {
   const handleSelectConversation = (id: string) => {
     controllerRef.current?.abort();
     setConversationId(id);
-    setLatency(undefined);
+    setMobileSidebarOpen(false);
   };
 
   const activeConversationTitle = useMemo(() => {
@@ -304,7 +305,6 @@ export default function App({ user }: AppProps) {
       if (conversationId === id) {
         controllerRef.current?.abort();
         setConversationId(null);
-        setLatency(undefined);
         writeCachedMessages(queryClient, null, []);
       }
       showToast('Conversation deleted.');
@@ -337,8 +337,6 @@ export default function App({ user }: AppProps) {
   const handleLogout = () => {
     controllerRef.current?.abort();
     setConversationId(null);
-    setLatency(undefined);
-    setSettingsOpen(false);
     setAboutOpen(false);
     logout();
   };
@@ -413,18 +411,6 @@ export default function App({ user }: AppProps) {
     }
   };
 
-  const handleShareConversation = async () => {
-    if (messages.length === 0) {
-      showToast('Nothing to share yet.');
-      return;
-    }
-    const payload = messages
-      .map((entry) => `${entry.role === 'user' ? 'You' : 'Assistant'}: ${entry.content}`)
-      .join('\n\n');
-    const copied = await copyToClipboard(payload);
-    showToast(copied ? 'Conversation copied to clipboard.' : 'Could not copy — check browser permissions.');
-  };
-
   const handleCopyMessage = async (message: ChatMessage) => {
     const copied = await copyToClipboard(message.content);
     showToast(copied ? 'Message copied.' : 'Could not copy message.');
@@ -456,6 +442,7 @@ export default function App({ user }: AppProps) {
         mode={mode}
         onModeChange={setMode}
         onNewChat={() => {
+          setMobileSidebarOpen(false);
           void handleNewChat();
         }}
         theme={theme}
@@ -474,29 +461,30 @@ export default function App({ user }: AppProps) {
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebarCollapsed={() => setSidebarCollapsed((prev) => !prev)}
         user={user}
-        onOpenAbout={() => setAboutOpen(true)}
-        onLogout={handleLogout}
-      />
-      <SettingsPanel
-        open={settingsOpen}
-        theme={theme}
         onSetTheme={setTheme}
-        onClose={() => setSettingsOpen(false)}
+        onOpenAbout={() => {
+          setMobileSidebarOpen(false);
+          setAboutOpen(true);
+        }}
+        onLogout={handleLogout}
+        mobileOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
       />
       <AboutPanel open={aboutOpen} onClose={() => setAboutOpen(false)} />
-      <main id="chat-main" aria-busy={isLoading || isBootstrapping} className="classic-atmosphere relative flex min-h-0 flex-1 flex-col border-t border-[var(--ui-border)] bg-[var(--ui-bg)] md:h-full md:border-t-0">
+      <main id="chat-main" aria-busy={isLoading || isBootstrapping} className="classic-atmosphere relative flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--ui-border)] bg-[var(--ui-bg)] md:h-full md:border-t-0">
         <ChatHeader
           mode={mode}
-          latency={latency}
           logoState={logoState}
           conversationTitle={activeConversationTitle}
-          settingsOpen={settingsOpen}
-          onShareConversation={() => {
-            void handleShareConversation();
-          }}
-          onToggleSettings={() => setSettingsOpen((prev) => !prev)}
+          onOpenSidebar={() => setMobileSidebarOpen(true)}
         />
-        <div ref={messageLogRef} role="log" aria-live="polite" aria-relevant="additions text" className="flex-1 overflow-y-auto px-3 py-2 pb-28 sm:px-4 sm:pb-32">
+        <div
+          ref={messageLogRef}
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          className="message-log flex-1 px-3 py-2 pb-32 sm:px-4 sm:pb-36"
+        >
           <div className="chat-column flex flex-col gap-2">
             {bootstrapError && (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
@@ -555,7 +543,7 @@ export default function App({ user }: AppProps) {
             <UploadStatusList items={uploadStatuses} />
           </div>
         </div>
-        <div className="composer-dock pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-4 pt-10 sm:px-4 sm:pb-5">
+        <div className="composer-dock pointer-events-none absolute inset-x-0 z-20 px-3 pt-10 sm:px-4">
           <div className="chat-column pointer-events-auto">
             <ChatInput
               onSend={handleSend}
@@ -580,7 +568,7 @@ export default function App({ user }: AppProps) {
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed bottom-24 left-1/2 z-[60] -translate-x-1/2 rounded-full border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] px-4 py-2 text-sm text-[var(--phosphor-bright)] shadow-lg"
+          className="mobile-toast pointer-events-none fixed left-1/2 z-[60] -translate-x-1/2 rounded-full border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] px-4 py-2 text-sm text-[var(--phosphor-bright)] shadow-lg"
         >
           {toast}
         </div>

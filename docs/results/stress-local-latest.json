@@ -1,0 +1,5 @@
+{
+  "label": "stress-local-latest",
+  "points_to": "stress-local-parallel-2026-06-22.json",
+  "summary": "Local Qwen3-14B: 8/8 parallel, p50 76.8s; sequential p50 17.5s. See stress-local-parallel-2026-06-22.json and stress-local-sequential-2026-06-22.json."
+}

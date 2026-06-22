@@ -38,7 +38,23 @@ docker compose ps
 
 ## Preferred References
 
+- Documentation index: `docs/README.md`
 - Architecture: `docs/architecture.md`
 - Live data path: `docs/live-data-flow.md`
 - Operations and troubleshooting: `docs/ops-runbook.md`
+- Remote inference (Mac Mini): `docs/compose-profiles.md` + `.env.remote.example`
+- Benchmarks: `docs/model-stress-testing.md`, `docs/results/`
+- Native mobile: `frontend/CAPACITOR.md`
 - Release readiness: `docs/deployment-checklist.md`
+
+## Remote inference quick start
+
+When Ollama/LM Studio run on a Mac Mini instead of in Docker:
+
+```bash
+cp .env.remote.example .env.remote
+make up-remote
+make db-migrate
+```
+
+See `docs/compose-profiles.md` for Mac Mini IP, model id, and verification curls.

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="CurAI">
+  <defs>
+    <radialGradient id="bulbGlow" cx="50%" cy="36%" r="58%" fx="50%" fy="34%">
+      <stop offset="0%" stop-color="#FFF9C4" />
+      <stop offset="32%" stop-color="#FFE566" />
+      <stop offset="68%" stop-color="#F5B82E" />
+      <stop offset="100%" stop-color="#E8A020" />
+    </radialGradient>
+    <style>
+      .orbit {
+        fill: none;
+        stroke: #2b2b2b;
+        stroke-width: 1.5;
+      }
+      .electron {
+        fill: #2b2b2b;
+      }
+      .bulb-stroke,
+      .bulb-base {
+        fill: none;
+        stroke: #2b2b2b;
+        stroke-width: 2;
+        stroke-linejoin: round;
+      }
+      .bulb-base {
+        fill: #2b2b2b;
+      }
+      .filament {
+        stroke: #2b2b2b;
+        stroke-width: 1.2;
+        fill: none;
+        opacity: 0.9;
+      }
+      .bulb-thread {
+        stroke: #8b8b8b;
+        stroke-width: 0.85;
+        fill: none;
+        opacity: 0.55;
+      }
+      @media (prefers-color-scheme: dark) {
+        .orbit {
+          stroke: #ffffff;
+        }
+        .electron {
+          fill: #ffffff;
+        }
+        .bulb-stroke {
+          stroke: #ffffff;
+        }
+        .bulb-base {
+          fill: #ffffff;
+          stroke: #ffffff;
+        }
+        .filament {
+          stroke: #ffffff;
+        }
+        .bulb-thread {
+          stroke: #cccccc;
+        }
+      }
+    </style>
+  </defs>
+
+  <g transform="translate(64 62) scale(0.84) translate(-64 -62)">
+    <path
+      d="M64 32 C49 32 41 42 41 55 C41 63 44 69 49 74 L50 80 C50 84 54 86 64 86 C74 86 78 84 78 80 L79 74 C84 69 87 63 87 55 C87 42 79 32 64 32 Z"
+      fill="url(#bulbGlow)"
+    />
+    <path
+      class="bulb-stroke"
+      d="M64 32 C49 32 41 42 41 55 C41 63 44 69 49 74 L50 80 C50 84 54 86 64 86 C74 86 78 84 78 80 L79 74 C84 69 87 63 87 55 C87 42 79 32 64 32 Z"
+    />
+    <path class="filament" d="M57.5 51 C57.5 57.5 60.5 61 64 61 C67.5 61 70.5 57.5 70.5 51" />
+    <path class="bulb-base" d="M57 86 L56 93 C56 95 59 96 64 96 C69 96 72 95 72 93 L71 86 Z" />
+    <path class="bulb-thread" d="M58 88.2 Q64 88.45 70 88.2" />
+    <path class="bulb-thread" d="M58 90 Q64 90.25 70 90" />
+    <path class="bulb-thread" d="M58 91.8 Q64 92.05 70 91.8" />
+  </g>
+
+  <ellipse class="orbit" cx="64" cy="64" rx="18" ry="46" />
+  <ellipse class="orbit" cx="64" cy="64" rx="18" ry="46" transform="rotate(-60 64 64)" />
+  <ellipse class="orbit" cx="64" cy="64" rx="18" ry="46" transform="rotate(60 64 64)" />
+
+  <circle class="electron" cx="64" cy="110" r="3.75" />
+  <circle class="electron" cx="103.84" cy="41" r="3.75" />
+  <circle class="electron" cx="73" cy="79.59" r="3.75" />
+</svg>

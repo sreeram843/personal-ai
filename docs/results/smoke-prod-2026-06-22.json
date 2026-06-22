@@ -1,0 +1,14 @@
+{
+  "label": "smoke-prod-2026-06-22",
+  "base_url": "https://app.cura-i.com",
+  "environment": "production-cloud-chat",
+  "auth": "POST /auth/token stress-test@example.com",
+  "checks": {
+    "health": { "status": 200 },
+    "ready": { "status": "ready" },
+    "post_chat_sequential": { "requests": 2, "succeeded": 2, "wall_ms_p50": 2357 },
+    "post_chat_parallel_c2": { "requests": 4, "succeeded": 2, "failed": 2, "failures": "HTTP 500" },
+    "latency_ms_in_response": false,
+    "note": "latency_ms backend not deployed to prod yet; use concurrency 1 for stress"
+  }
+}

@@ -51,3 +51,28 @@ export function promoteDraftMessages(queryClient: QueryClient, conversationId: s
   }
   queryClient.removeQueries({ queryKey: messageQueryKey(null) });
 }
+
+/** Preserve client-measured latency when a refetch replaces optimistic message ids. */
+export function mergeAssistantLatency(fetched: ChatMessage[], previous: ChatMessage[]): ChatMessage[] {
+  const latencyByContent = new Map<string, number>();
+  for (const message of previous) {
+    if (message.role === 'assistant' && message.latencyMs !== undefined) {
+      const key = message.content.trim();
+      if (key) {
+        latencyByContent.set(key, message.latencyMs);
+      }
+    }
+  }
+
+  if (latencyByContent.size === 0) {
+    return fetched;
+  }
+
+  return fetched.map((message) => {
+    if (message.role !== 'assistant' || message.latencyMs !== undefined) {
+      return message;
+    }
+    const fromPrevious = latencyByContent.get(message.content.trim());
+    return fromPrevious !== undefined ? { ...message, latencyMs: fromPrevious } : message;
+  });
+}

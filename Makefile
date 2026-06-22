@@ -1,4 +1,4 @@
-.PHONY: help build up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision
+.PHONY: help build up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
 COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
@@ -28,6 +28,8 @@ help:
 	@echo "make test-real-api  - Hit live FX/weather/stock providers (no mocks)"
 	@echo "make real-api-smoke - Provider + HTTP smoke (needs app on :8000)"
 	@echo "make model-accuracy-smoke - LLM + live-data accuracy checks (needs app on :8000)"
+	@echo "make model-stress-local   - Concurrent chat stress test (local remote inference)"
+	@echo "make model-stress-prod    - Lighter chat stress test (needs AUTH_TOKEN, app.cura-i.com)"
 	@echo "make test-frontend  - Run Playwright browser suite"
 	@echo "make security-check - Run lightweight security checks"
 	@echo "make compose-validate - Validate docker compose config"
@@ -100,7 +102,7 @@ up-remote:
 	echo "  Ollama:     http://$$REMOTE_HOST:11434 (embeddings)"; \
 	echo "  Qdrant:     http://localhost:6333"; \
 	echo ""; \
-	echo "Verify Mac Mini: curl http://$$REMOTE_HOST:1234/v1/models"; \
+	echo "Verify Mac Mini: curl http://$$REMOTE_HOST:1234/api/v1/models"; \
 	echo "                 curl http://$$REMOTE_HOST:11434/api/tags"
 
 up-workers:
@@ -170,6 +172,21 @@ real-api-smoke:
 
 model-accuracy-smoke:
 	bash scripts/model_accuracy_smoke.sh
+
+model-stress-local:
+	docker compose -f docker-compose.yml -f docker-compose.remote-inference.yml --env-file .env.remote exec -T app python3 - \
+		< scripts/model_stress_test.py --profile local \
+		--output docs/results/stress-local-latest.json
+
+model-stress-prod:
+	@if [ -z "$$AUTH_TOKEN" ] && [ -z "$$AUTH_EMAIL" ]; then echo "ERROR: set AUTH_TOKEN or AUTH_EMAIL (see docs/model-stress-testing.md)"; exit 1; fi
+	BASE_URL=$${BASE_URL:-https://app.cura-i.com} docker compose -f docker-compose.yml -f docker-compose.remote-inference.yml --env-file .env.remote exec -T \
+		-e BASE_URL=$${BASE_URL:-https://app.cura-i.com} \
+		-e AUTH_TOKEN=$${AUTH_TOKEN:-} \
+		-e AUTH_EMAIL=$${AUTH_EMAIL:-} \
+		app python3 - < scripts/model_stress_test.py --profile prod --concurrency 1 --requests 4 \
+		--label prod-$$(date -u +%Y%m%dT%H%M%SZ) || true
+	@echo "Note: JSON output inside container is not persisted; copy from stdout or run host-side with httpx."
 
 security-check:
 	python scripts/security_checks.py

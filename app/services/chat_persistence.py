@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
@@ -30,8 +31,11 @@ async def run_persisted_chat(
     persist_user_turn(db, conversation, user_message.content)
     payload.conversation_id = str(conversation.id)
 
+    started = time.perf_counter()
     async with observe_chat_request(mode=mode):
         response = await handler(payload, conversation)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    response = response.model_copy(update={"latency_ms": elapsed_ms})
     persist_assistant_turn(db, conversation, response, mode=mode)
     return attach_conversation_id(response, conversation)
 
@@ -49,8 +53,13 @@ def _parse_sse_event(event: str) -> dict[str, Any] | None:
     return parsed if isinstance(parsed, dict) else None
 
 
-def inject_conversation_id_into_sse_event(event: str, conversation_id: str) -> str:
-    """Add conversation_id to the JSON payload of a final SSE event."""
+def inject_conversation_id_into_sse_event(
+    event: str,
+    conversation_id: str,
+    *,
+    latency_ms: float | None = None,
+) -> str:
+    """Add conversation_id (and optional latency) to the JSON payload of a final SSE event."""
     import json
 
     prefix = "data: "
@@ -62,6 +71,8 @@ def inject_conversation_id_into_sse_event(event: str, conversation_id: str) -> s
     payload: dict[str, Any] = json.loads(body)
     if payload.get("type") == "final" and isinstance(payload.get("response"), dict):
         payload["response"]["conversation_id"] = conversation_id
+        if latency_ms is not None:
+            payload["response"]["latency_ms"] = latency_ms
     return f"data: {json.dumps(payload)}\n\n"
 
 
@@ -78,12 +89,18 @@ async def wrap_chat_stream_with_persistence(
     persist_user_turn(db, conversation, user_message.content)
     payload.conversation_id = str(conversation.id)
 
+    started = time.perf_counter()
     async for event in stream_factory(payload):
         parsed = _parse_sse_event(event)
         if parsed and parsed.get("type") == "final" and isinstance(parsed.get("response"), dict):
-            response = ChatResponse(**parsed["response"])
+            elapsed_ms = (time.perf_counter() - started) * 1000
+            response = ChatResponse(**parsed["response"]).model_copy(update={"latency_ms": elapsed_ms})
             persist_assistant_turn(db, conversation, response, mode=mode)
-            yield inject_conversation_id_into_sse_event(event, str(conversation.id))
+            yield inject_conversation_id_into_sse_event(
+                event,
+                str(conversation.id),
+                latency_ms=elapsed_ms,
+            )
             continue
         yield event
 

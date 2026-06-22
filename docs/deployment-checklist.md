@@ -40,6 +40,17 @@
 - [ ] Live FX or weather query returns verified provenance.
 - [ ] Metrics endpoint returns Prometheus text output.
 - [ ] UI mode switching and uploads work in the browser.
+- [ ] Assistant messages show response time after completion (when backend deployed).
+- [ ] Mobile drawer and account menu theme toggle (`npm run test:capacitor`).
+- [ ] `make real-api-smoke` passes.
+- [ ] `make model-stress-local` or prod stress with `AUTH_EMAIL` (see [docs/model-stress-testing.md](./model-stress-testing.md)).
+
+## Production-specific
+
+- [ ] `https://app.cura-i.com/health` returns 200.
+- [ ] Google OAuth origins match public URL (`./scripts/verify_prod_auth.sh`).
+- [ ] Sequential prod stress passes (`AUTH_EMAIL=stress-test@example.com make model-stress-prod`).
+- [ ] `latency_ms` persisted in message metadata after backend deploy.
 
 ## Release Notes
 

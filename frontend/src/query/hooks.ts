@@ -11,10 +11,10 @@ import {
   updateConversation,
 } from '../api';
 import { clearAuthToken, getAuthToken } from '../auth';
-import type { ConversationMode } from '../types';
+import type { ChatMessage, ConversationMode } from '../types';
 import { mapConversationSummary } from './conversations';
 import { queryKeys } from './keys';
-import { messageQueryKey } from './messageCache';
+import { mergeAssistantLatency, messageQueryKey } from './messageCache';
 
 export function useAuthConfig() {
   return useQuery({
@@ -66,14 +66,18 @@ export function useConversations(enabled: boolean) {
 }
 
 export function useConversationMessages(conversationId: string | null, enabled: boolean) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: messageQueryKey(conversationId),
     queryFn: async () => {
       if (!conversationId) {
         return [];
       }
+      const previous = queryClient.getQueryData<ChatMessage[]>(messageQueryKey(conversationId)) ?? [];
       const stored = await fetchConversationMessages(conversationId);
-      return stored.map(mapServerMessage);
+      const mapped = stored.map(mapServerMessage);
+      return mergeAssistantLatency(mapped, previous);
     },
     enabled,
     placeholderData: (previous) => previous,

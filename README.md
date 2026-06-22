@@ -62,6 +62,7 @@ make help           # all Makefile targets
 make logs           # tail all services
 make down           # stop stack
 make real-api-smoke # health + live FX/weather smoke (app on :8000)
+make model-stress-local   # LLM load test (remote inference)
 make quality-gate   # backend tests + compose validation
 ```
 
@@ -77,15 +78,25 @@ See [docs/compose-profiles.md](docs/compose-profiles.md) for details.
 | **remote** | `make up-remote` | LM Studio on Mac Mini (:1234) | Ollama on Mac Mini (:11434) |
 | **workers** | `make up-workers` | Same as local + ARQ worker | Ollama |
 
-**Remote inference (MacBook app + Mac Mini models via LAN or Tailscale):**
+**Remote inference (MacBook Docker + Mac Mini models over Ethernet):**
 
 ```bash
 cp .env.remote.example .env.remote
-# Set OLLAMA_BASE_URL and LLM_OPENAI_BASE_URL to Mac Mini LAN or Tailscale IP
-# Edit LLM_*_MODEL if your LM Studio model id differs
+# Mac Mini LM Studio @ 192.168.10.1:1234, Ollama @ 192.168.10.1:11434
+# Model id: qwen-3-14b-instruct (see curl http://192.168.10.1:1234/v1/models)
 make up-remote
 make db-migrate
 ```
+
+Verify Mac Mini from the app container:
+
+```bash
+curl http://192.168.10.1:1234/api/v1/models   # LM Studio native API
+curl http://192.168.10.1:1234/v1/models       # OpenAI-compatible (use "id" in .env)
+curl http://192.168.10.1:11434/api/tags       # Ollama embeddings
+```
+
+Tailscale (`100.67.46.46`) remains a fallback if Ethernet is unavailable — update `OLLAMA_BASE_URL` and `LLM_OPENAI_BASE_URL` in `.env.remote`.
 
 **Cloud chat setup:**
 
@@ -200,7 +211,7 @@ Shorthand: `{ "message": "..." }` is also accepted.
 | `GET /ready` | Readiness (Qdrant + Ollama) |
 | `GET /metrics` | Prometheus scrape |
 
-Assistant behavior is governed by `app/prompts/system.md` (seven traits — see [docs/traits.md](docs/traits.md)). Personas were removed in Phase 0.
+Chat responses include optional `latency_ms` (milliseconds, end-to-end handler time). Persisted on assistant messages in Postgres metadata for history reload.
 
 ## Configuration
 
@@ -220,7 +231,9 @@ LLM_PLANNER_MODEL=...
 LLM_SYNTHESIZER_MODEL=...
 ```
 
-Full variable list: `.env.example`, `.env.cloud.example`, [docs/ops-runbook.md](docs/ops-runbook.md).
+Full variable list: `.env.example`, `.env.cloud.example`, `.env.remote.example`, [docs/ops-runbook.md](docs/ops-runbook.md).
+
+Assistant behavior is governed by `app/prompts/system.md` (seven traits — see [docs/traits.md](docs/traits.md)).
 
 ## Backend setup (without Docker)
 
@@ -244,7 +257,9 @@ npm install
 npm run dev
 ```
 
-**UI highlights:** Chat vs Smart mode toggle, server-synced conversations (TanStack Query), RAG source cards, workflow step trace, voice input, file upload (`.txt`, `.md`, `.pdf`), light/dark theme.
+**UI highlights:** Chat vs Smart mode toggle, server-synced conversations (TanStack Query), per-message response time, mobile navigation drawer, Capacitor iOS/Android shells, voice input, file upload (`.txt`, `.md`, `.pdf`), light/dark theme in the account menu.
+
+Native apps: [frontend/CAPACITOR.md](frontend/CAPACITOR.md). Production URL: `https://app.cura-i.com`.
 
 Production build: `npm run build` (also baked into the Docker app image).
 
@@ -268,14 +283,22 @@ For non-trivial questions, the tool agent may call `web_search` or live-data too
 ./scripts/quality_gate.sh              # full repo gate
 ./.venv/bin/python3 -m pytest          # backend tests
 cd frontend && npm run test:e2e          # Playwright flows
+cd frontend && npm run test:capacitor    # mobile drawer + user menu theme
 bash scripts/compose_smoke.sh            # compose smoke
 make real-api-smoke                     # live provider + HTTP checks
+make model-stress-local                 # concurrent chat load (see docs)
+make model-accuracy-smoke               # LLM + live-data accuracy
 ```
+
+Benchmark results (smoke + stress, local + prod): [docs/model-stress-testing.md](docs/model-stress-testing.md) and [docs/results/](docs/results/).
 
 ## Documentation
 
 | Doc | Topic |
 |-----|--------|
+| [docs/README.md](docs/README.md) | **Documentation index** |
+| [docs/model-stress-testing.md](docs/model-stress-testing.md) | Smoke/stress benchmarks + scripts |
+| [docs/results/](docs/results/) | JSON result artifacts |
 | [docs/roadmap.md](docs/roadmap.md) | Phased plan (0–3 complete) |
 | [docs/architecture.md](docs/architecture.md) | Components and data flow |
 | [docs/live-data-flow.md](docs/live-data-flow.md) | Live adapters and guardrails |
@@ -286,6 +309,9 @@ make real-api-smoke                     # live provider + HTTP checks
 | [docs/penpot-mcp.md](docs/penpot-mcp.md) | Penpot design MCP |
 | [docs/traits.md](docs/traits.md) | Assistant governance |
 | [docs/ops-runbook.md](docs/ops-runbook.md) | Operations and troubleshooting |
+| [docs/ui-reference.md](docs/ui-reference.md) | Chat UI layout and mobile behavior |
+| [frontend/README.md](frontend/README.md) | Frontend dev and tests |
+| [frontend/CAPACITOR.md](frontend/CAPACITOR.md) | iOS/Android native apps |
 | [docker-setup.md](docker-setup.md) | Detailed Docker guide |
 
 ## Troubleshooting

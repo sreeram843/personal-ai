@@ -33,6 +33,7 @@ run_step "Compiling Python sources" python -m compileall "$ROOT_DIR/app" "$ROOT_
 run_step "Running backend reliability tests" python -m pytest "$ROOT_DIR/tests" --cov-fail-under=35
 run_frontend_step "Linting frontend" "npm run lint"
 run_frontend_step "Building frontend" "npm run build"
+run_frontend_step "Running frontend unit tests" "npm run test:unit"
 run_step "Running Playwright visual and flow tests (linux/amd64)" bash "$ROOT_DIR/scripts/run_playwright_linux.sh" test
 run_step "Building backend container image" docker build --file "$ROOT_DIR/Dockerfile.backend" --tag "$TEMP_IMAGE" "$ROOT_DIR"
 run_step "Running docker compose smoke test" bash "$ROOT_DIR/scripts/compose_smoke.sh"

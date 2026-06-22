@@ -76,6 +76,7 @@ class ChatResponse(BaseModel):
     workflow: Optional[WorkflowTrace] = None
     conversation_id: Optional[str] = None
     live: Optional[LiveDataProvenance] = None
+    latency_ms: Optional[float] = None
 
 
 __all__ = [

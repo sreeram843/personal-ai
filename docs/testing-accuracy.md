@@ -82,4 +82,19 @@ bash scripts/model_accuracy_smoke.sh
 
 Checks: live FX/weather/stock provenance, basic math, factual recall. Requires the app on `:8000` with inference reachable (e.g. `make up-remote`).
 
+### Model stress testing (load + latency)
+
+Concurrent `POST /chat` against local remote inference or production. Full recorded data:
+
+- **[model-stress-testing.md](./model-stress-testing.md)** — methodology + all results
+- **[results/README.md](./results/README.md)** — JSON artifacts
+
+```bash
+make model-stress-local
+export AUTH_EMAIL=stress-test@example.com
+make model-stress-prod
+```
+
+**Summary (2026-06-22):** Local Qwen3-14B sequential p50 **17.5 s**; parallel (c4) p50 **76.8 s** (stable, queued). Production sequential p50 **2.4 s**; parallel c2 had 2/4 HTTP 500 — use concurrency 1 on prod.
+
 Prerequisites: Postgres with `personal_ai` DB. Qdrant/Ollama only needed for RAG/LLM chat — live FX/weather short-circuit works without them after lazy vector-store init.

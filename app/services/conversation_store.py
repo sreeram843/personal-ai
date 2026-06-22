@@ -179,6 +179,8 @@ def persist_user_turn(db: Session, conversation: Conversation, content: str) -> 
 
 def _assistant_metadata(response: ChatResponse, *, mode: str) -> dict:
     metadata = {"mode": mode}
+    if response.latency_ms is not None:
+        metadata["latency_ms"] = response.latency_ms
     if response.sources:
         metadata["sources"] = [source.model_dump() for source in response.sources]
     if response.workflow:

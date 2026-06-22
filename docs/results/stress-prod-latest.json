@@ -1,0 +1,8 @@
+{
+  "label": "prod-2026-06-22",
+  "base_url": "https://app.cura-i.com",
+  "profile": "prod",
+  "parallel_run": "docs/results/stress-prod-parallel-2026-06-22.json",
+  "sequential_run": "docs/results/stress-prod-sequential-2026-06-22.json",
+  "summary": "Prod health/ready OK. Sequential chat stable (~2.3s p50). Parallel (concurrency 2) had 2/4 HTTP 500 — use concurrency 1 for prod validation until investigated."
+}

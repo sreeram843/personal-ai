@@ -1,0 +1,20 @@
+{
+  "label": "prod-sequential-2026-06-22",
+  "base_url": "https://app.cura-i.com",
+  "profile": "prod",
+  "auth": "POST /auth/token with stress-test@example.com",
+  "started_at": "2026-06-22T19:02:00Z",
+  "requests": 2,
+  "concurrency": 1,
+  "timeout_s": 120,
+  "summary": {
+    "total_requests": 2,
+    "succeeded": 2,
+    "failed": 0,
+    "total_wall_s": 4.71,
+    "throughput_req_per_s": 0.424,
+    "wall_latency_ms": { "min": 2182, "p50": 2357, "p95": 2513, "max": 2531 }
+  },
+  "per_request_wall_ms": [2182, 2531],
+  "notes": "Sequential prod chat stable at ~2–2.5s per request (cloud inference). latency_ms field absent until prod redeploy."
+}

@@ -1,0 +1,22 @@
+{
+  "label": "local-parallel-2026-06-22",
+  "base_url": "http://127.0.0.1:8000",
+  "profile": "local",
+  "model": "qwen-3-14b-instruct",
+  "inference_host": "192.168.10.1:1234 (LM Studio)",
+  "started_at": "2026-06-22T18:45:00Z",
+  "requests": 8,
+  "concurrency": 4,
+  "warmup_ms": 10234,
+  "summary": {
+    "total_requests": 8,
+    "succeeded": 8,
+    "failed": 0,
+    "total_wall_s": 158.0,
+    "throughput_req_per_s": 0.05,
+    "wall_latency_ms": { "min": 31749, "p50": 76780, "p95": 110575, "max": 115676 },
+    "server_latency_ms": { "min": 31732, "p50": 76721, "p95": 110496, "max": 115592 },
+    "overhead_wall_minus_server_ms": { "p50": 56 }
+  },
+  "per_request_wall_ms": [80157, 75757, 115676, 101101, 68102, 77803, 46171, 31749]
+}

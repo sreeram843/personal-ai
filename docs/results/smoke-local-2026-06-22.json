@@ -1,0 +1,18 @@
+{
+  "label": "smoke-local-2026-06-22",
+  "base_url": "http://127.0.0.1:8000",
+  "environment": "local-remote-inference",
+  "model": "qwen-3-14b-instruct",
+  "inference_host": "192.168.10.1:1234",
+  "embeddings_host": "192.168.10.1:11434",
+  "auth_disabled": true,
+  "checks": {
+    "docker_stack": "app, postgres, qdrant, redis — Up",
+    "health": { "status": 200, "body": "ok" },
+    "ready": { "status": "ready", "ollama": "ok", "qdrant": "ok" },
+    "mac_mini_lm_studio": { "reachable": true, "url": "http://192.168.10.1:1234/v1/models" },
+    "post_chat": { "ok": true, "sample_latency_ms": 25174 },
+    "post_smart_chat_stream": { "ok": true, "test": "17+25=42" },
+    "real_api_smoke_http": { "passed": 4, "failed": 0, "note": "provider probe skipped on host Python" }
+  }
+}

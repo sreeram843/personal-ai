@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { Info, LogOut } from 'lucide-react';
+import { Info, LogOut, Moon, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { CurrentUser } from '../api';
 
@@ -28,11 +28,12 @@ function userLabel(user: CurrentUser): string {
 interface Props {
   user: CurrentUser;
   theme: 'light' | 'dark';
+  onSetTheme: (theme: 'light' | 'dark') => void;
   onOpenAbout: () => void;
   onLogout: () => void;
 }
 
-export function UserMenu({ user, theme, onOpenAbout, onLogout }: Props) {
+export function UserMenu({ user, theme, onSetTheme, onOpenAbout, onLogout }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -61,6 +62,10 @@ export function UserMenu({ user, theme, onOpenAbout, onLogout }: Props) {
     };
   }, [open]);
 
+  const toggleTheme = () => {
+    onSetTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
   return (
     <div ref={rootRef} className="relative mt-3 shrink-0 border-t border-[var(--ui-border)] pt-3">
       <button
@@ -69,15 +74,14 @@ export function UserMenu({ user, theme, onOpenAbout, onLogout }: Props) {
         className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition hover:bg-[var(--ui-hover)]"
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-label={`Account menu for ${userLabel(user)}`}
       >
         <div className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-[var(--ui-bg-elevated)] text-[11px] font-semibold text-[var(--phosphor)]">
           {userInitials(user)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
-          <div className="truncate text-[10px] text-[var(--phosphor-dim)]">
-            {user.email || (theme === 'dark' ? 'Dark theme' : 'Light theme')}
-          </div>
+          <div className="truncate text-[10px] text-[var(--phosphor-dim)]">{user.email || 'Account'}</div>
         </div>
       </button>
 
@@ -103,6 +107,16 @@ export function UserMenu({ user, theme, onOpenAbout, onLogout }: Props) {
           >
             <Info className="h-4 w-4 shrink-0" />
             About
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={toggleTheme}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
           <button
             type="button"

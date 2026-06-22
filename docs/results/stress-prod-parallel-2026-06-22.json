@@ -1,0 +1,24 @@
+{
+  "label": "prod-parallel-2026-06-22",
+  "base_url": "https://app.cura-i.com",
+  "profile": "prod",
+  "auth": "POST /auth/token with stress-test@example.com",
+  "started_at": "2026-06-22T19:00:00Z",
+  "requests": 4,
+  "concurrency": 2,
+  "timeout_s": 120,
+  "warmup_wall_ms": 2560,
+  "summary": {
+    "total_requests": 4,
+    "succeeded": 2,
+    "failed": 2,
+    "total_wall_s": 4.19,
+    "throughput_req_per_s": 0.477,
+    "wall_latency_ms": { "min": 2612, "p50": 2614, "p95": 2617, "max": 2617 },
+    "failures": [
+      { "index": 3, "error": "HTTP 500: Internal Server Error" },
+      { "index": 4, "error": "HTTP 500: Internal Server Error" }
+    ]
+  },
+  "notes": "latency_ms not present on prod yet (backend change not deployed). Two parallel requests returned 500 — likely cloud provider rate limit or agent path under concurrency."
+}

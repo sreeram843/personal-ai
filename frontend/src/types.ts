@@ -37,6 +37,7 @@ export interface ChatResponsePayload {
   sources?: RetrievedSource[];
   workflow?: WorkflowTrace;
   conversation_id?: string;
+  latency_ms?: number;
 }
 
 export interface WorkflowEventPayload {

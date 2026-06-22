@@ -1,4 +1,6 @@
 import { authHeaders, clearAuthToken, getAuthToken, setAuthToken } from './auth';
+import { isCapacitorNative } from './platform/capacitor';
+import { resolveApiBaseUrl } from './platform/resolveApiBaseUrl';
 import type {
   ChatMessage,
   ChatResponsePayload,
@@ -47,23 +49,19 @@ export interface TokenResponsePayload {
 function resolveBaseUrl(): string {
   const configured = ((import.meta.env.VITE_API_BASE_URL as string) || '').trim();
 
-  if (!configured) {
-    return '';
-  }
-
   if (typeof window === 'undefined') {
-    return configured;
+    return resolveApiBaseUrl({
+      configuredBaseUrl: configured,
+      hostname: 'localhost',
+      isNativeShell: false,
+    });
   }
 
-  const host = window.location.hostname;
-  const isLocalHost = host === 'localhost' || host === '127.0.0.1';
-  const configuredIsLocal = configured.includes('localhost') || configured.includes('127.0.0.1');
-
-  if (!isLocalHost && configuredIsLocal) {
-    return '';
-  }
-
-  return configured;
+  return resolveApiBaseUrl({
+    configuredBaseUrl: configured,
+    hostname: window.location.hostname,
+    isNativeShell: isCapacitorNative(),
+  });
 }
 
 const BASE_URL = resolveBaseUrl();
@@ -226,11 +224,14 @@ export async function updateConversation(
 
 export function mapServerMessage(message: ServerStoredMessage): ChatMessage {
   const metadata = message.metadata ?? {};
+  const rawLatency = metadata.latency_ms ?? metadata.latencyMs;
+  const latencyMs = typeof rawLatency === 'number' && Number.isFinite(rawLatency) ? rawLatency : undefined;
   return {
     id: message.id,
     role: message.role,
     content: message.content,
     createdAt: new Date(message.created_at).getTime(),
+    latencyMs,
     sources: Array.isArray(metadata.sources) ? (metadata.sources as RetrievedSource[]) : undefined,
     workflow: metadata.workflow as ChatMessage['workflow'],
   };

@@ -111,7 +111,7 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
           type="button"
           onClick={onAttach}
           aria-label="Attach file"
-          className="grid h-9 w-9 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center"
+          className="touch-target grid h-10 w-10 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center md:h-9 md:w-9"
           title="Attach"
         >
           <Paperclip className="h-4 w-4" />
@@ -122,7 +122,7 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
           disabled={disabled}
           aria-pressed={isRecording}
           aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
-          className="grid h-9 w-9 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center"
+          className="touch-target grid h-10 w-10 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center md:h-9 md:w-9"
           title={isRecording ? 'Stop recording' : 'Voice input'}
         >
           {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -132,7 +132,7 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
           onClick={handleSend}
           disabled={disabled || !value.trim()}
           aria-label="Send message"
-          className="grid h-9 w-9 shrink-0 place-content-center self-center rounded-lg bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          className="touch-target grid h-10 w-10 shrink-0 place-content-center self-center rounded-lg bg-[var(--ui-focus)] text-[var(--ui-accent-fg)] shadow-sm transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 md:h-9 md:w-9"
           title="Send"
         >
           <Send className="h-4 w-4" />

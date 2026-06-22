@@ -13,14 +13,15 @@ export function AboutPanel({ open, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-end bg-black/30 p-3 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 p-0 backdrop-blur-[2px] md:items-start md:justify-end md:p-3"
       role="dialog"
       aria-modal="true"
       aria-label="About CurAI"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] p-4 shadow-xl"
+        className="w-full max-h-[85dvh] overflow-y-auto rounded-t-2xl border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] p-4 shadow-xl md:max-h-none md:max-w-md md:rounded-xl"
+        style={{ paddingBottom: 'max(1rem, var(--safe-area-bottom))' }}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -34,7 +35,7 @@ export function AboutPanel({ open, onClose }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 shrink-0 place-content-center rounded border border-[var(--ui-border)] transition hover:bg-[var(--ui-bg-elevated)]"
+            className="touch-target grid h-10 w-10 shrink-0 place-content-center rounded border border-[var(--ui-border)] transition hover:bg-[var(--ui-bg-elevated)] md:h-8 md:w-8"
             aria-label="Close about panel"
           >
             <X className="h-4 w-4" />
@@ -44,7 +45,9 @@ export function AboutPanel({ open, onClose }: Props) {
         <div className="space-y-4 text-sm leading-relaxed text-[var(--phosphor)]">
           <p>
             CurAI is a private assistant workspace for grounded chat, document retrieval, and smart multi-step
-            workflows — inspired by the spirit of discovery. Everything is scoped to your account.
+            workflows — inspired by Marie Curie's spirit of discovery. The name blends Curie and AI; the logo's
+            orbiting electrons and glowing bulb echo scientific inquiry and the spark of insight. Everything is
+            scoped to your account.
           </p>
 
           <div>

@@ -37,6 +37,8 @@ curl -s http://localhost:3100/ready
 
 ## Production VM (cloud-chat)
 
+Public URL: **https://app.cura-i.com**
+
 Deploy path is usually `/opt/personal-ai` with `.env.cloud` on the server.
 
 ```bash
@@ -103,6 +105,54 @@ CORS_ORIGINS=http://YOUR_PUBLIC_HOST:8000
 
 5. After changing `.env.cloud`, rebuild the app container (`compose up -d --build`) so env vars reload.
 
+## Remote inference (MacBook + Mac Mini)
+
+When using `make up-remote` (see [compose-profiles.md](./compose-profiles.md)):
+
+| Service | Current dev host | Port |
+|---------|------------------|------|
+| LM Studio (chat) | `192.168.10.1` | 1234 |
+| Ollama (embeddings) | `192.168.10.1` | 11434 |
+| Docker app (MacBook) | `localhost` | 8000 |
+
+```bash
+# From MacBook — verify Mac Mini
+curl http://192.168.10.1:1234/v1/models
+curl http://192.168.10.1:11434/api/tags
+
+# From app container
+docker compose -f docker-compose.yml -f docker-compose.remote-inference.yml \
+  --env-file .env.remote exec app curl -s http://192.168.10.1:1234/v1/models
+
+# Restart after .env.remote changes
+docker compose -f docker-compose.yml -f docker-compose.remote-inference.yml \
+  --env-file .env.remote up -d app
+```
+
+**Model:** `qwen-3-14b-instruct` (Q4_K_M). Keep only one chat model loaded in LM Studio.
+
+## Smoke and stress testing
+
+| Script | Purpose |
+|--------|---------|
+| `./scripts/real_api_smoke.sh` | Health, ready, live FX/weather |
+| `./scripts/model_accuracy_smoke.sh` | LLM accuracy probes |
+| `./scripts/model_stress_test.py` | Concurrent `/chat` load |
+| `./scripts/verify_prod_auth.sh` | OAuth diagnostics |
+
+```bash
+make real-api-smoke
+make model-stress-local
+AUTH_EMAIL=stress-test@example.com make model-stress-prod
+APP_URL=https://app.cura-i.com ./scripts/verify_prod_auth.sh
+```
+
+Recorded results: [model-stress-testing.md](./model-stress-testing.md), [results/](./results/).
+
+### Per-message latency in UI
+
+Assistant responses show `latency_ms` next to copy/feedback buttons when the backend persists it in message metadata. Redeploy the app container after backend changes for prod.
+
 ### Logo animation looks static
 
 - Electrons orbit whenever motion is allowed (`prefers-reduced-motion` off).
@@ -140,7 +190,11 @@ python scripts/security_checks.py
 ./scripts/quality_gate.sh
 
 cd frontend && npm run test:e2e
+cd frontend && npm run test:capacitor   # mobile drawer, user menu theme
 cd frontend && npm run test:visual
+
+make real-api-smoke
+make model-stress-local                 # optional: remote inference load test
 ```
 
 ## Metrics and Dashboards
