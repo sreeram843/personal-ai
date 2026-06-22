@@ -122,7 +122,7 @@ test.describe('browser interaction flows', () => {
     });
 
     await preparePage(page);
-    await page.getByRole('button', { name: 'Attach file' }).click();
+    // Set files directly on the hidden input — avoids Firefox headless crashes from native picker on Linux CI.
     await page.locator('input[type="file"]').setInputFiles({
       name: 'sample-notes.md',
       mimeType: 'text/markdown',
