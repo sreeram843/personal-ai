@@ -1,6 +1,7 @@
-.PHONY: help build up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision
+.PHONY: help build up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
+COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
 
 help:
 	@echo "Personal AI Docker Compose Commands"
@@ -20,7 +21,9 @@ help:
 	@echo "make logs-ollama    - View ollama logs"
 	@echo "make logs-qdrant    - View qdrant logs"
 	@echo "make clean          - Remove containers and volumes"
-	@echo "make pull-models    - Pull Ollama models (llama3:8b, nomic-embed-text)"
+	@echo "make pull-models    - Pull Ollama chat + embed models (local profile)"
+	@echo "make pull-models-cloud - Pull nomic-embed-text only (cloud-chat / prod)"
+	@echo "make deploy-prod    - Full production deploy (cloud-chat + workers + embed pull)"
 	@echo "make status         - Show container status"
 	@echo "make test-real-api  - Hit live FX/weather/stock providers (no mocks)"
 	@echo "make real-api-smoke - Provider + HTTP smoke (needs app on :8000)"
@@ -59,6 +62,7 @@ up-cloud:
 		exit 1; \
 	fi
 	docker compose --profile cloud-chat -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud up -d
+	@$(MAKE) pull-models-cloud
 	@echo ""
 	@echo "Services started (profile: cloud-chat)"
 	@echo "  App:        http://localhost:8000"
@@ -113,28 +117,41 @@ logs:
 	docker compose logs -f
 
 logs-app:
-	docker compose logs -f app
+	docker logs -f personal-ai-app
 
 logs-worker:
-	docker compose --profile workers logs -f worker
+	$(COMPOSE_CLOUD) logs -f worker
 
 logs-ollama:
-	docker compose logs -f ollama
+	docker logs -f personal-ai-ollama
 
 logs-qdrant:
-	docker compose logs -f qdrant
+	docker logs -f personal-ai-qdrant
 
 clean:
 	docker compose down -v
 	@echo "✅ Containers and volumes removed"
 
 pull-models:
-	docker compose --profile local exec ollama ollama pull llama3:8b
-	docker compose --profile local exec ollama ollama pull nomic-embed-text
+	docker compose --profile local exec -T ollama ollama pull llama3:8b
+	docker compose --profile local exec -T ollama ollama pull nomic-embed-text
 	@echo "✅ Models pulled successfully"
 
+pull-models-cloud:
+	@printf 'Waiting for Ollama...\n'
+	@for attempt in 1 2 3 4 5 6 7 8 9 10; do \
+		curl -fsS http://127.0.0.1:11434/api/tags >/dev/null 2>&1 && break; \
+		if [ $$attempt -eq 10 ]; then echo "ERROR: Ollama not ready on :11434"; exit 1; fi; \
+		sleep 2; \
+	done
+	docker exec personal-ai-ollama ollama pull nomic-embed-text
+	@echo "✅ Embedding model ready for cloud-chat / prod"
+
+deploy-prod:
+	bash scripts/deploy_prod.sh
+
 status:
-	docker compose ps
+	docker ps --filter name=personal-ai
 
 test-backend:
 	python -m pytest

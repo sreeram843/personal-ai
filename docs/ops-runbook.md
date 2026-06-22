@@ -35,7 +35,49 @@ curl -s http://localhost:3000/api/health
 curl -s http://localhost:3100/ready
 ```
 
-## Logs
+## Production VM (cloud-chat)
+
+Deploy path is usually `/opt/personal-ai` with `.env.cloud` on the server.
+
+```bash
+cd /opt/personal-ai
+./scripts/deploy_prod.sh
+# or: make deploy-prod
+```
+
+This runs `compose up --build`, pulls `nomic-embed-text` into Ollama, migrates the DB, and hits `/health` + `/ready`.
+
+**Compose profiles:** `app` depends on `ollama`, which is only defined with `--profile cloud-chat`. Plain `docker compose logs app` fails with “undefined service ollama”. Use container names or the full compose invocation:
+
+```bash
+docker logs --tail=100 personal-ai-app
+docker logs --tail=100 personal-ai-ollama
+
+docker compose \
+  --profile cloud-chat --profile workers \
+  -f docker-compose.yml -f docker-compose.cloud.yml \
+  --env-file .env.cloud \
+  ps
+```
+
+### Smart chat 404 on `/api/embed`
+
+- Cause: `nomic-embed-text` not pulled in the Ollama container.
+- Fix: `make pull-models-cloud` or re-run `./scripts/deploy_prod.sh`.
+
+### Smart chat Qdrant `personal_ai_documents doesn't exist`
+
+- Cause: fresh Qdrant volume; collection is only created on first ingest unless initialized.
+- Fix (immediate, no redeploy):
+
+```bash
+docker exec personal-ai-app python -c \
+  "from app.core.deps import get_vector_store; get_vector_store().ensure_collection(); print('ok')"
+```
+
+- Fix (after code update): app startup and RAG search auto-create the collection; `./scripts/deploy_prod.sh` also runs ensure step.
+
+## Logs (local)
 
 ```bash
 docker compose logs -f app

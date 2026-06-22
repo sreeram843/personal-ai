@@ -130,6 +130,7 @@ class VectorStore:
     ) -> List[Any]:
         """Return Qdrant search results scoped to a single user."""
 
+        self.ensure_collection()
         return self._client.search(
             collection_name=self._collection,
             query_vector=list(query_vector),

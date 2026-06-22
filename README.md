@@ -291,7 +291,7 @@ make real-api-smoke                     # live provider + HTTP checks
 ## Troubleshooting
 
 - **500 on `/chat` after first deploy**: Run `make db-migrate` (Postgres tables missing).
-- **Ollama 404 on `/api/embed`**: Pull `nomic-embed-text` (`make pull-models`).
+- **Ollama 404 on `/api/embed`**: Pull `nomic-embed-text` (`make pull-models-cloud` or `./scripts/deploy_prod.sh`).
 - **Groq 429 rate limits**: Use tiered models in `.env.cloud` (8B for planner/reviewer, larger model for writer only) or space out requests; Smart workflow mode issues more LLM calls than direct Chat.
 - **Tool agent errors**: Ensure `langchain`, `langchain-openai`, `langchain-ollama` are installed (in Docker image via `requirements.txt`). For Ollama local chat, use a model with tool-calling support.
 - **Speech input unavailable**: Web Speech API is browser-dependent (Chrome works best).

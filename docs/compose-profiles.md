@@ -39,7 +39,19 @@ make up-cloud
 
 Chat routes to your cloud provider. Ollama still runs in-container for embeddings only.
 
-### GPU vLLM
+`make up-cloud` also runs `make pull-models-cloud` so RAG/embeddings work on first boot.
+
+### Production VM
+
+GitHub Actions and manual SSH deploys use `scripts/deploy_prod.sh` (`make deploy-prod`):
+
+1. `compose up --build` with `cloud-chat` + `workers`
+2. Wait for Ollama, pull `nomic-embed-text`
+3. Smoke-test `/api/embed`
+4. `alembic upgrade head`, `/health`, `/ready`
+
+On the server: `cd /opt/personal-ai && ./scripts/deploy_prod.sh`
+
 
 ```bash
 cp .env.gpu-vllm.example .env.gpu-vllm

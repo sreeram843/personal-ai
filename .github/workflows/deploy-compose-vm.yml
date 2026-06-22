@@ -22,10 +22,9 @@
 #   4. Add the public half of deploy_key to ~/.ssh/authorized_keys
 #   5. For private repos: add a GitHub deploy key on the VM (read-only) so git pull works
 #
-# Stack started on each deploy:
-#   docker compose --profile cloud-chat --profile workers \
-#     -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud up -d --build
-#   alembic upgrade head  +  /health + /ready smoke checks
+# Stack started on each deploy (see scripts/deploy_prod.sh):
+#   ./scripts/deploy_prod.sh
+#   — compose up, pull nomic-embed-text, alembic, /health + /ready
 
 name: Deploy to VM (Docker Compose)
 
@@ -103,16 +102,5 @@ jobs:
               mv -f .env.cloud.deploy .env.cloud
             fi
 
-            compose() {
-              docker compose \
-                --profile cloud-chat --profile workers \
-                -f docker-compose.yml -f docker-compose.cloud.yml \
-                --env-file .env.cloud \
-                "$@"
-            }
-
-            compose up -d --build
-            compose exec -T app alembic upgrade head
-            curl -fsS http://127.0.0.1:8000/health
-            curl -fsS http://127.0.0.1:8000/ready
-            compose ps
+            chmod +x scripts/deploy_prod.sh
+            DEPLOY_SKIP_GIT=1 bash scripts/deploy_prod.sh
