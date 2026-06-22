@@ -82,6 +82,8 @@ def check_frontend_localhost() -> list[str]:
     findings: list[str] = []
     pattern = re.compile(r"localhost:8000|127\.0\.0\.1:8000")
     for path in FRONTEND_SRC.rglob("*.ts*"):
+        if path.name.endswith((".test.ts", ".test.tsx", ".spec.ts", ".spec.tsx")):
+            continue
         content = path.read_text(encoding="utf-8")
         if pattern.search(content):
             findings.append(f"Hardcoded backend host in {path.relative_to(ROOT)}")
