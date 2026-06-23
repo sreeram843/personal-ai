@@ -4,16 +4,26 @@ Embed a **5-question CurAI preview** on your portfolio site. Visitors can try th
 
 ## Enable on the server
 
-Set these environment variables (see `.env.example`):
+Set these in **`.env.cloud`** on the production VM (see `.env.cloud.example`). The app container reads them via `docker-compose.yml` — a restart/rebuild is required after changes.
 
 ```bash
 DEMO_ENABLED=true
 DEMO_MAX_QUESTIONS=5
 DEMO_FULL_APP_URL=https://app.cura-i.com
+DEMO_CONTEXT_MAX_CHARS=12000
 # Optional custom intro shown as the first assistant message
 # DEMO_INTRO=Ask me about AI, live data, or my projects.
 # Allow your portfolio to iframe /demo (comma-separated origins)
 DEMO_EMBED_ALLOWED_ORIGINS=https://yourname.dev,https://www.yourname.dev
+```
+
+On the VM:
+
+```bash
+cd /opt/personal-ai
+# edit .env.cloud, then:
+./scripts/deploy_prod.sh
+curl -s https://app.cura-i.com/demo/config
 ```
 
 Redeploy or restart the stack after changing env vars.
