@@ -35,7 +35,22 @@ npx cap sync ios
 npx cap run ios --target-name "iPhone 17" --no-sync
 ```
 
-Ensure `CORS_ORIGINS` in `.env.remote` (or prod env) includes `capacitor://localhost,ionic://localhost`.
+For iOS Simulator against **production** (recommended — avoids CORS issues):
+
+```bash
+./scripts/ios_simulator_smoke.sh --cloud --target "iPhone 17"
+```
+
+This loads `https://app.cura-i.com` inside the native WebView (same-origin API). Google Sign-In uses the web flow.
+
+For a **bundled** native build that calls a remote API, add Capacitor origins to server CORS:
+
+```bash
+# .env.cloud on the VM
+CORS_ORIGINS=https://app.cura-i.com,capacitor://localhost,ionic://localhost
+```
+
+Ensure `CORS_ORIGINS` in `.env.remote` (local Docker) includes `capacitor://localhost,ionic://localhost`.
 
 ## Build and open native projects
 

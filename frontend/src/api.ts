@@ -46,7 +46,7 @@ export interface TokenResponsePayload {
   user_id: string;
 }
 
-function resolveBaseUrl(): string {
+function getBaseUrl(): string {
   const configured = ((import.meta.env.VITE_API_BASE_URL as string) || '').trim();
 
   if (typeof window === 'undefined') {
@@ -64,8 +64,6 @@ function resolveBaseUrl(): string {
   });
 }
 
-const BASE_URL = resolveBaseUrl();
-
 function isRetryableNetworkError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
@@ -78,12 +76,23 @@ async function safeFetch(input: string, init: RequestInit): Promise<Response> {
   try {
     return await fetch(input, init);
   } catch (error) {
-    const shouldRetrySameOrigin = BASE_URL !== '' && isRetryableNetworkError(error);
+    const baseUrl = getBaseUrl();
+    const shouldRetrySameOrigin =
+      baseUrl !== '' &&
+      !isCapacitorNative() &&
+      isRetryableNetworkError(error);
+
     if (!shouldRetrySameOrigin) {
       throw error;
     }
 
-    const pathname = new URL(input).pathname;
+    let pathname: string;
+    try {
+      pathname = new URL(input).pathname;
+    } catch {
+      throw error;
+    }
+
     return fetch(pathname, init);
   }
 }
@@ -99,7 +108,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await safeFetch(`${BASE_URL}${path}`, {
+  const response = await safeFetch(`${getBaseUrl()}${path}`, {
     ...init,
     headers,
   });
@@ -116,7 +125,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
 }
 
 export async function fetchAuthConfig(): Promise<AuthConfig> {
-  const response = await safeFetch(`${BASE_URL}/auth/config`, {
+  const response = await safeFetch(`${getBaseUrl()}/auth/config`, {
     method: 'GET',
   });
   if (!response.ok) {
@@ -132,7 +141,7 @@ export async function fetchCurrentUser(): Promise<CurrentUser> {
 }
 
 export async function exchangeGoogleToken(idToken: string): Promise<TokenResponsePayload> {
-  const response = await safeFetch(`${BASE_URL}/auth/google`, {
+  const response = await safeFetch(`${getBaseUrl()}/auth/google`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id_token: idToken }),
@@ -163,7 +172,7 @@ export async function ensureAuthToken(): Promise<string> {
     return existing;
   }
 
-  const response = await safeFetch(`${BASE_URL}/auth/token`, {
+  const response = await safeFetch(`${getBaseUrl()}/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({}),
@@ -284,7 +293,7 @@ export async function sendMessage(
   onWorkflowEvent?: (event: WorkflowEventPayload) => void,
 ): Promise<ChatResponsePayload> {
   const endpoint = mode === 'smart' ? '/smart_chat/stream' : '/chat';
-  const url = `${BASE_URL}${endpoint}`;
+  const url = `${getBaseUrl()}${endpoint}`;
 
   const messages = [
     ...history.map((item) => ({ role: item.role, content: item.content })),
