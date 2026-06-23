@@ -7,12 +7,15 @@ interface Props {
   disabled?: boolean;
   onSend: (message: string) => void;
   onAttach?: () => void;
+  hideAttach?: boolean;
+  hideVoice?: boolean;
+  placeholder?: string;
 }
 
 const MIN_TA = 44;
 const MAX_TA = 200;
 
-export function ChatInput({ disabled, onSend, onAttach }: Props) {
+export function ChatInput({ disabled, onSend, onAttach, hideAttach, hideVoice, placeholder = 'Message…' }: Props) {
   const [value, setValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -95,7 +98,7 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
           id={inputId}
           rows={1}
           className="composer-textarea min-h-[44px] min-w-0 max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base leading-normal text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] placeholder:opacity-80"
-          placeholder="Message…"
+          placeholder={placeholder}
           aria-label="Message input"
           value={value}
           onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -107,6 +110,7 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
           onKeyDown={handleKeyDown}
           disabled={disabled}
         />
+        {!hideAttach && (
         <button
           type="button"
           onClick={onAttach}
@@ -116,6 +120,8 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
         >
           <Paperclip className="h-4 w-4" />
         </button>
+        )}
+        {!hideVoice && (
         <button
           type="button"
           onClick={() => setIsRecording((state) => !state)}
@@ -127,6 +133,7 @@ export function ChatInput({ disabled, onSend, onAttach }: Props) {
         >
           {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
         </button>
+        )}
         <button
           type="button"
           onClick={handleSend}

@@ -16,9 +16,12 @@ async def run_fast_chat(
     chat_history: Sequence[Dict[str, str]],
     llm_gateway: LLMGateway,
     settings: Settings,
+    system_prompt: str | None = None,
+    max_output_tokens: int | None = None,
 ) -> ChatResponse:
     """Answer with one LLM call — no tools, no multi-agent pipeline."""
-    messages: List[Dict[str, str]] = [{"role": "system", "content": get_system_prompt()}]
+    prompt = (system_prompt or get_system_prompt()).strip()
+    messages: List[Dict[str, str]] = [{"role": "system", "content": prompt}]
     for item in chat_history:
         content = (item.get("content") or "").strip()
         if not content:
@@ -26,12 +29,19 @@ async def run_fast_chat(
         role = (item.get("role") or "user").lower()
         if role in {"user", "assistant", "system"}:
             messages.append({"role": role, "content": content})
-    messages.append({"role": "user", "content": query})
+    normalized_query = query.strip()
+    last = messages[-1] if messages else None
+    if not (last and last["role"] == "user" and last["content"].strip() == normalized_query):
+        messages.append({"role": "user", "content": normalized_query})
+
+    options: Dict[str, object] = {"temperature": 0.3}
+    if max_output_tokens is not None and max_output_tokens > 0:
+        options["max_tokens"] = max_output_tokens
 
     text = await llm_gateway.generate(
         messages=messages,
         model=settings.llm_default_model,
-        options={"temperature": 0.3},
+        options=options,
         provider=settings.llm_default_provider,
     )
     return ChatResponse(message=text, sources=[])

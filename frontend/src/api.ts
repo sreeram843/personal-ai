@@ -5,6 +5,9 @@ import type {
   ChatMessage,
   ChatResponsePayload,
   ConversationMode,
+  DemoChatRequestPayload,
+  DemoChatResponsePayload,
+  DemoConfig,
   RetrievedSource,
   WorkflowEventPayload,
 } from './types';
@@ -425,4 +428,28 @@ async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<vo
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   throw new Error('Background ingest timed out');
+}
+
+export type { DemoConfig, DemoChatRequestPayload, DemoChatResponsePayload };
+
+export async function fetchDemoConfig(): Promise<DemoConfig> {
+  const response = await safeFetch(`${getBaseUrl()}/demo/config`, { method: 'GET' });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || 'Demo is not available');
+  }
+  return (await response.json()) as DemoConfig;
+}
+
+export async function sendDemoMessage(payload: DemoChatRequestPayload): Promise<DemoChatResponsePayload> {
+  const response = await safeFetch(`${getBaseUrl()}/demo/chat`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || response.statusText);
+  }
+  return (await response.json()) as DemoChatResponsePayload;
 }

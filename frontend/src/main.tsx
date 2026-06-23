@@ -7,10 +7,15 @@ import { QueryProvider } from './providers/QueryProvider.tsx';
 
 void initCapacitorShell();
 
+function isDemoRoute(): boolean {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  return path === '/demo';
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryProvider>
-      <AppRoot />
+      <AppRoot demoMode={isDemoRoute()} />
     </QueryProvider>
   </StrictMode>,
 );

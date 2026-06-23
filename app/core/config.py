@@ -86,6 +86,18 @@ class Settings(BaseSettings):
     dev_user_display_name: str = "Dev User"
     google_client_id: Optional[str] = None
 
+    # Public portfolio demo (embeddable /demo UI, no auth)
+    demo_enabled: bool = False
+    demo_max_questions: int = 5
+    demo_intro: Optional[str] = None
+    demo_full_app_url: Optional[str] = None
+    demo_embed_allowed_origins: str = ""
+    demo_context_path: Optional[str] = None
+    # Keep demo prompts small enough for local LM Studio / 4k context windows.
+    demo_context_max_chars: int = 8500
+    demo_max_history_messages: int = 6
+    demo_max_output_tokens: int = 512
+
     # Path to assistant system prompt markdown (default: app/prompts/system.md)
     system_prompt_path: Optional[str] = None
 

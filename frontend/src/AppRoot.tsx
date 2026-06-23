@@ -3,11 +3,20 @@ import { useEffect, useState } from 'react';
 import App from './App';
 import { BootstrapScreen } from './components/BootstrapScreen';
 import { LoginPage } from './components/LoginPage';
+import { DemoApp } from './DemoApp';
 import type { AuthConfig } from './api';
 import { getAuthToken, AUTH_CHANGED_EVENT } from './auth';
 import { useAuthBootstrap, useAuthConfig, useCurrentUser } from './query/hooks';
 
-export function AppRoot() {
+export function AppRoot({ demoMode = false }: { demoMode?: boolean }) {
+  if (demoMode) {
+    return <DemoApp />;
+  }
+
+  return <AuthenticatedAppRoot />;
+}
+
+function AuthenticatedAppRoot() {
   const configQuery = useAuthConfig();
 
   if (configQuery.isLoading) {

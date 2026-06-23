@@ -11,6 +11,7 @@ Central map for Personal AI / CurAI docs. **Recorded benchmark data** lives in [
 | [../docker-setup.md](../docker-setup.md) | Container topology pointer |
 | [../frontend/CAPACITOR.md](../frontend/CAPACITOR.md) | iOS/Android native shell |
 | [ui-reference.md](./ui-reference.md) | Chat UI layout, account menu, latency display |
+| [portfolio-embed.md](./portfolio-embed.md) | 5-question demo iframe for portfolio sites |
 
 ## Operations & deploy
 

@@ -87,3 +87,22 @@ export interface UploadStatus {
 }
 
 export type ConversationMode = 'chat' | 'smart';
+
+export interface DemoConfig {
+  enabled: boolean;
+  max_questions: number;
+  intro: string;
+}
+
+export interface DemoChatRequestPayload {
+  session_id: string;
+  message: string;
+  messages: Array<{ role: Role; content: string }>;
+}
+
+export interface DemoChatResponsePayload extends ChatResponsePayload {
+  questions_used: number;
+  questions_remaining: number;
+  limit_reached: boolean;
+  full_app_url?: string | null;
+}
