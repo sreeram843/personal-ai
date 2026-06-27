@@ -12,13 +12,12 @@
 #     --env-file .env.cloud up -d
 
 services:
+  # No host ports — Caddy reaches app/grafana on the Docker network.
   app:
-    ports:
-      - "127.0.0.1:8000:8000"
+    ports: !reset []
 
   grafana:
-    ports:
-      - "127.0.0.1:3000:3000"
+    ports: !reset []
     environment:
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.app.cura-i.com}
       GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN:-grafana.app.cura-i.com}
@@ -26,8 +25,7 @@ services:
       GF_SECURITY_COOKIE_SECURE: "true"
 
   prometheus:
-    ports:
-      - "127.0.0.1:9090:9090"
+    ports: !reset []
 
   caddy:
     image: caddy:2-alpine

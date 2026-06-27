@@ -76,19 +76,24 @@ printf '\n[%s] Ensuring Qdrant vector collection\n' "$(date '+%H:%M:%S')"
 compose exec -T app python -c "from app.core.deps import get_vector_store; get_vector_store().ensure_collection()"
 
 printf '\n[%s] Health checks\n' "$(date '+%H:%M:%S')"
-curl -fsS http://127.0.0.1:8000/health
-curl -fsS http://127.0.0.1:8000/ready
-
 if [ -n "${CADDY_APP_DOMAIN:-}" ]; then
   curl -fsS "https://${CADDY_APP_DOMAIN}/health"
+  curl -fsS "https://${CADDY_APP_DOMAIN}/ready"
   if [ -n "${CADDY_GRAFANA_DOMAIN:-}" ]; then
     curl -fsS "https://${CADDY_GRAFANA_DOMAIN}/api/health"
   fi
+else
+  curl -fsS http://127.0.0.1:8000/health
+  curl -fsS http://127.0.0.1:8000/ready
 fi
 
 printf '\n[%s] Auth / OAuth configuration\n' "$(date '+%H:%M:%S')"
 chmod +x scripts/verify_prod_auth.sh
-APP_URL=http://127.0.0.1:8000 ./scripts/verify_prod_auth.sh || true
+if [ -n "${CADDY_APP_DOMAIN:-}" ]; then
+  APP_URL="https://${CADDY_APP_DOMAIN}" ./scripts/verify_prod_auth.sh || true
+else
+  APP_URL=http://127.0.0.1:8000 ./scripts/verify_prod_auth.sh || true
+fi
 
 printf '\n[%s] Deploy complete\n' "$(date '+%H:%M:%S')"
 compose ps
