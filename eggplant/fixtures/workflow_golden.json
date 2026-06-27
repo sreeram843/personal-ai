@@ -1,0 +1,30 @@
+[
+  {
+    "id": "deepplan-travel-compare",
+    "query": "Compare three multi-day travel itineraries for Kyoto versus Osaka with budget trade-offs and a recommended plan",
+    "expect_orchestrated": true,
+    "expect_smart_workflow": false,
+    "expect_web_research": false
+  },
+  {
+    "id": "deepplan-rag-roadmap",
+    "query": "Compare three deployment strategies for multi-tenant RAG and recommend a roadmap with trade-offs",
+    "expect_orchestrated": true,
+    "expect_smart_workflow": true,
+    "expect_web_research": true
+  },
+  {
+    "id": "deepplan-fx-analysis",
+    "query": "Compare current EUR/USD and GBP/USD exchange rates and explain implications for next week",
+    "expect_orchestrated": true,
+    "expect_smart_workflow": true,
+    "expect_web_research": true
+  },
+  {
+    "id": "not-workflow-greeting",
+    "query": "hello",
+    "expect_orchestrated": false,
+    "expect_smart_workflow": false,
+    "expect_web_research": false
+  }
+]

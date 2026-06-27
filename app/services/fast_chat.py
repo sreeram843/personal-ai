@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence
+from typing import Dict, Sequence
 
 from app.core.config import Settings
 from app.schemas.chat import ChatResponse
+from app.services.conversation_context import build_context_efficient_messages
+from app.services.session_compaction import build_context_efficient_messages_llm
 from app.services.llm_gateway import LLMGateway
+from app.services.prompt_context import augment_system_prompt
+from app.services.sentiment_routing import detect_sentiment
 from app.services.system_prompt import get_system_prompt
+from app.services.user_memory import UserMemoryStore
 
 
 async def run_fast_chat(
@@ -18,33 +23,55 @@ async def run_fast_chat(
     settings: Settings,
     system_prompt: str | None = None,
     max_output_tokens: int | None = None,
+    user_id: str | None = None,
+    user_memory_store: UserMemoryStore | None = None,
 ) -> ChatResponse:
     """Answer with one LLM call — no tools, no multi-agent pipeline."""
-    prompt = (system_prompt or get_system_prompt()).strip()
-    messages: List[Dict[str, str]] = [{"role": "system", "content": prompt}]
-    for item in chat_history:
-        content = (item.get("content") or "").strip()
-        if not content:
-            continue
-        role = (item.get("role") or "user").lower()
-        if role in {"user", "assistant", "system"}:
-            messages.append({"role": role, "content": content})
-    normalized_query = query.strip()
-    last = messages[-1] if messages else None
-    if not (last and last["role"] == "user" and last["content"].strip() == normalized_query):
-        messages.append({"role": "user", "content": normalized_query})
+    base_prompt = (system_prompt or get_system_prompt()).strip()
+    prompt = augment_system_prompt(
+        base_prompt,
+        user_query=query,
+        user_id=user_id,
+        settings=settings,
+        user_memory_store=user_memory_store,
+    )
+    if settings.enable_llm_history_compaction:
+        messages = await build_context_efficient_messages_llm(
+            system_prompt=prompt,
+            chat_history=chat_history,
+            query=query,
+            llm_gateway=llm_gateway,
+            settings=settings,
+        )
+    else:
+        messages = build_context_efficient_messages(
+            system_prompt=prompt,
+            chat_history=chat_history,
+            query=query,
+            compact_after_messages=settings.chat_history_compact_after,
+            recent_messages=settings.chat_history_recent_messages,
+            summary_max_chars=settings.chat_history_summary_max_chars,
+        )
 
     options: Dict[str, object] = {"temperature": 0.3}
     if max_output_tokens is not None and max_output_tokens > 0:
         options["max_tokens"] = max_output_tokens
 
-    text = await llm_gateway.generate(
+    result = await llm_gateway.generate_with_meta(
         messages=messages,
         model=settings.llm_default_model,
         options=options,
         provider=settings.llm_default_provider,
     )
-    return ChatResponse(message=text, sources=[])
+    sentiment = detect_sentiment(query) if settings.enable_sentiment_tone else None
+    return ChatResponse(
+        message=result.content,
+        sources=[],
+        reasoning=result.reasoning_content or None,
+        sentiment=sentiment,
+        prompt_tokens=result.prompt_tokens,
+        completion_tokens=result.completion_tokens,
+    )
 
 
 __all__ = ["run_fast_chat"]

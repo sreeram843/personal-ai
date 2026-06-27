@@ -144,6 +144,12 @@ services:
       - DEMO_CONTEXT_MAX_CHARS=${DEMO_CONTEXT_MAX_CHARS:-8500}
       - DEMO_MAX_HISTORY_MESSAGES=${DEMO_MAX_HISTORY_MESSAGES:-6}
       - DEMO_MAX_OUTPUT_TOKENS=${DEMO_MAX_OUTPUT_TOKENS:-512}
+      - WEB_SEARCH_PROVIDER=${WEB_SEARCH_PROVIDER:-auto}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
+    volumes:
+      - ./memory:/app/memory
     depends_on:
       postgres:
         condition: service_healthy
@@ -182,6 +188,12 @@ services:
       - WORKFLOW_MEMORY_BACKEND=${WORKFLOW_MEMORY_BACKEND:-disk}
       - OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
       - OBJECT_STORAGE_LOCAL_PATH=${OBJECT_STORAGE_LOCAL_PATH:-memory/uploads}
+      - WEB_SEARCH_PROVIDER=${WEB_SEARCH_PROVIDER:-auto}
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+      - FIRECRAWL_API_KEY=${FIRECRAWL_API_KEY:-}
+    volumes:
+      - ./memory:/app/memory
     depends_on:
       postgres:
         condition: service_healthy

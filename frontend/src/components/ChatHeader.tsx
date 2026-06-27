@@ -8,13 +8,14 @@ interface Props {
   mode: ConversationMode;
   logoState: CuraiLogoState;
   conversationTitle: string;
+  assistantName?: string;
   onOpenSidebar?: () => void;
 }
 
 const headerIconBtn =
   'touch-target grid h-10 w-10 shrink-0 place-content-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)]/50 text-[var(--phosphor)] transition hover:border-[var(--ui-border-strong)] hover:bg-[var(--ui-bg-elevated)] active:scale-[0.99] dark:bg-transparent md:h-8 md:w-8';
 
-export function ChatHeader({ mode, logoState, conversationTitle, onOpenSidebar }: Props) {
+export function ChatHeader({ mode, logoState, conversationTitle, assistantName, onOpenSidebar }: Props) {
   const isSmart = mode === 'smart';
   const modeLabel = isSmart ? 'Smart chat' : 'Direct chat';
 
@@ -44,8 +45,13 @@ export function ChatHeader({ mode, logoState, conversationTitle, onOpenSidebar }
         >
           <MessageSquare className="h-4 w-4" />
         </div>
-        <div className="min-w-0 truncate text-base font-semibold text-[var(--phosphor-bright)]">
-          {conversationTitle}
+        <div className="min-w-0 truncate">
+          <div className="truncate font-display text-base font-semibold tracking-tight text-[var(--phosphor-bright)]">
+            {conversationTitle}
+          </div>
+          {assistantName ? (
+            <div className="type-meta truncate normal-case tracking-normal">Assistant: {assistantName}</div>
+          ) : null}
         </div>
       </div>
       {isBusy && (

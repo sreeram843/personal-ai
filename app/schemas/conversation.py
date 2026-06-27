@@ -9,17 +9,20 @@ from pydantic import BaseModel, Field
 class CreateConversationRequest(BaseModel):
     title: Optional[str] = Field(default=None, max_length=255)
     mode: Optional[str] = Field(default="smart", max_length=32)
+    assistant_id: Optional[str] = Field(default=None, max_length=128)
 
 
 class UpdateConversationRequest(BaseModel):
     title: Optional[str] = Field(default=None, max_length=255)
     pinned: Optional[bool] = None
+    assistant_id: Optional[str] = Field(default=None, max_length=128)
 
 
 class ConversationSummary(BaseModel):
     id: str
     title: Optional[str] = None
     mode: Optional[str] = None
+    assistant_id: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     message_count: int = 0

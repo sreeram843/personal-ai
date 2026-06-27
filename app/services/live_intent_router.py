@@ -4,6 +4,7 @@ import re
 from typing import Optional
 
 from app.schemas.live_intent import LiveDomain, LiveIntent
+from app.services.live_sports import SportsGameQuery, detect_sports_game_query
 from app.services.web_search import (
     detect_commodity_query,
     detect_stock_query,
@@ -73,6 +74,18 @@ def route_live_intent(query: str) -> Optional[LiveIntent]:
         return LiveIntent(
             domain="news",
             slots={"topic": topic},
+            confidence=0.9,
+        )
+
+    sports = detect_sports_game_query(text)
+    if sports:
+        return LiveIntent(
+            domain="game_score",
+            slots={
+                "league": sports.league,
+                "team_query": sports.team_query,
+                "opponent_query": sports.opponent_query or "",
+            },
             confidence=0.9,
         )
 

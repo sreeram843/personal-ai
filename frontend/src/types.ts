@@ -1,4 +1,96 @@
+import type { ContentBlock } from './types/liveData';
+
+export type ToolPermissionMode = 'auto' | 'ask' | 'plan';
+
+export interface PlannedToolCall {
+  tool_id: string;
+  name: string;
+  reason: string;
+  inputs_preview?: Record<string, unknown>;
+}
+
+export interface PendingToolApproval {
+  tool_id: string;
+  name: string;
+  description: string;
+  risk_class: string;
+  inputs_preview?: Record<string, unknown>;
+}
+
+export interface AgentSettings {
+  toolPermissionMode: ToolPermissionMode;
+}
+
+export interface McpServerSummary {
+  id: string;
+  name: string;
+  url: string;
+  enabled: boolean;
+  header_keys: string[];
+  last_status?: string | null;
+  last_error?: string | null;
+  tool_count?: number;
+  last_checked_at?: string | null;
+}
+
+export interface McpServerTestResult {
+  ok: boolean;
+  tool_count?: number;
+  tools?: string[];
+  error?: string | null;
+}
+
+export interface DoctorReport {
+  status: string;
+  issues: string[];
+  features: Record<string, unknown>;
+  checks: Record<string, unknown>;
+}
+
+export interface SkillSummary {
+  id: string;
+  name: string;
+  description?: string;
+  triggers: string[];
+  allowed_tools: string[];
+  enabled: boolean;
+  bundled: boolean;
+  pick_only?: boolean;
+}
+
+export interface AssistantSummary {
+  id: string;
+  name: string;
+  description?: string;
+  instructions?: string;
+  triggers: string[];
+  allowed_tools: string[];
+  enabled: boolean;
+  bundled: boolean;
+  pick_only: boolean;
+  is_default: boolean;
+}
+
+export interface AgentTaskSummary {
+  id: string;
+  title: string;
+  detail: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  source: 'planned_tool' | 'user' | 'skill';
+  tool_id?: string | null;
+  conversation_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgentSendOptions {
+  toolPermissionMode?: ToolPermissionMode;
+  approvedToolIds?: string[];
+}
+
 export type Role = 'user' | 'assistant' | 'system';
+
+export type ChatErrorKind = 'network' | 'timeout' | 'rate_limit' | 'refused' | 'unknown';
 
 export interface ChatMessage {
   id: string;
@@ -10,6 +102,17 @@ export interface ChatMessage {
   workflow?: WorkflowTrace;
   workflowMemoryEvents?: WorkflowMemoryEvent[];
   workflowSourceEvents?: WorkflowSourceEvent[];
+  reasoning?: string;
+  sentiment?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  errorKind?: ChatErrorKind;
+  errorDetail?: string;
+  blocks?: ContentBlock[];
+  plannedTools?: PlannedToolCall[];
+  pendingToolApprovals?: PendingToolApproval[];
+  toolPermissionMode?: ToolPermissionMode;
+  showLiveSkeleton?: boolean;
 }
 
 export interface RetrievedSource {
@@ -38,13 +141,22 @@ export interface ChatResponsePayload {
   workflow?: WorkflowTrace;
   conversation_id?: string;
   latency_ms?: number;
+  reasoning?: string;
+  sentiment?: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  blocks?: ContentBlock[];
+  planned_tools?: PlannedToolCall[];
+  pending_tool_approvals?: PendingToolApproval[];
+  tool_permission_mode?: ToolPermissionMode;
 }
 
 export interface WorkflowEventPayload {
-  type: 'workflow' | 'final' | 'error' | 'memory' | 'sources';
+  type: 'workflow' | 'final' | 'error' | 'memory' | 'sources' | 'conversation' | 'block' | 'status';
   workflow?: WorkflowTrace;
   response?: ChatResponsePayload;
   message?: string;
+  block?: ContentBlock;
   phase?: 'read' | 'write';
   summary?: string;
   conversation_id?: string;

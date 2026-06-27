@@ -11,10 +11,10 @@ import {
   updateConversation,
 } from '../api';
 import { clearAuthToken, getAuthToken } from '../auth';
-import type { ChatMessage, ConversationMode } from '../types';
+import type { ConversationMode } from '../types';
 import { mapConversationSummary } from './conversations';
 import { queryKeys } from './keys';
-import { mergeAssistantLatency, messageQueryKey } from './messageCache';
+import { mergeFetchedMessages, messageQueryKey, readCachedMessages } from './messageCache';
 
 export function useAuthConfig() {
   return useQuery({
@@ -71,16 +71,18 @@ export function useConversationMessages(conversationId: string | null, enabled: 
   return useQuery({
     queryKey: messageQueryKey(conversationId),
     queryFn: async () => {
+      const cached = readCachedMessages(queryClient, conversationId);
       if (!conversationId) {
-        return [];
+        return cached;
       }
-      const previous = queryClient.getQueryData<ChatMessage[]>(messageQueryKey(conversationId)) ?? [];
       const stored = await fetchConversationMessages(conversationId);
       const mapped = stored.map(mapServerMessage);
-      return mergeAssistantLatency(mapped, previous);
+      return mergeFetchedMessages(mapped, cached);
     },
     enabled,
     placeholderData: (previous) => previous,
+    refetchOnWindowFocus: false,
+    staleTime: 30_000,
   });
 }
 
@@ -88,7 +90,8 @@ export function useCreateConversation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (mode: ConversationMode) => createConversation(mode),
+    mutationFn: ({ mode, assistantId }: { mode: ConversationMode; assistantId?: string | null }) =>
+      createConversation(mode, undefined, assistantId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
     },
@@ -138,7 +141,8 @@ export function useInvalidateConversationData() {
     },
     invalidateAfterSend: (conversationId: string | null) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
-      void queryClient.invalidateQueries({ queryKey: messageQueryKey(conversationId) });
+      // Keep the optimistic message cache; refetching mid-turn caused blank flashes.
+      void conversationId;
     },
   };
 }

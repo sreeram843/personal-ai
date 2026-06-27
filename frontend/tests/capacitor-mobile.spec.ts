@@ -29,14 +29,15 @@ test.describe('capacitor mobile shell', () => {
     await expect(page.getByTitle('Close navigation')).not.toBeVisible();
   });
 
-  test('toggles theme from user menu on mobile', async ({ page }) => {
+  test('toggles theme from settings on mobile', async ({ page }) => {
     await prepareAuthenticatedPage(page, { mode: 'chat' });
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await page.getByRole('button', { name: /Account menu for/ }).click();
-    await expect(page.getByRole('menuitem', { name: 'Dark mode' })).toBeVisible();
-    await page.getByRole('menuitem', { name: 'Dark mode' }).click();
+    await page.getByRole('menuitem', { name: 'Settings' }).click();
+    await page.getByRole('button', { name: 'Appearance' }).click();
+    await page.getByRole('radio', { name: 'Dark' }).click();
     await expect(page.locator('html')).toHaveClass(/dark/);
-    await page.getByRole('menuitem', { name: 'Light mode' }).click();
+    await page.getByRole('radio', { name: 'Light' }).click();
     await expect(page.locator('html')).not.toHaveClass(/dark/);
   });
 });

@@ -227,8 +227,14 @@ export function DemoApp() {
           scrollRef={messageLogRef}
           messages={messages}
           isLoading={isLoading}
+          isNearBottom
+          editingUserMessageId={null}
           onCopy={() => undefined}
+          onEditResend={() => undefined}
+          onEditCancel={() => undefined}
+          onEditFromError={() => undefined}
           onRegenerate={() => undefined}
+          onRetry={() => undefined}
           onFeedback={() => undefined}
         />
       </main>

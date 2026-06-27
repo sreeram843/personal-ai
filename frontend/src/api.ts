@@ -1,7 +1,10 @@
 import { authHeaders, clearAuthToken, getAuthToken, setAuthToken } from './auth';
 import { isCapacitorNative } from './platform/capacitor';
 import { resolveApiBaseUrl } from './platform/resolveApiBaseUrl';
+import { createChatRequestError } from './utils/chatErrors';
+import type { ContentBlock } from './types/liveData';
 import type {
+  ChatErrorKind,
   ChatMessage,
   ChatResponsePayload,
   ConversationMode,
@@ -10,12 +13,20 @@ import type {
   DemoConfig,
   RetrievedSource,
   WorkflowEventPayload,
+  AgentSendOptions,
+  McpServerSummary,
+  McpServerTestResult,
+  DoctorReport,
+  SkillSummary,
+  AgentTaskSummary,
+  AssistantSummary,
 } from './types';
 
 export interface ServerConversationSummary {
   id: string;
   title?: string | null;
   mode?: string | null;
+  assistant_id?: string | null;
   created_at: string;
   updated_at: string;
   message_count: number;
@@ -197,12 +208,17 @@ export async function listConversations(): Promise<ServerConversationSummary[]> 
   return payload.conversations;
 }
 
-export async function createConversation(mode: ConversationMode, title?: string): Promise<ServerConversationSummary> {
+export async function createConversation(
+  mode: ConversationMode,
+  title?: string,
+  assistantId?: string | null,
+): Promise<ServerConversationSummary> {
   const response = await apiFetch('/conversations', {
     method: 'POST',
     body: JSON.stringify({
       title,
       mode,
+      assistant_id: assistantId && assistantId !== 'default' ? assistantId : undefined,
     }),
   });
   return (await response.json()) as ServerConversationSummary;
@@ -234,11 +250,46 @@ export async function updateConversation(
   return (await response.json()) as ServerConversationSummary;
 }
 
+function readTokenCount(metadata: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const raw = metadata[key];
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      return raw;
+    }
+  }
+  return undefined;
+}
+
+function readString(metadata: Record<string, unknown>, key: string): string | undefined {
+  const raw = metadata[key];
+  return typeof raw === 'string' ? raw : undefined;
+}
+
+function readErrorKind(metadata: Record<string, unknown>): ChatErrorKind | undefined {
+  const raw = metadata.error_kind ?? metadata.errorKind;
+  if (
+    raw === 'network' ||
+    raw === 'timeout' ||
+    raw === 'rate_limit' ||
+    raw === 'refused' ||
+    raw === 'unknown'
+  ) {
+    return raw;
+  }
+  return undefined;
+}
+
+function readBlocks(metadata: Record<string, unknown>): ContentBlock[] | undefined {
+  return normalizeContentBlocks(metadata.blocks);
+}
+
 export function mapServerMessage(message: ServerStoredMessage): ChatMessage {
   const metadata = message.metadata ?? {};
   const rawLatency = metadata.latency_ms ?? metadata.latencyMs;
   const latencyMs = typeof rawLatency === 'number' && Number.isFinite(rawLatency) ? rawLatency : undefined;
-  return {
+  const errorKind = readErrorKind(metadata);
+  const errorDetail = readString(metadata, 'error_detail') ?? readString(metadata, 'errorDetail');
+  const base = {
     id: message.id,
     role: message.role,
     content: message.content,
@@ -246,6 +297,22 @@ export function mapServerMessage(message: ServerStoredMessage): ChatMessage {
     latencyMs,
     sources: Array.isArray(metadata.sources) ? (metadata.sources as RetrievedSource[]) : undefined,
     workflow: metadata.workflow as ChatMessage['workflow'],
+    reasoning: typeof metadata.reasoning === 'string' ? metadata.reasoning : undefined,
+    sentiment: typeof metadata.sentiment === 'string' ? metadata.sentiment : undefined,
+    errorKind,
+    errorDetail,
+    blocks: readBlocks(metadata),
+  };
+  if (message.role === 'user') {
+    return {
+      ...base,
+      inputTokens: readTokenCount(metadata, 'prompt_tokens', 'inputTokens', 'input_tokens'),
+    };
+  }
+  return {
+    ...base,
+    outputTokens: readTokenCount(metadata, 'completion_tokens', 'outputTokens', 'output_tokens'),
+    inputTokens: readTokenCount(metadata, 'prompt_tokens', 'inputTokens', 'input_tokens'),
   };
 }
 
@@ -287,6 +354,23 @@ async function streamSseEvents(
   }
 }
 
+export function buildChatRequestMessages(
+  history: ChatMessage[],
+  message: string,
+): Array<{ role: ChatMessage['role']; content: string }> {
+  const trimmed = message.trim();
+  const apiHistory = history
+    .filter((item) => item.content.trim().length > 0)
+    .map((item) => ({ role: item.role, content: item.content }));
+
+  const last = apiHistory[apiHistory.length - 1];
+  if (last?.role === 'user' && last.content === trimmed) {
+    return apiHistory;
+  }
+
+  return [...apiHistory, { role: 'user' as const, content: trimmed }];
+}
+
 export async function sendMessage(
   mode: ConversationMode,
   message: string,
@@ -294,14 +378,12 @@ export async function sendMessage(
   conversationId: string | null,
   signal: AbortSignal,
   onWorkflowEvent?: (event: WorkflowEventPayload) => void,
+  agentOptions?: AgentSendOptions,
 ): Promise<ChatResponsePayload> {
-  const endpoint = mode === 'smart' ? '/smart_chat/stream' : '/chat';
+  const endpoint = mode === 'smart' ? '/smart_chat/stream' : '/chat/stream';
   const url = `${getBaseUrl()}${endpoint}`;
 
-  const messages = [
-    ...history.map((item) => ({ role: item.role, content: item.content })),
-    { role: 'user' as const, content: message },
-  ];
+  const messages = buildChatRequestMessages(history, message);
 
   const bodyPayload: Record<string, unknown> =
     mode === 'smart'
@@ -319,6 +401,11 @@ export async function sendMessage(
           messages,
         };
 
+  bodyPayload.options = {
+    tool_permission_mode: agentOptions?.toolPermissionMode ?? 'auto',
+    approved_tool_ids: agentOptions?.approvedToolIds ?? [],
+  };
+
   if (conversationId) {
     bodyPayload.conversation_id = conversationId;
   }
@@ -335,13 +422,16 @@ export async function sendMessage(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || response.statusText);
+    throw createChatRequestError(response.status, errorText || response.statusText);
   }
 
   if (response.headers.get('content-type')?.includes('text/event-stream')) {
     let finalResponse: ChatResponsePayload | undefined;
     await streamSseEvents(response, (event) => {
       onWorkflowEvent?.(event);
+      if (event.type === 'error' && event.message) {
+        throw new Error(event.message);
+      }
       if (event.type === 'final' && event.response) {
         finalResponse = event.response;
       }
@@ -353,6 +443,7 @@ export async function sendMessage(
     if (responsePayload.sources) {
       responsePayload.sources = normalizeSources(responsePayload.sources);
     }
+    responsePayload.blocks = normalizeContentBlocks(responsePayload.blocks);
     return responsePayload;
   }
 
@@ -361,6 +452,7 @@ export async function sendMessage(
     if (data.sources && mode === 'smart') {
       data.sources = normalizeSources(data.sources);
     }
+    data.blocks = normalizeContentBlocks(data.blocks);
     return data;
   }
 
@@ -368,11 +460,36 @@ export async function sendMessage(
   return { message: fallbackText };
 }
 
+function normalizeContentBlocks(blocks: unknown): ContentBlock[] | undefined {
+  if (!Array.isArray(blocks)) {
+    return undefined;
+  }
+  return blocks
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .map((item) => ({
+      type: String(item.type ?? '') as ContentBlock['type'],
+      data: (item.data as Record<string, unknown>) ?? {},
+      subscription_key:
+        typeof item.subscription_key === 'string'
+          ? item.subscription_key
+          : typeof item.subscriptionKey === 'string'
+            ? item.subscriptionKey
+            : null,
+    }))
+    .filter((block) => block.type.length > 0);
+}
+
 function normalizeSources(sources: RetrievedSource[]): RetrievedSource[] {
   return sources.map((source) => ({
     ...source,
     id: String(source.id ?? ''),
   }));
+}
+
+export async function refreshLiveBlock(subscriptionKey: string): Promise<ContentBlock> {
+  const params = new URLSearchParams({ key: subscriptionKey });
+  const response = await apiFetch(`/live/blocks/refresh?${params.toString()}`);
+  return (await response.json()) as ContentBlock;
 }
 
 async function readFileAsText(file: File): Promise<string> {
@@ -431,6 +548,160 @@ async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<vo
 }
 
 export type { DemoConfig, DemoChatRequestPayload, DemoChatResponsePayload };
+
+export async function fetchMcpServers(): Promise<McpServerSummary[]> {
+  const response = await apiFetch('/mcp/servers');
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const data = (await response.json()) as { servers?: McpServerSummary[] };
+  return data.servers ?? [];
+}
+
+export async function createMcpServer(payload: {
+  name: string;
+  url: string;
+  enabled?: boolean;
+  headers?: Record<string, string>;
+}): Promise<McpServerSummary> {
+  const response = await apiFetch('/mcp/servers', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as McpServerSummary;
+}
+
+export async function deleteMcpServer(serverId: string): Promise<void> {
+  const response = await apiFetch(`/mcp/servers/${serverId}`, { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+}
+
+export async function testMcpServer(serverId: string): Promise<McpServerTestResult> {
+  const response = await apiFetch(`/mcp/servers/${serverId}/test`, { method: 'POST' });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as McpServerTestResult;
+}
+
+export async function fetchDoctorReport(): Promise<DoctorReport> {
+  const response = await apiFetch('/agent/diagnostics');
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as DoctorReport;
+}
+
+export async function fetchSkills(): Promise<SkillSummary[]> {
+  const response = await apiFetch('/agent/skills');
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const data = (await response.json()) as { skills?: SkillSummary[] };
+  return data.skills ?? [];
+}
+
+export async function fetchAssistants(): Promise<AssistantSummary[]> {
+  const response = await apiFetch('/agent/assistants');
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const data = (await response.json()) as { assistants?: AssistantSummary[] };
+  return data.assistants ?? [];
+}
+
+export async function createAssistant(payload: {
+  name: string;
+  description?: string;
+  instructions?: string;
+  allowed_tools?: string[];
+  triggers?: string[];
+  pick_only?: boolean;
+}): Promise<AssistantSummary> {
+  const response = await apiFetch('/agent/assistants', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as AssistantSummary;
+}
+
+export async function updateAssistant(
+  assistantId: string,
+  payload: {
+    enabled?: boolean;
+    name?: string;
+    description?: string;
+    instructions?: string;
+    allowed_tools?: string[];
+    triggers?: string[];
+    pick_only?: boolean;
+  },
+): Promise<AssistantSummary> {
+  const response = await apiFetch(`/agent/assistants/${assistantId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as AssistantSummary;
+}
+
+export async function deleteAssistant(assistantId: string): Promise<void> {
+  const response = await apiFetch(`/agent/assistants/${assistantId}`, { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+}
+
+export async function updateSkill(skillId: string, payload: { enabled?: boolean }): Promise<SkillSummary> {
+  const response = await apiFetch(`/agent/skills/${skillId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as SkillSummary;
+}
+
+export async function fetchAgentTasks(): Promise<AgentTaskSummary[]> {
+  const response = await apiFetch('/agent/tasks');
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  const data = (await response.json()) as { tasks?: AgentTaskSummary[] };
+  return data.tasks ?? [];
+}
+
+export async function updateAgentTaskStatus(
+  taskId: string,
+  status: AgentTaskSummary['status'],
+): Promise<AgentTaskSummary> {
+  const response = await apiFetch(`/agent/tasks/${taskId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+  return (await response.json()) as AgentTaskSummary;
+}
+
+export async function deleteAgentTask(taskId: string): Promise<void> {
+  const response = await apiFetch(`/agent/tasks/${taskId}`, { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+}
 
 export async function fetchDemoConfig(): Promise<DemoConfig> {
   const response = await safeFetch(`${getBaseUrl()}/demo/config`, { method: 'GET' });

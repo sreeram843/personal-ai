@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Literal, Optional
 
@@ -29,10 +30,11 @@ from app.core.deps import (
 from app.db.models import Conversation
 from app.db.session import get_db
 from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage, RetrievedChunk
+from app.schemas.content_block import ContentBlock
 from app.schemas.documents import IngestRequest, IngestResponse
 from app.schemas.jobs import BackgroundJob, BackgroundJobKind, BackgroundJobStatus
 from app.schemas.run import RunStatus, WorkflowRun
-from app.services.chat_execution import execute_chat_mode
+from app.services.chat_execution import execute_chat_mode, execute_chat_mode_stream
 from app.services.live_data_manager import LiveDataManager
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.llamaindex_rag import query_with_llamaindex
@@ -42,6 +44,7 @@ from app.services.run_store import RunStore
 from app.services.vector_store import VectorStore
 from app.services.workflow_memory import WorkflowMemoryStore
 from app.services.information_routing import (
+    is_external_web_lookup_query,
     is_quick_social_utterance,
     should_route_smart_toward_workflow,
 )
@@ -65,6 +68,7 @@ from app.services.tool_registry import ToolRegistry
 from app.services.workflow_run_access import require_workflow_run, verify_conversation_owned_by_user
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class CreateWorkflowRunRequest(BaseModel):
@@ -117,10 +121,17 @@ async def _live_data_short_circuit(
     adapter_result = await live_data.resolve(last_user_message.content)
     if adapter_result:
         rendered, ts = live_data.render(adapter_result)
+        blocks = LiveDataManager.to_blocks(adapter_result)
+        message = (
+            LiveDataManager.companion_message(adapter_result)
+            if blocks
+            else rendered
+        )
         return ChatResponse(
-            message=_format_chat_response(_append_data_as_of(rendered, ts)),
+            message=_format_chat_response(_append_data_as_of(message, ts)),
             sources=[],
             live=LiveDataManager.to_provenance(adapter_result),
+            blocks=blocks,
         )
 
     # Fail closed only for adapter-specific intents (rates, weather, news, …). If the user
@@ -166,6 +177,9 @@ def _select_smart_mode(payload: ChatRequest) -> Literal["chat", "rag", "workflow
 
     if is_quick_social_utterance(query):
         return "chat"
+
+    if is_external_web_lookup_query(query):
+        return "rag"
 
     complex_reasoning_terms = (
         "compare",
@@ -243,7 +257,7 @@ async def _stream_orchestrated_mode(
 ) -> AsyncIterator[str]:
     if mode == "chat":
         try:
-            response = await execute_chat_mode(
+            async for event in execute_chat_mode_stream(
                 payload=payload,
                 user_id=user_id,
                 ollama=ollama,
@@ -253,15 +267,20 @@ async def _stream_orchestrated_mode(
                 web_search=web_search,
                 workflow_memory=workflow_memory,
                 tool_registry=get_tool_registry(),
-            )
-            response.message = _format_chat_response(response.message)
-            if run_store and run_id:
-                run_store.update_run_status(run_id, RunStatus.COMPLETED)
-            yield _encode_sse({"type": "final", "response": response.model_dump()})
+            ):
+                if event.get("type") == "final":
+                    response = ChatResponse.model_validate(event["response"])
+                    response.message = _format_chat_response(response.message)
+                    if run_store and run_id:
+                        run_store.update_run_status(run_id, RunStatus.COMPLETED)
+                    yield _encode_sse({"type": "final", "response": response.model_dump()})
+                else:
+                    yield _encode_sse(event)
         except Exception as exc:
             if run_store and run_id:
                 run_store.update_run_status(run_id, RunStatus.FAILED, error=str(exc))
-            raise
+            logger.exception("Chat stream failed")
+            yield _encode_sse({"type": "error", "message": str(exc)})
         return
     service = _build_orchestrated_service(
         ollama=ollama,
@@ -299,7 +318,8 @@ async def _stream_orchestrated_mode(
     except Exception as exc:
         if run_store and run_id:
             run_store.update_run_status(run_id, RunStatus.FAILED, error=str(exc))
-        raise
+        logger.exception("Orchestrated stream failed")
+        yield _encode_sse({"type": "error", "message": str(exc)})
 
 
 @router.post("/workflow_runs", response_model=WorkflowRun)
@@ -404,6 +424,19 @@ async def ready() -> dict:
     if report["status"] != "ready":
         raise HTTPException(status_code=503, detail=report)
     return report
+
+
+@router.get("/live/blocks/refresh", response_model=ContentBlock)
+async def refresh_live_block(
+    key: str,
+    user: CurrentUser,
+    live_data: LiveDataManager = Depends(get_live_data_manager),
+) -> ContentBlock:
+    """Poll updated data for a live card subscription (sports scores, live stocks)."""
+    block = await live_data.refresh_block(key)
+    if block is None:
+        raise HTTPException(status_code=404, detail="Live block not found or not refreshable")
+    return block
 
 
 @router.get("/tools")
@@ -525,6 +558,58 @@ async def chat(
         payload=payload,
         mode="chat",
         handler=handler,
+    )
+
+
+@router.post("/chat/stream")
+async def chat_stream(
+    payload: ChatRequest,
+    user: CurrentUser,
+    db: Session = Depends(get_db),
+    ollama: OllamaClient = Depends(get_ollama_client),
+    llm_gateway: LLMGateway = Depends(get_llm_gateway),
+    model_profile: WorkflowModelProfile = Depends(get_workflow_model_profile),
+    vector_store: VectorStore = Depends(get_vector_store),
+    web_search: WebSearchService = Depends(get_web_search),
+    live_data: LiveDataManager = Depends(get_live_data_manager),
+    workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
+) -> StreamingResponse:
+    """Streaming chat with live block events during tool runs."""
+
+    async def stream_factory(request: ChatRequest) -> AsyncIterator[str]:
+        try:
+            shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
+            if shortcut:
+                yield _encode_sse({"type": "final", "response": shortcut.model_dump()})
+                return
+            async for event in execute_chat_mode_stream(
+                payload=request,
+                user_id=str(user.id),
+                ollama=ollama,
+                llm_gateway=llm_gateway,
+                model_profile=model_profile,
+                vector_store=vector_store,
+                web_search=web_search,
+                workflow_memory=workflow_memory,
+                tool_registry=get_tool_registry(),
+            ):
+                if event.get("type") == "final":
+                    response = ChatResponse.model_validate(event["response"])
+                    event = {"type": "final", "response": response.model_copy(update={"message": _format_chat_response(response.message)}).model_dump()}
+                yield _encode_sse(event)
+        except Exception as exc:
+            logger.exception("Chat stream failed")
+            yield _encode_sse({"type": "error", "message": str(exc)})
+
+    return StreamingResponse(
+        wrap_chat_stream_with_persistence(
+            db=db,
+            user=user,
+            payload=payload,
+            mode="chat",
+            stream_factory=stream_factory,
+        ),
+        media_type="text/event-stream",
     )
 
 

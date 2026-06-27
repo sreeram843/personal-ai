@@ -64,7 +64,7 @@ function orbitDurationScale(state: CuraiLogoState): number {
     return 0.85;
   }
   if (state === 'thinking') {
-    return 1;
+    return 0.35;
   }
   if (state === 'idle') {
     return 1.6;

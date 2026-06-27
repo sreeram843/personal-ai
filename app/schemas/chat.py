@@ -4,7 +4,9 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.schemas.agent import PendingToolApproval, PlannedToolCall
 from app.schemas.live_intent import LiveDataProvenance
+from app.schemas.content_block import ContentBlock
 
 
 class ChatMessage(BaseModel):
@@ -76,13 +78,24 @@ class ChatResponse(BaseModel):
     workflow: Optional[WorkflowTrace] = None
     conversation_id: Optional[str] = None
     live: Optional[LiveDataProvenance] = None
+    blocks: List[ContentBlock] = Field(default_factory=list)
+    reasoning: Optional[str] = None
+    sentiment: Optional[str] = None
     latency_ms: Optional[float] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+    planned_tools: List[PlannedToolCall] = Field(default_factory=list)
+    pending_tool_approvals: List[PendingToolApproval] = Field(default_factory=list)
+    tool_permission_mode: Optional[Literal["auto", "ask", "plan"]] = None
 
 
 __all__ = [
     "ChatMessage",
     "ChatRequest",
     "ChatResponse",
+    "ContentBlock",
+    "PendingToolApproval",
+    "PlannedToolCall",
     "LiveDataProvenance",
     "RetrievedChunk",
     "WorkflowRequest",

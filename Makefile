@@ -1,4 +1,4 @@
-.PHONY: help build up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision
+.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval check-remote-inference
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
 COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
@@ -6,7 +6,8 @@ COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-co
 help:
 	@echo "Personal AI Docker Compose Commands"
 	@echo "===================================="
-	@echo "make build          - Build all images"
+	@echo "make build          - Build all images (all compose profiles)"
+	@echo "make build-cloud    - Build cloud-chat stack images (.env.cloud)"
 	@echo "make up             - Start stack (profile: local — Ollama chat + embeds)"
 	@echo "make up-cloud       - Start stack (profile: cloud-chat — cloud chat, local embeds)"
 	@echo "make up-gpu-vllm    - Start stack (profile: gpu-vllm — vLLM chat, local embeds)"
@@ -38,9 +39,24 @@ help:
 	@echo "make penpot-mcp     - Start local Penpot MCP server (see docs/penpot-mcp.md)"
 	@echo "make db-migrate     - Apply Alembic migrations (requires Postgres)"
 	@echo "make db-revision    - Create a new Alembic revision (autogenerate)"
+	@echo "make eggplant-setup    - Create isolated eggplant venv for dataset eval"
+	@echo "make eggplant-download - Download HF datasets from eggplant/manifest.json"
+	@echo "make eggplant-eval     - Run offline dataset verification + write docs"
+	@echo "make eggplant-eval-live - Offline eval + live /chat smoke (LM Studio via up-remote)"
+	@echo "make eggplant-eval-live-full - Live chat + indirect RAG injection + workflow + connectivity"
+	@echo "make test-eval          - Run all test_eval_* golden pytest modules"
+	@echo "make check-remote-inference - Curl LM Studio + Ollama before live tests"
 
 build:
-	docker compose build
+	docker compose $(COMPOSE_PROFILES_BASE) build
+
+build-cloud:
+	@if [ ! -f .env.cloud ]; then \
+		echo "ERROR: .env.cloud not found. Copy .env.cloud.example and fill in your API key."; \
+		exit 1; \
+	fi
+	@set -a && . ./.env.cloud && set +a && \
+	 $(COMPOSE_CLOUD) build
 
 up:
 	docker compose --profile local up -d
@@ -63,7 +79,8 @@ up-cloud:
 		echo "ERROR: .env.cloud not found. Copy .env.cloud.example and fill in your API key."; \
 		exit 1; \
 	fi
-	docker compose --profile cloud-chat -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud up -d
+	@set -a && . ./.env.cloud && set +a && \
+	 docker compose --profile cloud-chat -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud up -d
 	@$(MAKE) pull-models-cloud
 	@echo ""
 	@echo "Services started (profile: cloud-chat)"
@@ -217,3 +234,24 @@ db-migrate:
 
 db-revision:
 	alembic revision --autogenerate -m "$(MSG)"
+
+eggplant-setup:
+	bash eggplant/scripts/setup.sh
+
+eggplant-download:
+	bash eggplant/scripts/download_datasets.sh
+
+eggplant-eval:
+	bash eggplant/scripts/run_eval.sh
+
+eggplant-eval-live:
+	bash eggplant/scripts/run_eval.sh --live-llm
+
+eggplant-eval-live-full:
+	bash eggplant/scripts/run_eval.sh --live-full
+
+test-eval:
+	.venv/bin/python -m pytest tests/test_eval_routing_accuracy.py tests/test_eval_rag_grounding.py tests/test_eval_tenant_isolation.py tests/test_eval_retrieval_accuracy.py tests/test_eval_tool_routing.py tests/test_eval_workflow_routing.py -q --no-cov
+
+check-remote-inference:
+	bash scripts/check_remote_inference.sh

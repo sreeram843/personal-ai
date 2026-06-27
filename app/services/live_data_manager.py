@@ -9,9 +9,11 @@ from prometheus_client import Counter, Histogram
 
 from app.core.config import Settings
 from app.schemas.adapter import AdapterResult
+from app.schemas.content_block import ContentBlock
 from app.schemas.live_intent import LiveDataProvenance, LiveIntent
 from app.services.adapter_cache import AdapterCache
 from app.services.live_intent_router import is_structured_live_intent, route_live_intent
+from app.services.sports_data import SportsDataService
 from app.services.web_search import WEATHER_CODE_LABELS, WebSearchService
 
 logger = logging.getLogger(__name__)
@@ -75,10 +77,17 @@ ADAPTER_LATENCY_SECONDS = Histogram(
 class LiveDataManager:
     """Unified adapter manager with normalized responses, cache, and metrics."""
 
-    def __init__(self, web_search: WebSearchService, cache: AdapterCache, settings: Settings) -> None:
+    def __init__(
+        self,
+        web_search: WebSearchService,
+        cache: AdapterCache,
+        settings: Settings,
+        sports: SportsDataService | None = None,
+    ) -> None:
         self._web = web_search
         self._cache = cache
         self._settings = settings
+        self._sports = sports or SportsDataService()
 
     @staticmethod
     def _now_utc() -> str:
@@ -92,6 +101,7 @@ class LiveDataManager:
             "weather_current": self._settings.live_cache_ttl_weather_current_seconds,
             "weather_forecast": self._settings.live_cache_ttl_weather_forecast_seconds,
             "news": self._settings.live_cache_ttl_news_seconds,
+            "game_score": self._settings.live_cache_ttl_sports_seconds,
         }
         return mapping.get(domain, self._settings.adapter_cache_default_ttl_seconds)
 
@@ -105,6 +115,208 @@ class LiveDataManager:
             verified=result.verified,
             provider_timestamp=result.provider_timestamp,
         )
+
+    @staticmethod
+    def to_blocks(result: AdapterResult) -> list[ContentBlock]:
+        """Map a verified adapter result to structured UI blocks."""
+        if result.status != "ok" or not result.verified:
+            return []
+
+        data = result.data or {}
+        subscription_key = data.get("subscription_key")
+
+        if result.domain == "stock":
+            change = data.get("change")
+            change_pct = data.get("change_percent")
+            market_state = str(data.get("market_state") or "").lower()
+            is_delayed = market_state not in {"", "regular", "open", "trading"}
+            return [
+                ContentBlock(
+                    type="stock",
+                    subscription_key=f"stock:{data.get('ticker', '')}" if market_state in {"regular", "open", "trading"} else None,
+                    data={
+                        "ticker": data.get("ticker", ""),
+                        "name": data.get("name", ""),
+                        "price": data.get("price"),
+                        "currency": data.get("currency", "USD"),
+                        "change": change,
+                        "changePercent": change_pct,
+                        "previousClose": data.get("previous_close"),
+                        "exchange": data.get("exchange", ""),
+                        "marketState": data.get("market_state", ""),
+                        "delayed": is_delayed,
+                        "asOf": result.provider_timestamp or result.fetched_at_utc,
+                        "source": result.source,
+                        "live": market_state in {"regular", "open", "trading"},
+                    },
+                )
+            ]
+
+        if result.domain == "weather_current":
+            return [
+                ContentBlock(
+                    type="weather",
+                    data={
+                        "mode": "current",
+                        "location": data.get("location", ""),
+                        "condition": _weather_label(data.get("weather_code")),
+                        "temperature": data.get("temperature"),
+                        "temperatureUnit": data.get("temperature_unit", "°C"),
+                        "feelsLike": data.get("feels_like"),
+                        "humidity": data.get("humidity"),
+                        "humidityUnit": data.get("humidity_unit", "%"),
+                        "windSpeed": data.get("wind_speed"),
+                        "windSpeedUnit": data.get("wind_speed_unit", "km/h"),
+                        "precipitation": data.get("precipitation"),
+                        "precipitationUnit": data.get("precipitation_unit", "mm"),
+                        "asOf": data.get("time") or result.fetched_at_utc,
+                        "source": result.source,
+                        "live": False,
+                    },
+                )
+            ]
+
+        if result.domain == "weather_forecast":
+            return [
+                ContentBlock(
+                    type="weather",
+                    data={
+                        "mode": "forecast",
+                        "location": data.get("location", ""),
+                        "days": data.get("days", []),
+                        "tempUnit": data.get("temp_unit", "°C"),
+                        "precipUnit": data.get("precip_unit", "mm"),
+                        "windUnit": data.get("wind_unit", "km/h"),
+                        "asOf": result.fetched_at_utc,
+                        "source": result.source,
+                        "live": False,
+                    },
+                )
+            ]
+
+        if result.domain == "game_score":
+            block_data = {
+                "league": data.get("league", ""),
+                "homeTeam": data.get("home_team", ""),
+                "awayTeam": data.get("away_team", ""),
+                "homeAbbrev": data.get("home_abbrev", ""),
+                "awayAbbrev": data.get("away_abbrev", ""),
+                "homeScore": data.get("home_score"),
+                "awayScore": data.get("away_score"),
+                "homeScoreDisplay": data.get("home_score_display"),
+                "awayScoreDisplay": data.get("away_score_display"),
+                "sport": data.get("sport", "default"),
+                "matchFormat": data.get("match_format", ""),
+                "venue": data.get("venue", ""),
+                "status": data.get("status", ""),
+                "period": data.get("period", ""),
+                "clock": data.get("clock", ""),
+                "isLive": bool(data.get("is_live")),
+                "asOf": data.get("fetched_at_utc") or result.fetched_at_utc,
+                "source": result.source,
+                "live": bool(data.get("is_live")),
+            }
+            return [
+                ContentBlock(
+                    type="game_score",
+                    subscription_key=subscription_key,
+                    data=block_data,
+                )
+            ]
+
+        if result.domain == "fx":
+            return [
+                ContentBlock(
+                    type="fx",
+                    data={
+                        "base": data.get("base", ""),
+                        "quote": data.get("quote", ""),
+                        "rate": data.get("rate"),
+                        "date": data.get("date", ""),
+                        "asOf": result.provider_timestamp or result.fetched_at_utc,
+                        "source": result.source,
+                        "live": False,
+                    },
+                )
+            ]
+
+        if result.domain == "commodity":
+            ticker = str(data.get("ticker") or "")
+            label = str(data.get("label") or ticker)
+            is_crypto = ticker in {"BTC-USD", "ETH-USD", "SOL-USD", "DOGE-USD", "XRP-USD", "ADA-USD"}
+            block_type = "crypto" if is_crypto else "commodity"
+            return [
+                ContentBlock(
+                    type=block_type,
+                    subscription_key=f"crypto:{label}" if is_crypto else None,
+                    data={
+                        "ticker": ticker,
+                        "name": label,
+                        "price": data.get("price"),
+                        "currency": data.get("currency", "USD"),
+                        "asOf": result.fetched_at_utc,
+                        "source": result.source,
+                        "live": is_crypto,
+                    },
+                )
+            ]
+
+        if result.domain == "news":
+            return [
+                ContentBlock(
+                    type="news",
+                    data={
+                        "topic": data.get("topic", ""),
+                        "headlines": data.get("headlines", []),
+                        "asOf": result.fetched_at_utc,
+                        "source": result.source,
+                        "live": False,
+                    },
+                )
+            ]
+
+        return []
+
+    @staticmethod
+    def companion_message(result: AdapterResult) -> str:
+        """Short prose paired with structured cards — the card carries the numbers."""
+        if result.status != "ok" or not result.verified:
+            text, _ = LiveDataManager.render(result)
+            return text
+
+        data = result.data or {}
+        if result.domain == "stock":
+            name = data.get("name") or data.get("ticker") or "this stock"
+            ticker = data.get("ticker") or ""
+            label = f"**{name} ({ticker})**" if ticker else f"**{name}**"
+            return f"Here's the latest quote for {label}."
+        if result.domain == "commodity":
+            label = data.get("label") or data.get("ticker") or "this asset"
+            return f"Here's the latest price for **{label}**."
+        if result.domain == "fx":
+            base = data.get("base", "")
+            quote = data.get("quote", "")
+            return f"Here's the live **{base}/{quote}** rate."
+        if result.domain == "weather_current":
+            location = data.get("location") or "that location"
+            return f"Current conditions for **{location}**."
+        if result.domain == "weather_forecast":
+            location = data.get("location") or "that location"
+            days = len(data.get("days") or [])
+            return f"{days}-day forecast for **{location}**."
+        if result.domain == "news":
+            topic = data.get("topic") or "the news"
+            return f"Latest headlines on **{topic}**."
+        if result.domain == "game_score":
+            away = data.get("away_team") or "Away"
+            home = data.get("home_team") or "Home"
+            if data.get("sport") == "cricket":
+                away_line = data.get("away_score_display") or str(data.get("away_score", ""))
+                home_line = data.get("home_score_display") or str(data.get("home_score", ""))
+                fmt = data.get("match_format") or "Cricket"
+                return f"Score update: **{away} {away_line}** vs **{home} {home_line}** ({fmt})."
+            return f"Score update: **{away}** at **{home}**."
+        return "Here's the latest live data."
 
     def is_live_intent_query(self, query: str) -> bool:
         return route_live_intent(query) is not None
@@ -149,6 +361,7 @@ class LiveDataManager:
             "weather_current": self._resolve_weather_current_intent,
             "weather_forecast": self._resolve_weather_forecast_intent,
             "news": self._resolve_news_intent,
+            "game_score": self._resolve_game_score_intent,
         }
         handler = handlers.get(intent.domain)
         if handler is None:
@@ -444,6 +657,57 @@ class LiveDataManager:
         await self._set_cache(cache_key, result)
         return result
 
+    async def _resolve_game_score_intent(self, intent: LiveIntent) -> AdapterResult:
+        league = str(intent.slots.get("league") or "nba")
+        team_query = str(intent.slots.get("team_query") or "")
+        opponent_query = str(intent.slots.get("opponent_query") or "") or None
+        domain = "game_score"
+        cache_key = f"adapter:{domain}:{league}:{team_query.lower()}:{(opponent_query or '').lower()}"
+        cached = await self._get_cache(cache_key, domain)
+        if cached:
+            return cached
+
+        started = time.perf_counter()
+        payload = await self._sports.fetch_game_for_team(
+            league,
+            team_query,
+            opponent_query=opponent_query,
+        )
+        latency = time.perf_counter() - started
+        ttl = self._domain_ttl(domain)
+
+        if not payload:
+            result = AdapterResult(
+                domain=domain,
+                status="error",
+                verified=False,
+                source="ESPN Scoreboard",
+                fetched_at_utc=self._now_utc(),
+                ttl_seconds=min(ttl, 30),
+                error_code="LIVE_DATA_NOT_VERIFIED",
+                error_message=f"Unable to find a live score for '{team_query}' in {league.upper()}",
+                data={"league": league, "team_query": team_query},
+                confidence=intent.confidence,
+            )
+            ADAPTER_REQUESTS_TOTAL.labels(domain=domain, status=result.status, source=result.source, cache_hit="false").inc()
+            ADAPTER_LATENCY_SECONDS.labels(domain=domain, source=result.source).observe(latency)
+            return result
+
+        result = AdapterResult(
+            domain=domain,
+            status="ok",
+            verified=True,
+            source=payload.get("source", "ESPN Scoreboard"),
+            fetched_at_utc=self._now_utc(),
+            ttl_seconds=ttl,
+            data=payload,
+            confidence=intent.confidence,
+        )
+        ADAPTER_REQUESTS_TOTAL.labels(domain=domain, status=result.status, source=result.source, cache_hit="false").inc()
+        ADAPTER_LATENCY_SECONDS.labels(domain=domain, source=result.source).observe(latency)
+        await self._set_cache(cache_key, result)
+        return result
+
 
     def render(self, result: AdapterResult) -> Tuple[str, str]:
         """Render normalized adapter result into readable chat text + fetched timestamp."""
@@ -585,8 +849,100 @@ class LiveDataManager:
             )
             return msg, ts
 
+        if result.domain == "game_score":
+            data = result.data
+            away = data.get("away_team", "Away")
+            home = data.get("home_team", "Home")
+            away_score = data.get("away_score", 0)
+            home_score = data.get("home_score", 0)
+            status = data.get("status", "")
+            league = data.get("league", "")
+            live_tag = " · LIVE" if data.get("is_live") else ""
+            msg = (
+                f"**{away} {away_score} – {home} {home_score}**{live_tag}\n\n"
+                f"{league} · {status}\n\n"
+                f"{_meta_footer(source, ts)}"
+            )
+            return msg, ts
+
         msg = _meta_footer(source, ts)
         return msg, ts
+
+    async def refresh_block(self, subscription_key: str) -> Optional[ContentBlock]:
+        """Refresh a live card by subscription key (sports event or live stock ticker)."""
+        key = subscription_key.strip()
+        if not key:
+            return None
+
+        parts = key.split(":", 2)
+        kind = parts[0].lower()
+
+        if kind == "sports":
+            rest = key.split(":", 1)[1] if ":" in key else ""
+            if not rest or ":" not in rest:
+                return None
+            league, event_id = rest.rsplit(":", 1)
+            payload = await self._sports.fetch_event_by_id(league, event_id)
+            if not payload:
+                return None
+            result = AdapterResult(
+                domain="game_score",
+                status="ok",
+                verified=True,
+                source=payload.get("source", "ESPN Scoreboard"),
+                fetched_at_utc=self._now_utc(),
+                ttl_seconds=self._domain_ttl("game_score"),
+                data=payload,
+            )
+            blocks = self.to_blocks(result)
+            return blocks[0] if blocks else None
+
+        if kind == "stock" and len(parts) == 2:
+            ticker = parts[1].upper()
+            payload = await self._web.get_live_stock_quote(ticker)
+            if not payload:
+                return None
+            result = AdapterResult(
+                domain="stock",
+                status="ok",
+                verified=True,
+                source=payload.get("source", "Market Data"),
+                provider_timestamp=payload.get("market_time_utc") or None,
+                fetched_at_utc=self._now_utc(),
+                ttl_seconds=self._domain_ttl("stock"),
+                data=payload,
+            )
+            blocks = self.to_blocks(result)
+            return blocks[0] if blocks else None
+
+        if kind == "crypto" and len(parts) == 2:
+            from app.services.live_providers import fetch_crypto_price
+
+            symbol = parts[1]
+            payload = await fetch_crypto_price(symbol)
+            if not payload:
+                return None
+            blocks = self.to_blocks(
+                AdapterResult(
+                    domain="commodity",
+                    status="ok",
+                    verified=True,
+                    source=payload.get("source", "CoinGecko"),
+                    fetched_at_utc=self._now_utc(),
+                    ttl_seconds=20,
+                    data={
+                        "ticker": f"{symbol}-USD",
+                        "label": symbol,
+                        "price": payload.get("price"),
+                        "currency": "USD",
+                    },
+                )
+            )
+            if blocks:
+                return blocks[0]
+            return ContentBlock(type="crypto", subscription_key=f"crypto:{symbol}", data=payload)
+
+        return None
 
 
 __all__ = ["LiveDataManager"]

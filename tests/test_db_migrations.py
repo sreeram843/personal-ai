@@ -9,7 +9,7 @@ from alembic.script import ScriptDirectory
 def test_migration_head_is_latest() -> None:
     config = Config("alembic.ini")
     script = ScriptDirectory.from_config(config)
-    assert script.get_current_head() == "002_conversation_pin"
+    assert script.get_current_head() == "003_conversation_assistant"
 
 
 def test_initial_migration_upgrade_creates_core_tables() -> None:

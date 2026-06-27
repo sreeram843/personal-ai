@@ -6,6 +6,7 @@ from typing import List, Sequence
 from sqlalchemy.orm import Session
 
 from app.db.models import Document, User
+from app.services.document_summary import DOCUMENT_SUMMARY_CHUNK_TYPE
 from app.services.vector_store import StoredDocument
 
 
@@ -17,6 +18,8 @@ def record_ingested_documents(
 ) -> None:
     """Persist document metadata in Postgres linked to Qdrant point IDs."""
     for document, point_id in zip(documents, point_ids):
+        if document.metadata.get("chunk_type") == DOCUMENT_SUMMARY_CHUNK_TYPE:
+            continue
         metadata = dict(document.metadata)
         db.add(
             Document(

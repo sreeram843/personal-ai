@@ -6,6 +6,7 @@ export interface ConversationSummary {
   updatedAt?: number;
   messageCount: number;
   pinned: boolean;
+  assistantId?: string | null;
 }
 
 export function mapConversationSummary(conversation: ServerConversationSummary): ConversationSummary {
@@ -15,5 +16,6 @@ export function mapConversationSummary(conversation: ServerConversationSummary):
     updatedAt: new Date(conversation.updated_at).getTime(),
     messageCount: conversation.message_count,
     pinned: Boolean(conversation.pinned),
+    assistantId: conversation.assistant_id ?? null,
   };
 }

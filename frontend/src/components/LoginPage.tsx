@@ -91,7 +91,7 @@ export function LoginPage({ authConfig, onAuthenticated }: Props) {
       <div className="elevated-panel w-full max-w-md rounded-2xl border border-[var(--ui-border)] p-6 shadow-xl sm:p-8">
         <div className="mb-6 flex flex-col items-center text-center">
           <CuraiLogo state={isSubmitting ? 'thinking' : error ? 'error' : 'idle'} size={48} className="mb-4" />
-          <h1 className="text-2xl font-semibold text-[var(--phosphor-bright)]">CurAI</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">CurAI</h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">
             Sign in to access your conversations, documents, and smart-routed chat history.
           </p>

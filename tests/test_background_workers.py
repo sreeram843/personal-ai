@@ -44,7 +44,8 @@ def test_ingest_stays_sync_when_workers_disabled(db_session) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["count"] == 1
+    # One sentence-window chunk plus one per-document summary index point.
+    assert body["count"] == 2
     assert body.get("job_id") is None
     assert recording_store.upsert_calls == 1
 

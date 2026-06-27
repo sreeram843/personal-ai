@@ -1,39 +1,16 @@
-import { clsx } from 'clsx';
-import { Info, LogOut, Moon, Sun } from 'lucide-react';
+import { Info, LogOut, Settings2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { CurrentUser } from '../api';
-
-function userInitials(user: CurrentUser): string {
-  const name = (user.display_name || '').trim();
-  if (name) {
-    const parts = name.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  }
-
-  const email = (user.email || '').trim();
-  if (email) {
-    return email.slice(0, 2).toUpperCase();
-  }
-
-  return 'U';
-}
-
-function userLabel(user: CurrentUser): string {
-  return user.display_name?.trim() || user.email?.trim() || 'Signed in';
-}
+import { userInitials, userLabel } from '../utils/userDisplay';
 
 interface Props {
   user: CurrentUser;
-  theme: 'light' | 'dark';
-  onSetTheme: (theme: 'light' | 'dark') => void;
   onOpenAbout: () => void;
+  onOpenSettings: () => void;
   onLogout: () => void;
 }
 
-export function UserMenu({ user, theme, onSetTheme, onOpenAbout, onLogout }: Props) {
+export function UserMenu({ user, onOpenAbout, onOpenSettings, onLogout }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,38 +39,31 @@ export function UserMenu({ user, theme, onSetTheme, onOpenAbout, onLogout }: Pro
     };
   }, [open]);
 
-  const toggleTheme = () => {
-    onSetTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-
   return (
-    <div ref={rootRef} className="relative mt-3 shrink-0 border-t border-[var(--ui-border)] pt-3">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center gap-2 rounded-lg px-1 py-1.5 text-left transition hover:bg-[var(--ui-hover)]"
+        className="panel-rail__item w-full justify-start gap-2.5 px-2 py-2"
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={`Account menu for ${userLabel(user)}`}
       >
-        <div className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-[var(--ui-bg-elevated)] text-[11px] font-semibold text-[var(--phosphor)]">
+        <div className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-[var(--ui-bg-elevated)] text-xs font-semibold text-[var(--phosphor)]">
           {userInitials(user)}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-xs font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
-          <div className="truncate text-[10px] text-[var(--phosphor-dim)]">{user.email || 'Account'}</div>
+          <div className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
+          <div className="truncate text-xs text-[var(--phosphor-dim)]">{user.email || 'Account'}</div>
         </div>
       </button>
 
       {open && (
-        <div
-          role="menu"
-          className="absolute bottom-full left-0 z-20 mb-2 w-full overflow-hidden rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] py-1 shadow-xl"
-        >
+        <div role="menu" className="panel-rail__menu panel-rail__menu--up">
           <div className="border-b border-[var(--ui-border)] px-3 py-2.5">
-            <div className="truncate text-xs font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
+            <div className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
             {user.email && (
-              <div className="truncate text-[10px] text-[var(--phosphor-dim)]">{user.email}</div>
+              <div className="truncate text-xs text-[var(--phosphor-dim)]">{user.email}</div>
             )}
           </div>
           <button
@@ -101,22 +71,24 @@ export function UserMenu({ user, theme, onSetTheme, onOpenAbout, onLogout }: Pro
             role="menuitem"
             onClick={() => {
               setOpen(false);
-              onOpenAbout();
+              onOpenSettings();
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+            className="panel-rail__menu-item"
           >
-            <Info className="h-4 w-4 shrink-0" />
-            About
+            <Settings2 className="h-4 w-4 shrink-0" />
+            Settings
           </button>
           <button
             type="button"
             role="menuitem"
-            onClick={toggleTheme}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={() => {
+              setOpen(false);
+              onOpenAbout();
+            }}
+            className="panel-rail__menu-item"
           >
-            {theme === 'dark' ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
-            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            <Info className="h-4 w-4 shrink-0" />
+            About
           </button>
           <button
             type="button"
@@ -125,10 +97,7 @@ export function UserMenu({ user, theme, onSetTheme, onOpenAbout, onLogout }: Pro
               setOpen(false);
               onLogout();
             }}
-            className={clsx(
-              'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[var(--ui-bg-elevated)]',
-              'text-red-300',
-            )}
+            className="panel-rail__menu-item text-red-300 hover:bg-red-500/10"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             Log out

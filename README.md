@@ -10,12 +10,13 @@ Monorepo for a **multi-user**, retrieval-augmented assistant with live data, too
 | Per-user RAG (Qdrant scoped by `user_id`) | ✅ |
 | Live data (FX, stocks, weather, news) | ✅ Deterministic short-circuit before LLM |
 | Fast single-call chat | ✅ Greetings / trivial prompts (`ENABLE_FAST_CHAT`) |
-| Tool-calling agent (web + live tools) | ✅ LangChain agent via `ToolRegistry` (`ENABLE_LANGCHAIN_AGENT`) |
+| Tool-calling agent (web + live tools) | ✅ Native agent via `ToolRegistry` (`ENABLE_TOOL_AGENT`) |
 | Smart routing (`chat` / `rag` / `workflow`) | ✅ `/smart_chat` |
 | Multi-agent workflow + SSE trace | ✅ `/workflow_chat`, `/smart_chat/stream` |
 | Cloud LLM (Groq, Together, etc.) | ✅ `cloud-chat` Compose profile |
 | Background workers (ingest) | ✅ Optional `workers` profile |
-| Runtime MCP connectors in chat UI | 🔜 Phase C (MCP today is IDE-only via `.cursor/mcp.json`) |
+| Runtime MCP connectors in chat UI | ✅ MCP servers + tool permissions (Agent settings) |
+| User skills + agent tasks + diagnostics | ✅ Bundled skills, `/agent/*` APIs, Doctor tab |
 
 Phases 0–3 of the product roadmap are complete. See [docs/roadmap.md](docs/roadmap.md).
 
@@ -112,7 +113,7 @@ Tiered Groq example (fast planner/reviewer, stronger writer): see commented mode
 Verify active provider inside the app container:
 
 ```bash
-docker compose exec app env | grep -E "LLM_DEFAULT_PROVIDER|LLM_OPENAI_BASE_URL|ENABLE_LANGCHAIN"
+docker compose exec app env | grep -E "LLM_DEFAULT_PROVIDER|LLM_OPENAI_BASE_URL|ENABLE_TOOL"
 ```
 
 ## How chat works
@@ -134,8 +135,8 @@ flowchart TD
 | Path | When | Typical LLM calls |
 |------|------|-------------------|
 | **Fast** | `hi`, `thanks`, short chitchat | 1 |
-| **Tools** | Default when `ENABLE_LANGCHAIN_AGENT=true` | 1–4 (model picks tools) |
-| **Orchestrated** | `ENABLE_LANGCHAIN_AGENT=false` | 4+ (researcher → synthesizer → reviewer → writer) |
+| **Tools** | Default when `ENABLE_TOOL_AGENT=true` | 1–4 (model picks tools) |
+| **Orchestrated** | `ENABLE_TOOL_AGENT=false` | 4+ (researcher → synthesizer → reviewer → writer) |
 
 Built-in tools (registered in `ToolRegistry`, exposed to the agent): `fx_rate`, `market_price`, `weather`, `weather_forecast`, `news`, `web_search`. List them with `GET /tools?role=chat_agent`.
 
@@ -190,6 +191,43 @@ Shorthand: `{ "message": "..." }` is also accepted.
 | `GET /conversations/{id}/messages` | Message history |
 | `DELETE /conversations/{id}` | Delete conversation |
 
+Create with an optional `assistant_id` to bind a skill/assistant for the whole thread. Use `"default"` or omit for the general CurAI assistant.
+
+### Assistants & agent settings
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agent/assistants` | List assistants (includes synthetic `default`) |
+| `POST /agent/assistants` | Create a pick-only custom assistant |
+| `PATCH /agent/assistants/{id}` | Update or enable/disable bundled assistants |
+| `DELETE /agent/assistants/{id}` | Delete a custom assistant |
+
+In the UI, pick an assistant from the sidebar before starting a conversation, or manage assistants under **Agent settings → Assistants**. Bundled skills (for example live-brief) appear as assistants; custom ones are explicit-pick only.
+
+### OpenAI-compatible API (`/v1`)
+
+CurAI exposes a subset of the OpenAI Chat Completions API on the same host, using the same JWT auth as the web app (`Authorization: Bearer …`). Set `ENABLE_OPENAI_API=false` to disable.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v1/models` | Lists `curai-default`, `curai-tools`, `curai-fast` |
+| `POST /v1/chat/completions` | Chat completion (JSON or SSE when `stream: true`) |
+
+Models map to execution strategies: `curai-tools` forces the tool agent; `curai-fast` forces fast chat; `curai-default` uses normal routing. Pass `metadata.assistant_id` or top-level `assistant_id` to bind a skill for that request.
+
+Example (local dev with auth disabled):
+
+```bash
+curl -s http://localhost:8000/v1/models | python3 -m json.tool
+
+curl -s -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"curai-default","messages":[{"role":"user","content":"hello"}]}' \
+  | python3 -m json.tool
+```
+
+Use this from Cursor, scripts, or any OpenAI SDK by pointing `base_url` at your CurAI host and supplying a valid bearer token when auth is enabled.
+
 ### Tools, workflow runs, jobs
 
 | Endpoint | Description |
@@ -220,7 +258,8 @@ Copy `.env.example` → `.env`. Important flags:
 ```bash
 # Chat execution (Phase A — on by default)
 ENABLE_FAST_CHAT=true
-ENABLE_LANGCHAIN_AGENT=true
+ENABLE_TOOL_AGENT=true
+ENABLE_OPENAI_API=true
 
 # Auth (local dev)
 AUTH_DISABLED=true
@@ -257,7 +296,7 @@ npm install
 npm run dev
 ```
 
-**UI highlights:** Chat vs Smart mode toggle, server-synced conversations (TanStack Query), per-message response time, mobile navigation drawer, Capacitor iOS/Android shells, voice input, file upload (`.txt`, `.md`, `.pdf`), light/dark theme in the account menu.
+**UI highlights:** Chat vs Smart mode toggle, assistant picker in the sidebar, server-synced conversations (TanStack Query), per-message response time, mobile navigation drawer, Capacitor iOS/Android shells, voice input, file upload (`.txt`, `.md`, `.pdf`), light/dark theme in the account menu.
 
 Native apps: [frontend/CAPACITOR.md](frontend/CAPACITOR.md). Production URL: `https://app.cura-i.com`.
 
@@ -320,7 +359,7 @@ Benchmark results (smoke + stress, local + prod): [docs/model-stress-testing.md]
 - **Ollama 404 on `/api/embed`**: Pull `nomic-embed-text` (`make pull-models-cloud` or `./scripts/deploy_prod.sh`).
 - **Playwright visual failures on CI**: CI runs on Linux; commit both `*-darwin.png` (local) and `*-linux.png` baselines. Regenerate Linux snapshots with `npm run test:visual:update:linux` from `frontend/`.
 - **Groq 429 rate limits**: Use tiered models in `.env.cloud` (8B for planner/reviewer, larger model for writer only) or space out requests; Smart workflow mode issues more LLM calls than direct Chat.
-- **Tool agent errors**: Ensure `langchain`, `langchain-openai`, `langchain-ollama` are installed (in Docker image via `requirements.txt`). For Ollama local chat, use a model with tool-calling support.
+- **Tool agent errors**: Chat tool routing uses the native ToolRegistry executor (OpenAI-compatible API or Ollama `/api/chat` with tools). Use a model with tool-calling support; for local Ollama, prefer `llama3.1` or newer.
 - **Speech input unavailable**: Web Speech API is browser-dependent (Chrome works best).
 
 ## What's next

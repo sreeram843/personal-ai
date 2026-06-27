@@ -25,8 +25,9 @@ export function appendOptimisticSend(
   assistantMessage: ChatMessage,
 ): ChatMessage[] {
   const previous = readCachedMessages(queryClient, conversationId);
-  writeCachedMessages(queryClient, conversationId, [...previous, userMessage, assistantMessage]);
-  return previous;
+  const next = [...previous, userMessage, assistantMessage];
+  writeCachedMessages(queryClient, conversationId, next);
+  return next;
 }
 
 export function updateCachedMessage(
@@ -50,6 +51,33 @@ export function promoteDraftMessages(queryClient: QueryClient, conversationId: s
     writeCachedMessages(queryClient, conversationId, draft);
   }
   queryClient.removeQueries({ queryKey: messageQueryKey(null) });
+}
+
+/**
+ * Prefer cached turns while the server is still persisting (fewer rows) or the client
+ * is waiting on a long-running assistant reply.
+ */
+export function mergeFetchedMessages(fetched: ChatMessage[], cached: ChatMessage[]): ChatMessage[] {
+  if (cached.length === 0) {
+    return fetched;
+  }
+  if (fetched.length === 0) {
+    return cached;
+  }
+  if (fetched.length < cached.length) {
+    return cached;
+  }
+
+  const pendingAssistant = cached[cached.length - 1];
+  if (
+    pendingAssistant?.role === 'assistant' &&
+    pendingAssistant.content.trim() === '' &&
+    fetched.length === cached.length
+  ) {
+    return cached;
+  }
+
+  return mergeAssistantLatency(fetched, cached);
 }
 
 /** Preserve client-measured latency when a refetch replaces optimistic message ids. */

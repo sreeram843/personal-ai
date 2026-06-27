@@ -39,6 +39,32 @@ export async function installApiBootstrapMocks(page: Page): Promise<void> {
     });
   });
 
+  await page.route('**/agent/assistants', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        assistants: [
+          {
+            id: 'default',
+            name: 'Default',
+            description: 'Playwright default assistant',
+            triggers: [],
+            allowed_tools: [],
+            enabled: true,
+            bundled: true,
+            pick_only: false,
+            is_default: true,
+          },
+        ],
+      }),
+    });
+  });
+
   await page.route('**/conversations', async (route) => {
     const method = route.request().method();
 

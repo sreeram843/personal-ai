@@ -3,9 +3,15 @@
 from app.services.live_data_manager import LiveDataManager
 
 
-def test_tomorrow_sports_wording_is_freshness_only() -> None:
-    assert LiveDataManager.is_only_generic_freshness_live_intent(
+def test_tomorrow_sports_routes_to_game_score_not_generic_freshness() -> None:
+    assert not LiveDataManager.is_only_generic_freshness_live_intent(
         "Who are playing in tomorrow IPL match?",
+    )
+
+
+def test_generic_tomorrow_wording_is_freshness_only() -> None:
+    assert LiveDataManager.is_only_generic_freshness_live_intent(
+        "What is happening tomorrow in the tech industry?",
     )
 
 

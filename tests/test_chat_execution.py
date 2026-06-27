@@ -27,22 +27,29 @@ def skip_live_short_circuit(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(
-    ("query", "fast_chat", "langchain", "expected"),
+    ("query", "fast_chat", "tool_agent", "expected"),
     [
         ("hi", True, True, "fast"),
         ("thanks", True, True, "fast"),
         ("What is NVDA trading at today?", True, True, "tools"),
+        ("Explain quantum computing", True, True, "tools"),
         ("Explain quantum computing", True, False, "orchestrated"),
+        (
+            "Compare three deployment strategies for multi-tenant RAG and recommend trade-offs",
+            True,
+            True,
+            "orchestrated",
+        ),
         ("ok", True, False, "fast"),
     ],
 )
 def test_resolve_chat_execution_strategy(
     query: str,
     fast_chat: bool,
-    langchain: bool,
+    tool_agent: bool,
     expected: str,
 ) -> None:
-    settings = Settings(enable_fast_chat=fast_chat, enable_langchain_agent=langchain)
+    settings = Settings(enable_fast_chat=fast_chat, enable_tool_agent=tool_agent)
     assert resolve_chat_execution_strategy(query, settings) == expected
 
 
@@ -54,6 +61,7 @@ def test_list_tools_endpoint(client: TestClient) -> None:
     tool_ids = {item["tool_id"] for item in body["tools"]}
     assert "web_search" in tool_ids
     assert "fx_rate" in tool_ids
+    assert "search_documents" in tool_ids
 
 
 def test_fast_chat_path_for_greeting(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,7 +79,7 @@ def test_tool_agent_path_for_fresh_query(client: TestClient, monkeypatch: pytest
     async def fake_agent(**kwargs: object) -> str:
         return "from-tool-agent"
 
-    monkeypatch.setattr(chat_execution_mod, "run_langchain_agent", fake_agent)
+    monkeypatch.setattr(chat_execution_mod, "run_tool_agent", fake_agent)
 
     response = client.post("/chat", json={"message": "Summarize the plot of Dune in two sentences"})
     assert response.status_code == 200
@@ -87,7 +95,7 @@ def test_tool_agent_falls_back_to_fast_chat_on_failure(
     async def fake_fast_chat(**kwargs: object) -> ChatResponse:
         return ChatResponse(message="from-fast-chat-fallback", sources=[])
 
-    monkeypatch.setattr(chat_execution_mod, "run_langchain_agent", failing_agent)
+    monkeypatch.setattr(chat_execution_mod, "run_tool_agent", failing_agent)
     monkeypatch.setattr(chat_execution_mod, "run_fast_chat", fake_fast_chat)
 
     response = client.post("/chat", json={"message": "Summarize the plot of Dune in two sentences"})
@@ -101,7 +109,7 @@ def test_orchestrated_fallback_when_tools_disabled(
     monkeypatch.setattr(
         chat_execution_mod,
         "get_settings",
-        lambda: Settings(enable_fast_chat=False, enable_langchain_agent=False),
+        lambda: Settings(enable_fast_chat=False, enable_tool_agent=False),
     )
 
     class FakeService:

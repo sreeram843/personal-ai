@@ -25,7 +25,7 @@ def chat_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
         return ChatResponse(message="persisted assistant reply", sources=[])
 
     monkeypatch.setattr(routes_mod, "run_orchestrated_mode", fake_run_orchestrated_mode)
-    monkeypatch.setattr(routes_mod, "get_settings", lambda: Settings(enable_langchain_agent=False))
+    monkeypatch.setattr(routes_mod, "get_settings", lambda: Settings(enable_tool_agent=False))
     from app.main import app
 
     return TestClient(app)

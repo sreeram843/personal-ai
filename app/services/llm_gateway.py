@@ -28,6 +28,14 @@ _OPENAI_CHAT_OPTION_KEYS = frozenset(
 )
 
 
+@dataclass(frozen=True)
+class LLMGenerationResult:
+    content: str
+    reasoning_content: str = ""
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+
+
 class LLMAdapter(Protocol):
     async def generate(
         self,
@@ -35,7 +43,7 @@ class LLMAdapter(Protocol):
         messages: Sequence[Dict[str, str]],
         model: str,
         options: Dict[str, Any],
-    ) -> str:
+    ) -> LLMGenerationResult:
         ...
 
 
@@ -49,10 +57,19 @@ class OllamaLLMAdapter:
         messages: Sequence[Dict[str, str]],
         model: str,
         options: Dict[str, Any],
-    ) -> str:
+    ) -> LLMGenerationResult:
         response = await self._client.chat(messages, model=model, options=options, stream=False)
         content = str(response.get("message", {}).get("content") or "").strip()
-        return content or "ERROR 500: AGENT RETURNED NO OUTPUT"
+        reasoning = str(response.get("message", {}).get("reasoning_content") or "").strip()
+        text = content or "ERROR 500: AGENT RETURNED NO OUTPUT"
+        prompt_tokens = response.get("prompt_eval_count")
+        completion_tokens = response.get("eval_count")
+        return LLMGenerationResult(
+            content=text,
+            reasoning_content=reasoning,
+            prompt_tokens=int(prompt_tokens) if prompt_tokens is not None else None,
+            completion_tokens=int(completion_tokens) if completion_tokens is not None else None,
+        )
 
 
 def _coerce_openai_chat_options(options: Dict[str, Any]) -> Dict[str, Any]:
@@ -107,7 +124,7 @@ class OpenAICompatibleLLMAdapter:
         messages: Sequence[Dict[str, str]],
         model: str,
         options: Dict[str, Any],
-    ) -> str:
+    ) -> LLMGenerationResult:
         headers = {"Content-Type": "application/json"}
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
@@ -135,7 +152,17 @@ class OpenAICompatibleLLMAdapter:
         first_choice = choices[0] if choices else {}
         message = first_choice.get("message") or {}
         content = str(message.get("content") or "").strip()
-        return content or "ERROR 500: AGENT RETURNED NO OUTPUT"
+        reasoning = str(message.get("reasoning_content") or "").strip()
+        text = content or "ERROR 500: AGENT RETURNED NO OUTPUT"
+        usage = body.get("usage") if isinstance(body.get("usage"), dict) else {}
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        return LLMGenerationResult(
+            content=text,
+            reasoning_content=reasoning,
+            prompt_tokens=int(prompt_tokens) if prompt_tokens is not None else None,
+            completion_tokens=int(completion_tokens) if completion_tokens is not None else None,
+        )
 
 
 @dataclass(frozen=True)
@@ -170,6 +197,22 @@ class LLMGateway:
         options: Dict[str, Any],
         provider: Optional[str] = None,
     ) -> str:
+        result = await self.generate_with_meta(
+            messages=messages,
+            model=model,
+            options=options,
+            provider=provider,
+        )
+        return result.content
+
+    async def generate_with_meta(
+        self,
+        *,
+        messages: Sequence[Dict[str, str]],
+        model: str,
+        options: Dict[str, Any],
+        provider: Optional[str] = None,
+    ) -> LLMGenerationResult:
         selected_provider = provider or self._default_provider
         adapter = self._adapters.get(selected_provider)
         if adapter is None:
@@ -181,6 +224,7 @@ class LLMGateway:
 __all__ = [
     "LLMAdapter",
     "LLMGateway",
+    "LLMGenerationResult",
     "OllamaLLMAdapter",
     "OpenAICompatibleLLMAdapter",
     "StageModelConfig",

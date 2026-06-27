@@ -41,7 +41,8 @@ def test_ingest_archives_upload_to_object_storage(db_session, tmp_path: Path) ->
     get_object_storage.cache_clear()
 
     assert response.status_code == 200
-    assert response.json()["count"] == 1
+    # One sentence-window chunk plus one per-document summary index point.
+    assert response.json()["count"] == 2
     archived = list((tmp_path / "uploads").rglob("*q1.txt"))
     assert archived, "expected archived upload on disk"
     assert archived[0].read_bytes() == b"Quarterly report"

@@ -2,6 +2,10 @@
 memory/
 memory/chroma-data/
 memory/pglite-data/
+pareto/
+eggplant/.eggplant-venv/
+eggplant/datasets/
+eggplant/results/
 .playwright-mcp/
 .code-review-graph/
 

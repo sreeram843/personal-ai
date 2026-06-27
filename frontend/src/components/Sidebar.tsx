@@ -1,7 +1,11 @@
 import { clsx } from 'clsx';
 import { ChevronLeft, MessageCirclePlus, MessageSquare, PanelLeft, Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
 import type { CurrentUser } from '../api';
-import type { ConversationMode } from '../types';
+import type { AssistantSummary, ConversationMode } from '../types';
+import { groupConversationsByDate } from '../utils/conversationGroups';
+import { AssistantPicker } from './AssistantPicker';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ConversationListItem, type ConversationListItemData } from './ConversationListItem';
 import { CuraiLogo } from './CuraiLogo';
 import { UserMenu } from './UserMenu';
@@ -18,14 +22,22 @@ interface Props {
   onDeleteConversation: (id: string, title: string) => void;
   sidebarCollapsed: boolean;
   onToggleSidebarCollapsed: () => void;
-  theme: 'light' | 'dark';
-  onSetTheme: (theme: 'light' | 'dark') => void;
   user: CurrentUser;
   onOpenAbout: () => void;
+  onOpenSettings: () => void;
   onLogout: () => void;
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  assistants: AssistantSummary[];
+  selectedAssistantId: string;
+  onSelectAssistant: (assistantId: string) => void;
+  assistantsLoading?: boolean;
 }
+
+const MODE_ITEMS: Array<{ id: ConversationMode; label: string; icon: typeof MessageSquare }> = [
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
+  { id: 'smart', label: 'Smart', icon: Sparkles },
+];
 
 export function Sidebar({
   mode,
@@ -39,43 +51,48 @@ export function Sidebar({
   onDeleteConversation,
   sidebarCollapsed,
   onToggleSidebarCollapsed,
-  theme,
-  onSetTheme,
   user,
   onOpenAbout,
+  onOpenSettings,
   onLogout,
   mobileOpen = false,
   onMobileClose,
+  assistants,
+  selectedAssistantId,
+  onSelectAssistant,
+  assistantsLoading = false,
 }: Props) {
-  const menus = [
-    { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
-    { id: 'smart' as const, label: 'Smart', icon: Sparkles },
-  ];
-
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const pinned = conversations.filter((item) => item.pinned);
-  const recent = conversations.filter((item) => !item.pinned);
+  const recentGroups = groupConversationsByDate(conversations.filter((item) => !item.pinned));
 
   const handleDelete = (id: string, title: string) => {
-    const confirmed = window.confirm(`Delete "${title}"? This cannot be undone.`);
-    if (confirmed) {
-      onDeleteConversation(id, title);
+    setDeleteTarget({ id, title });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) {
+      return;
     }
+    onDeleteConversation(deleteTarget.id, deleteTarget.title);
+    setDeleteTarget(null);
   };
 
   const renderConversationGroup = (items: ConversationListItemData[]) => (
-    <div className="space-y-1">
+    <ul className="panel-rail__list">
       {items.map((item) => (
-        <ConversationListItem
-          key={item.id}
-          item={item}
-          isActive={item.id === activeConversationId}
-          onSelect={onSelectConversation}
-          onRename={onRenameConversation}
-          onTogglePin={onTogglePinConversation}
-          onDelete={handleDelete}
-        />
+        <li key={item.id}>
+          <ConversationListItem
+            item={item}
+            isActive={item.id === activeConversationId}
+            onSelect={onSelectConversation}
+            onRename={onRenameConversation}
+            onTogglePin={onTogglePinConversation}
+            onDelete={handleDelete}
+          />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 
   if (sidebarCollapsed) {
@@ -98,6 +115,19 @@ export function Sidebar({
 
   return (
     <>
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete conversation"
+        message={
+          <>
+            Delete &ldquo;{deleteTarget?.title}&rdquo;? This cannot be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        tone="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
       {mobileOpen && (
         <button
           type="button"
@@ -108,95 +138,132 @@ export function Sidebar({
       )}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-40 flex w-[min(100vw-2.5rem,280px)] min-h-0 flex-col border-r border-[var(--ui-border)] bg-[var(--ui-panel)] text-[var(--phosphor)] shadow-xl transition-transform duration-200 ease-out md:relative md:z-auto md:w-[260px] md:min-w-[260px] md:translate-x-0 md:shadow-none',
+          'panel-rail fixed inset-y-0 left-0 z-40 w-[min(100vw-2.5rem,220px)] min-h-0 shadow-xl transition-transform duration-200 ease-out md:relative md:z-auto md:w-[220px] md:min-w-[220px] md:translate-x-0 md:shadow-none',
           mobileOpen ? 'translate-x-0' : '-translate-x-full max-md:invisible max-md:pointer-events-none md:translate-x-0',
         )}
         style={{
           paddingTop: 'var(--safe-area-top)',
           paddingBottom: 'var(--safe-area-bottom)',
         }}
+        aria-label="Main navigation"
       >
-      <div className="flex h-full min-h-0 w-full min-w-0 flex-col px-3 py-3 md:px-3.5 md:py-3.5">
-        <div className="mb-3.5 flex shrink-0 items-center gap-2.5">
-          <CuraiLogo state="idle" size={36} />
-          <div className="curai-sidebar-wordmark min-w-0 flex-1 text-lg font-semibold tracking-tight text-[var(--phosphor-bright)]">
-            CurAI
-          </div>
-          <button
-            type="button"
-            onClick={onMobileClose}
-            className="touch-target grid h-10 w-10 shrink-0 place-content-center rounded border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] md:hidden"
-            title="Close navigation"
-            aria-label="Close navigation"
-          >
-            <X className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onToggleSidebarCollapsed}
-            className="hidden h-8 w-8 shrink-0 place-content-center rounded border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] md:grid"
-            title="Collapse sidebar"
-            aria-label="Collapse sidebar"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={onNewChat}
-          title="New conversation"
-          aria-label="Start new conversation"
-          className="mb-3 flex w-full shrink-0 items-center gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-panel-strong)] px-3 py-2 text-sm font-medium text-[var(--phosphor)] transition hover:border-[var(--ui-border-strong)] hover:bg-[var(--ui-bg-elevated)] active:scale-[0.99]"
-        >
-          <MessageCirclePlus className="h-4 w-4" />
-          New conversation
-        </button>
-
-        <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--phosphor-dim)]">Mode</div>
-        <div className="mb-3 grid grid-cols-2 gap-1.5">
-          {menus.map((item) => (
+        <div className="panel-rail__inner">
+          <div className="panel-rail__header">
+            <CuraiLogo state="idle" size={36} />
+            <div className="curai-sidebar-wordmark font-display text-lg font-semibold tracking-tight text-[var(--phosphor-bright)]">
+              CurAI
+            </div>
             <button
-              key={item.id}
               type="button"
-              onClick={() => onModeChange(item.id)}
-              title={item.label}
-              aria-label={item.label}
-              className={clsx(
-                'flex min-h-[44px] items-center justify-center gap-1 rounded-md border px-2 py-2 text-xs font-medium transition md:min-h-0 md:py-1.5',
-                mode === item.id
-                  ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                  : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
-              )}
+              onClick={onMobileClose}
+              className="touch-target ml-auto grid h-10 w-10 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] md:hidden"
+              title="Close navigation"
+              aria-label="Close navigation"
             >
-              <item.icon className="h-3.5 w-3.5" />
-              {item.label}
+              <X className="h-4 w-4" />
             </button>
-          ))}
-        </div>
+            <button
+              type="button"
+              onClick={onToggleSidebarCollapsed}
+              className="ml-auto hidden h-8 w-8 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] md:grid"
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          </div>
 
-        <div className="sidebar-conversation-list min-h-0 flex-1 space-y-3 overflow-y-auto px-1 py-0.5 pr-2">
-          {pinned.length > 0 && (
-            <div>
-              <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--phosphor-dim)]">Pinned</div>
-              {renderConversationGroup(pinned)}
-            </div>
-          )}
-          <div>
-            <div className="mb-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--phosphor-dim)]">
-              {pinned.length > 0 ? 'Recent' : 'Recent'}
-            </div>
-            {recent.length > 0 ? (
-              renderConversationGroup(recent)
+          <button
+            type="button"
+            onClick={onNewChat}
+            title="New conversation"
+            aria-label="Start new conversation"
+            className="panel-rail__cta"
+          >
+            <MessageCirclePlus className="h-4 w-4 shrink-0" />
+            New conversation
+          </button>
+
+          <div className="panel-rail__group shrink-0">
+            <div className="panel-rail__eyebrow type-eyebrow">Mode</div>
+            <ul className="panel-rail__list" role="list">
+              {MODE_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive = mode === item.id;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => onModeChange(item.id)}
+                      title={item.label}
+                      aria-label={item.label}
+                      aria-pressed={isActive}
+                      data-active={isActive ? 'true' : 'false'}
+                      className="panel-rail__item"
+                    >
+                      <Icon className="panel-rail__item-icon h-4 w-4" aria-hidden />
+                      <span className="panel-rail__item-label">{item.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="panel-rail__group shrink-0">
+            <div className="panel-rail__eyebrow type-eyebrow">Assistant</div>
+            <AssistantPicker
+              assistants={
+                assistants.length
+                  ? assistants
+                  : [
+                      {
+                        id: 'default',
+                        name: 'CurAI',
+                        triggers: [],
+                        allowed_tools: [],
+                        enabled: true,
+                        bundled: true,
+                        pick_only: false,
+                        is_default: true,
+                      },
+                    ]
+              }
+              selectedId={selectedAssistantId}
+              onSelect={onSelectAssistant}
+              loading={assistantsLoading}
+            />
+          </div>
+
+          <div className="panel-rail__scroll">
+            {pinned.length > 0 && (
+              <div className="panel-rail__group">
+                <div className="panel-rail__eyebrow type-eyebrow">Pinned</div>
+                {renderConversationGroup(pinned)}
+              </div>
+            )}
+            {recentGroups.length > 0 ? (
+              recentGroups.map((group) => (
+                <div key={group.id} className="panel-rail__group">
+                  <div className="panel-rail__eyebrow type-eyebrow">{group.label}</div>
+                  {renderConversationGroup(group.items)}
+                </div>
+              ))
             ) : pinned.length === 0 ? (
-              <div className="rounded-lg px-2.5 py-3 text-xs text-[var(--phosphor-dim)]">No conversations yet</div>
+              <div className="panel-rail__empty">No conversations yet</div>
             ) : null}
           </div>
-        </div>
 
-        <UserMenu user={user} theme={theme} onSetTheme={onSetTheme} onOpenAbout={onOpenAbout} onLogout={onLogout} />
-      </div>
-    </aside>
+          <div className="panel-rail__footer">
+            <UserMenu
+              user={user}
+              onOpenAbout={onOpenAbout}
+              onOpenSettings={onOpenSettings}
+              onLogout={onLogout}
+            />
+          </div>
+        </div>
+      </aside>
     </>
   );
 }

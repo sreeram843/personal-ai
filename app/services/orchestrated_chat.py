@@ -7,10 +7,15 @@ from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Sequence
 
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.schemas.chat import ChatResponse, RetrievedChunk, WorkflowStep, WorkflowTrace
+from app.core.config import get_settings
+from app.services.context_compression import compress_context_block
+from app.services.evidence_cards import extract_cited_evidence_ids, format_writer_evidence_context
 from app.services.ollama import OllamaClient
+from app.services.self_rag import retrieve_user_documents_with_self_rag
 from app.services.vector_store import VectorStore
-from app.services.information_routing import should_run_web_research
+from app.services.information_routing import decompose_research_queries, should_run_web_research
 from app.services.web_search import WebSearchService
+from app.services.sentiment_routing import detect_sentiment
 from app.services.workflow_memory import WorkflowMemoryStore
 from app.services.workflow_roles import DEFAULT_WORKFLOW_ROLES
 
@@ -141,10 +146,15 @@ class OrchestratedChatService:
             "review_notes": "",
             "final_answer": "",
             "evidence_ids": [],
+            "evidence_registry": {},
             "reviewer_quorum": int(options.get("reviewer_quorum", 2)),
             "require_evidence_markers": bool(options.get("require_evidence_markers", True)),
             "trust_lanes_enabled": bool(options.get("trust_lanes_enabled", True)),
             "token_budget": options.get("token_budget"),
+            "progressive_disclosure_level": options.get("progressive_disclosure_level", "compact"),
+            "reasoning_parts": [],
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
         }
         aggregated_sources: List[RetrievedChunk] = []
         trace = WorkflowTrace(status="partial", steps=[])
@@ -158,6 +168,7 @@ class OrchestratedChatService:
             options=options,
             use_rag=use_rag,
             max_steps=max_steps,
+            state=state,
         )
         tasks = self._apply_budget_policy(tasks, state.get("token_budget"))
 
@@ -235,9 +246,14 @@ class OrchestratedChatService:
                 ],
                 options,
                 stage="writer",
+                state=state,
             )
 
         trace.status = self._derive_trace_status(trace)
+        settings = get_settings()
+        reasoning_parts = state.get("reasoning_parts") or []
+        reasoning_text = "\n\n".join(reasoning_parts) if reasoning_parts else None
+        sentiment = detect_sentiment(query) if settings.enable_sentiment_tone else None
 
         if persist_memory and conversation_id:
             memory_entries = [
@@ -266,6 +282,10 @@ class OrchestratedChatService:
             message=final_message,
             sources=self._dedupe_sources(aggregated_sources),
             workflow=trace if include_trace else None,
+            reasoning=reasoning_text,
+            sentiment=sentiment,
+            prompt_tokens=state.get("prompt_tokens") or None,
+            completion_tokens=state.get("completion_tokens") or None,
         )
         yield {"type": "final", "response": response.model_dump()}
 
@@ -280,6 +300,7 @@ class OrchestratedChatService:
         options: Dict[str, Any],
         use_rag: bool,
         max_steps: int,
+        state: Optional[Dict[str, Any]] = None,
     ) -> tuple[List[PlannedTask], str]:
         if mode != "workflow":
             return self._static_plan(mode, use_rag), f"Static {mode} workflow selected."
@@ -305,7 +326,7 @@ class OrchestratedChatService:
                 ),
             },
         ]
-        raw_plan = await self._chat_text(planner_messages, options, stage="planner")
+        raw_plan = await self._chat_text(planner_messages, options, stage="planner", state=state)
         parsed = self._parse_plan(raw_plan)
         if parsed:
             verified = await self._verify_plan(
@@ -314,6 +335,7 @@ class OrchestratedChatService:
                 raw_plan=raw_plan,
                 options=options,
                 max_steps=max_steps,
+                state=state,
             )
             if verified:
                 return verified[:max_steps], "Planner verifier accepted and refined the task graph."
@@ -328,6 +350,7 @@ class OrchestratedChatService:
         raw_plan: str,
         options: Dict[str, Any],
         max_steps: int,
+        state: Optional[Dict[str, Any]] = None,
     ) -> List[PlannedTask]:
         verifier_messages = [
             {"role": "system", "content": system_prompt},
@@ -348,7 +371,7 @@ class OrchestratedChatService:
                 ),
             },
         ]
-        verified_raw = await self._chat_text(verifier_messages, options, stage="planner")
+        verified_raw = await self._chat_text(verifier_messages, options, stage="planner", state=state)
         return self._parse_plan(verified_raw)
 
     def _static_plan(self, mode: ModeName, use_rag: bool) -> List[PlannedTask]:
@@ -434,44 +457,58 @@ class OrchestratedChatService:
             state["retrieval_context"] = ""
             return TaskOutcome(status="skipped", summary="Local retrieval disabled for this run.")
 
-        embeddings = await self._embed_client.embed([state["query"]])
         user_id = state.get("user_id")
         if not user_id:
             state["retrieval_context"] = ""
             return TaskOutcome(status="skipped", summary="User scope missing for retrieval.")
 
-        results = self._vector_store.search(
-            embeddings[0],
+        settings = get_settings()
+        trust_lane = "retrieved" if state.get("trust_lanes_enabled", True) else ""
+        retrieval = await retrieve_user_documents_with_self_rag(
+            query=state["query"],
             user_id=str(user_id),
-            limit=top_k,
+            embed_client=self._embed_client,
+            vector_store=self._vector_store,
+            settings=settings,
+            pack_limit=top_k,
             score_threshold=score_threshold,
+            llm_gateway=self._llm_gateway,
+            model_profile=self._model_profile,
+            trust_lane=trust_lane,
         )
-        if not results:
+        sources = retrieval.sources
+        if not sources:
+            if retrieval.candidates_considered > 0:
+                state["retrieval_context"] = ""
+                return TaskOutcome(
+                    status="completed",
+                    summary="No internal documents met the relevance threshold after reranking.",
+                )
             state["retrieval_context"] = ""
             return TaskOutcome(status="completed", summary="No matching internal documents were found.")
 
         sections: List[str] = []
-        sources: List[RetrievedChunk] = []
-        for index, result in enumerate(results, start=1):
-            payload = result.payload or {}
-            text = str(payload.get("text", ""))
-            metadata = {key: value for key, value in payload.items() if key != "text"}
-            metadata["trust_lane"] = "retrieved" if state.get("trust_lanes_enabled", True) else ""
-            label = str(metadata.get("path") or metadata.get("name") or metadata.get("title") or result.id)
-            sections.append(f"[Document {index}] {label}\n{text}")
-            sources.append(
-                RetrievedChunk(
-                    id=str(result.id),
-                    score=float(result.score),
-                    text=text,
-                    metadata=metadata,
-                )
-            )
+        for index, source in enumerate(sources, start=1):
+            metadata = source.metadata or {}
+            label = str(metadata.get("path") or metadata.get("name") or metadata.get("title") or source.id)
+            sections.append(f"[Document {index}] {label}\n{source.text}")
         state["evidence_ids"] = [source.id for source in sources]
+        registry = dict(state.get("evidence_registry") or {})
+        for source in sources:
+            registry[source.id] = source
+        state["evidence_registry"] = registry
         state["retrieval_context"] = "\n\n".join(sections)
+        notes: List[str] = []
+        if settings.retrieval_rerank_enabled and retrieval.candidates_considered > top_k:
+            notes.append(f"reranked from {retrieval.candidates_considered} candidates")
+        if len(retrieval.query_variants) > 1:
+            notes.append(f"{len(retrieval.query_variants)} query variants")
+        if retrieval.retrieval_hops > 1:
+            notes.append(f"self-rag {retrieval.retrieval_hops} hops")
+        note_suffix = f" ({', '.join(notes)})" if notes else ""
         return TaskOutcome(
             status="completed",
-            summary=f"Collected {len(sources)} internal document matches.",
+            summary=f"Collected {len(sources)} internal document matches{note_suffix}.",
             output=state["retrieval_context"],
             sources=sources,
         )
@@ -483,12 +520,24 @@ class OrchestratedChatService:
             state["web_context"] = ""
             return TaskOutcome(status="skipped", summary="Fresh web research was not needed for this query.")
 
-        results = await self._web_search.search_with_page_excerpts(state["query"])
-        if not results:
+        search_queries = decompose_research_queries(state["query"])
+        seen_hrefs: set[str] = set()
+        merged_results: List[Dict[str, Any]] = []
+        for search_query in search_queries:
+            results = await self._web_search.search_with_page_excerpts(search_query)
+            for item in results:
+                href = str(item.get("href") or "")
+                if href and href in seen_hrefs:
+                    continue
+                if href:
+                    seen_hrefs.add(href)
+                merged_results.append(item)
+
+        if not merged_results:
             state["web_context"] = ""
             return TaskOutcome(status="completed", summary="No fresh web results were available.")
 
-        state["web_context"] = WebSearchService.format_results_for_context(results)
+        state["web_context"] = WebSearchService.format_results_for_context(merged_results)
         sources = [
             RetrievedChunk(
                 id=str(item.get("href") or f"web-{index}"),
@@ -503,8 +552,12 @@ class OrchestratedChatService:
                     "trust_lane": "verified_web" if state.get("trust_lanes_enabled", True) else "",
                 },
             )
-            for index, item in enumerate(results, start=1)
+            for index, item in enumerate(merged_results, start=1)
         ]
+        registry = dict(state.get("evidence_registry") or {})
+        for source in sources:
+            registry[source.id] = source
+        state["evidence_registry"] = registry
         return TaskOutcome(
             status="completed",
             summary=f"Collected {len(sources)} fresh web results.",
@@ -529,6 +582,7 @@ class OrchestratedChatService:
             ],
             options,
             stage="synthesizer",
+            state=state,
         )
         if state.get("require_evidence_markers", True) and state.get("evidence_ids"):
             if not self._validate_evidence_markers(draft, state["evidence_ids"]):
@@ -558,6 +612,7 @@ class OrchestratedChatService:
                 ],
                 options,
                 stage="reviewer",
+                state=state,
             )
             reviews.append(review)
         review_text = "\n\n".join(f"Reviewer {idx + 1}: {text}" for idx, text in enumerate(reviews))
@@ -577,6 +632,7 @@ class OrchestratedChatService:
             ],
             options,
             stage="writer",
+            state=state,
         )
         state["final_answer"] = final_answer
         return TaskOutcome(status="completed", summary="Produced the final answer.", output=final_answer)
@@ -587,14 +643,24 @@ class OrchestratedChatService:
         options: Dict[str, Any],
         *,
         stage: Literal["planner", "synthesizer", "reviewer", "writer"],
+        state: Optional[Dict[str, Any]] = None,
     ) -> str:
         stage_config = getattr(self._model_profile, stage)
-        return await self._llm_gateway.generate(
+        result = await self._llm_gateway.generate_with_meta(
             messages=messages,
             model=stage_config.model,
             provider=stage_config.provider,
             options=options,
         )
+        if state is not None and result.reasoning_content:
+            parts = state.setdefault("reasoning_parts", [])
+            parts.append(f"### {stage.title()}\n{result.reasoning_content}")
+        if state is not None:
+            if result.prompt_tokens:
+                state["prompt_tokens"] = int(state.get("prompt_tokens") or 0) + result.prompt_tokens
+            if result.completion_tokens:
+                state["completion_tokens"] = int(state.get("completion_tokens") or 0) + result.completion_tokens
+        return result.content
 
     def _parse_plan(self, raw: str) -> List[PlannedTask]:
         candidate = raw.strip()
@@ -659,22 +725,43 @@ class OrchestratedChatService:
         return "\n".join(lines)
 
     def _build_synthesis_prompt(self, state: Dict[str, Any]) -> str:
+        settings = get_settings()
+        retrieval_context = state.get("retrieval_context") or "No internal context available."
+        web_context = state.get("web_context") or "No fresh web context available."
+        if settings.enable_context_compression:
+            retrieval_context = compress_context_block(state["query"], retrieval_context, settings=settings)
+            web_context = compress_context_block(state["query"], web_context, settings=settings)
         return (
             f"User request:\n{state['query']}\n\n"
             f"Recent chat history:\n{self._format_history(state['chat_history']) or 'No prior chat history.'}\n\n"
             f"Prior workflow memory:\n{state.get('memory_summary') or 'No prior workflow memory.'}\n\n"
-            f"Internal document context:\n{state.get('retrieval_context') or 'No internal context available.'}\n\n"
-            f"Fresh web context:\n{state.get('web_context') or 'No fresh web context available.'}"
+            f"Internal document context:\n{retrieval_context}\n\n"
+            f"Fresh web context:\n{web_context}"
         )
 
     def _build_final_prompt(self, state: Dict[str, Any]) -> str:
+        disclosure = str(state.get("progressive_disclosure_level") or "compact").lower()
+        if disclosure == "full":
+            retrieval_context = state.get("retrieval_context") or "No internal context available."
+            web_context = state.get("web_context") or "No fresh web context available."
+            evidence_block = (
+                f"Internal document context:\n{retrieval_context}\n\n"
+                f"Fresh web context:\n{web_context}"
+            )
+        else:
+            draft = str(state.get("draft") or "")
+            cited_ids = extract_cited_evidence_ids(draft) or None
+            registry = state.get("evidence_registry") or {}
+            evidence_block = (
+                "Evidence cards (compact; cite only what the draft references):\n"
+                f"{format_writer_evidence_context(registry, cited_ids=cited_ids)}"
+            )
         return (
             f"User request:\n{state['query']}\n\n"
             f"Prior workflow memory:\n{state.get('memory_summary') or 'No prior workflow memory.'}\n\n"
             f"Draft answer:\n{state.get('draft') or 'No draft available.'}\n\n"
             f"Reviewer notes:\n{state.get('review_notes') or 'No review notes available.'}\n\n"
-            f"Internal document context:\n{state.get('retrieval_context') or 'No internal context available.'}\n\n"
-            f"Fresh web context:\n{state.get('web_context') or 'No fresh web context available.'}"
+            f"{evidence_block}"
         )
 
     def _update_trace_step(

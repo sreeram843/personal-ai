@@ -1,0 +1,380 @@
+{
+  "version": 1,
+  "description": "External dataset catalog for Personal AI eggplant eval harness (ODSC, HiddenLayer, HF WebDataset trending, text-RAG recommendations).",
+  "sources": [
+    {
+      "id": "odsc-arcee-agent-data",
+      "name": "arcee-ai/agent-data",
+      "category": "odsc-training",
+      "hf_id": "arcee-ai/agent-data",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "notes": "Training corpus; tool schemas do not match builtin_tools."
+    },
+    {
+      "id": "odsc-toolbench",
+      "name": "ToolBench (toolbench-v1)",
+      "category": "odsc-training",
+      "hf_id": "tuandunghcmut/toolbench-v1",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "notes": "General tool SFT; not mapped to this app's tool surface."
+    },
+    {
+      "id": "odsc-toolalpaca",
+      "name": "ToolAlpaca",
+      "category": "odsc-training",
+      "hf_id": null,
+      "github": "https://github.com/tangqiaoyu/ToolAlpaca",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "GitHub-only; 400+ fictional tools."
+    },
+    {
+      "id": "odsc-api-bank",
+      "name": "API-Bank",
+      "category": "odsc-training",
+      "hf_id": null,
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "Paper + custom runtime; not on HuggingFace as a single dataset."
+    },
+    {
+      "id": "odsc-webshop",
+      "name": "WebShop",
+      "category": "odsc-training",
+      "hf_id": null,
+      "github": "https://github.com/princeton-nlp/WebShop",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "Browser shopping simulator; no browser agent in this app."
+    },
+    {
+      "id": "odsc-webshop-trajectories",
+      "name": "webshop_expert_trajectories",
+      "category": "odsc-training",
+      "hf_id": "lclan/webshop_expert_trajectories",
+      "hf_split": "test",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "notes": "WebShop rollouts only."
+    },
+    {
+      "id": "odsc-alfred",
+      "name": "ALFRED",
+      "category": "odsc-training",
+      "hf_id": null,
+      "github": "https://github.com/askforalfred/alfred",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "Embodied vision + control."
+    },
+    {
+      "id": "odsc-webarena",
+      "name": "WebArena",
+      "category": "odsc-eval",
+      "hf_id": null,
+      "url": "https://webarena.dev/",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "Self-hosted browser benchmark; requires Playwright agent stack."
+    },
+    {
+      "id": "odsc-webchorearena",
+      "name": "WebChoreArena",
+      "category": "odsc-eval",
+      "hf_id": null,
+      "github": "https://github.com/WebChoreArena/WebChoreArena",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "Long web chore tasks."
+    },
+    {
+      "id": "odsc-miniwob",
+      "name": "MiniWoB++",
+      "category": "odsc-eval",
+      "hf_id": null,
+      "github": "https://github.com/Farama-Foundation/miniwob-plusplus",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "Synthetic UI click policies."
+    },
+    {
+      "id": "odsc-gaia",
+      "name": "GAIA",
+      "category": "odsc-eval",
+      "hf_id": "gaia-benchmark/GAIA",
+      "hf_config": "2023_all",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe", "live_llm_optional"],
+      "max_rows": 200,
+      "notes": "Manual E2E smoke only; hidden test answers."
+    },
+    {
+      "id": "odsc-agentbench",
+      "name": "AgentBench",
+      "category": "odsc-eval",
+      "hf_id": null,
+      "github": "https://github.com/THUDM/AgentBench",
+      "verdict": "skip",
+      "applicable_tests": [],
+      "notes": "External OS/DB/game simulators."
+    },
+    {
+      "id": "odsc-swebench",
+      "name": "SWE-bench",
+      "category": "odsc-eval",
+      "hf_id": "princeton-nlp/SWE-bench",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 50,
+      "notes": "Coding-agent patch benchmark; not this product."
+    },
+    {
+      "id": "odsc-omniact",
+      "name": "OmniACT",
+      "category": "odsc-eval",
+      "hf_id": "Writer/omniact",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 100,
+      "notes": "Desktop multimodal automation."
+    },
+    {
+      "id": "odsc-bfcl",
+      "name": "Berkeley Function Calling Leaderboard",
+      "category": "odsc-eval",
+      "hf_id": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+      "hf_config": "BFCL_v3_simple",
+      "hf_split": "train",
+      "verdict": "use",
+      "applicable_tests": ["download_probe", "bfcl_schema_probe"],
+      "max_rows": 500,
+      "notes": "Adapt pattern to builtin_tools; HF tool defs differ from ours."
+    },
+    {
+      "id": "hl-qualifire",
+      "name": "Qualifire prompt-injection benchmark",
+      "category": "hiddenlayer-recommended",
+      "hf_id": "qualifire/Qualifire-prompt-injection-benchmark",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe", "injection_label_probe", "live_llm_optional"],
+      "notes": "Best labeled direct-injection baseline per HiddenLayer."
+    },
+    {
+      "id": "hl-xxz224",
+      "name": "prompt-injection-attack-dataset",
+      "category": "hiddenlayer-recommended",
+      "hf_id": "xxz224/prompt-injection-attack-dataset",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe", "injection_heuristic_probe"],
+      "notes": "Unlabeled; red-team prompt bank."
+    },
+    {
+      "id": "hl-yanismiraoui",
+      "name": "yanismiraoui/prompt_injections",
+      "category": "hiddenlayer-recommended",
+      "hf_id": "yanismiraoui/prompt_injections",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe", "injection_heuristic_probe"],
+      "notes": "Multilingual simple injections."
+    },
+    {
+      "id": "hl-jayavibhav-safety",
+      "name": "jayavibhav/prompt-injection-safety",
+      "category": "hiddenlayer-recommended",
+      "hf_id": "jayavibhav/prompt-injection-safety",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe", "injection_label_probe"],
+      "max_rows": 2000,
+      "notes": "Large labeled set; subsample for offline eval."
+    },
+    {
+      "id": "hl-jayavibhav",
+      "name": "jayavibhav/prompt-injection",
+      "category": "hiddenlayer-caution",
+      "hf_id": "jayavibhav/prompt-injection",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe", "injection_label_probe"],
+      "max_rows": 2000,
+      "notes": "Use with caution; label noise on benign class."
+    },
+    {
+      "id": "hl-deepset",
+      "name": "deepset/prompt-injections",
+      "category": "hiddenlayer-caution",
+      "hf_id": "deepset/prompt-injections",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "notes": "Political-bias focused; not core threat model."
+    },
+    {
+      "id": "hl-hackaprompt",
+      "name": "hackaprompt/hackaprompt-dataset",
+      "category": "hiddenlayer-not-recommended",
+      "hf_id": "hackaprompt/hackaprompt-dataset",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "CTF PWNED focus; low real-world signal."
+    },
+    {
+      "id": "hl-cgoosen-password",
+      "name": "cgoosen/prompt_injection_password_or_secret",
+      "category": "hiddenlayer-not-recommended",
+      "hf_id": "cgoosen/prompt_injection_password_or_secret",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "notes": "Small; scenario relevant for RAG secret-leak tests."
+    },
+    {
+      "id": "hl-cgoosen-ctf2",
+      "name": "cgoosen/prompt_injection_ctf_dataset_2",
+      "category": "hiddenlayer-not-recommended",
+      "hf_id": "cgoosen/prompt_injection_ctf_dataset_2",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "notes": "Narrow CTF."
+    },
+    {
+      "id": "hl-geekyrakshit",
+      "name": "geekyrakshit/prompt-injection-dataset",
+      "category": "hiddenlayer-not-recommended",
+      "hf_id": "geekyrakshit/prompt-injection-dataset",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Label quality issues."
+    },
+    {
+      "id": "hl-imoxto",
+      "name": "imoxto/prompt_injection_cleaned_dataset",
+      "category": "hiddenlayer-not-recommended",
+      "hf_id": "imoxto/prompt_injection_cleaned_dataset",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Repackaged HackAPrompt."
+    },
+    {
+      "id": "hl-lakera-mosscap",
+      "name": "Lakera/mosscap_prompt_injection",
+      "category": "hiddenlayer-not-recommended",
+      "hf_id": "Lakera/mosscap_prompt_injection",
+      "verdict": "skip",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Unlabeled CTF red-team data."
+    },
+    {
+      "id": "internal-routing-golden",
+      "name": "routing_golden.json",
+      "category": "internal",
+      "path": "tests/fixtures/routing_golden.json",
+      "verdict": "use",
+      "applicable_tests": ["pytest_routing"],
+      "notes": "In-repo routing golden set."
+    },
+    {
+      "id": "internal-security-golden",
+      "name": "security_golden.json",
+      "category": "internal",
+      "path": "eggplant/fixtures/security_golden.json",
+      "verdict": "use",
+      "applicable_tests": ["security_heuristic"],
+      "notes": "App-specific direct + indirect injection scenarios."
+    },
+    {
+      "id": "hf-wds-deepplanning",
+      "name": "Qwen/DeepPlanning",
+      "category": "hf-webdataset-trending",
+      "hf_id": "Qwen/DeepPlanning",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 200,
+      "notes": "Long-horizon travel/shopping planning; needs Qwen-Agent sandboxes for real scoring — useful for workflow planner regression ideas only."
+    },
+    {
+      "id": "hf-wds-docreason25k",
+      "name": "mPLUG/DocReason25K",
+      "category": "hf-webdataset-trending",
+      "hf_id": "mPLUG/DocReason25K",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Document reasoning QA; closest trending fit for RAG answer quality probes."
+    },
+    {
+      "id": "hf-wds-tablevqa",
+      "name": "terryoo/TableVQA-Bench",
+      "category": "hf-webdataset-trending",
+      "hf_id": "terryoo/TableVQA-Bench",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Table/chart QA — only if you ingest spreadsheet or table-heavy docs."
+    },
+    {
+      "id": "hf-rag-hotpotqa",
+      "name": "hotpot_qa",
+      "category": "hf-text-rag-recommended",
+      "hf_id": "hotpot_qa",
+      "hf_config": "distractor",
+      "hf_split": "validation",
+      "verdict": "use",
+      "applicable_tests": ["download_probe", "retrieval_qa_probe"],
+      "max_rows": 500,
+      "notes": "Multi-hop QA with supporting facts — strong retrieval + synthesis eval seed (not on WebDataset trending page)."
+    },
+    {
+      "id": "hf-rag-msmarco",
+      "name": "ms_marco",
+      "category": "hf-text-rag-recommended",
+      "hf_id": "microsoft/ms_marco",
+      "hf_config": "v1.1",
+      "hf_split": "validation",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Passage ranking benchmark; good for reranker regression, not end-to-end chat."
+    },
+    {
+      "id": "internal-retrieval-golden",
+      "name": "retrieval_golden.json",
+      "category": "internal",
+      "path": "tests/fixtures/retrieval_golden.json",
+      "verdict": "use",
+      "applicable_tests": ["pytest_retrieval"],
+      "notes": "HotpotQA-inspired rerank/pack + corpus routing hints."
+    },
+    {
+      "id": "internal-tool-calling-golden",
+      "name": "tool_calling_golden.json",
+      "category": "internal",
+      "path": "tests/fixtures/tool_calling_golden.json",
+      "verdict": "use",
+      "applicable_tests": ["pytest_tool_routing"],
+      "notes": "BFCL-adapted live-intent → builtin_tools mapping."
+    },
+    {
+      "id": "internal-workflow-golden",
+      "name": "workflow_golden.json",
+      "category": "internal",
+      "path": "eggplant/fixtures/workflow_golden.json",
+      "verdict": "use",
+      "applicable_tests": ["pytest_workflow", "live_workflow_optional"],
+      "notes": "DeepPlanning-style workflow routing + optional /workflow_chat smoke."
+    },
+    {
+      "id": "hf-rag-natural-questions",
+      "name": "natural_questions",
+      "category": "hf-text-rag-recommended",
+      "hf_id": "google-research-datasets/natural_questions",
+      "hf_split": "validation",
+      "verdict": "partial",
+      "applicable_tests": ["download_probe"],
+      "max_rows": 500,
+      "notes": "Open-domain QA with long answers; useful for citation-style answer eval."
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import httpx
 
 from app.services.llm_gateway import (
     LLMGateway,
+    LLMGenerationResult,
     OpenAICompatibleLLMAdapter,
     _coerce_openai_chat_options,
     _normalize_openai_messages,
@@ -19,7 +20,7 @@ class _RecordingAdapter:
 
     async def generate(self, *, messages, model: str, options):
         self.calls += 1
-        return f"{self.label}:{model}"
+        return LLMGenerationResult(content=f"{self.label}:{model}")
 
 
 def test_llm_gateway_dispatches_selected_provider() -> None:
@@ -57,6 +58,7 @@ def test_openai_compatible_adapter_parses_chat_completion() -> None:
                         "finish_reason": "stop",
                     }
                 ],
+                "usage": {"prompt_tokens": 12, "completion_tokens": 4, "total_tokens": 16},
             },
         )
 
@@ -81,7 +83,9 @@ def test_openai_compatible_adapter_parses_chat_completion() -> None:
     finally:
         httpx.AsyncClient = original_client
 
-    assert output == "Adapter output"
+    assert output.content == "Adapter output"
+    assert output.prompt_tokens == 12
+    assert output.completion_tokens == 4
 
 
 def test_openai_compatible_adapter_strips_workflow_options() -> None:

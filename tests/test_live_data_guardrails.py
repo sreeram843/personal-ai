@@ -70,9 +70,8 @@ def test_chat_returns_deterministic_adapter_response_with_provenance() -> None:
         assert response.status_code == 200
         payload = response.json()
         message = payload["message"]
-        assert "LIVE DATA RETRIEVED" in message
-        assert "Source: Frankfurter API" in message
-        assert "Fetched: 2026-03-22 23:58:00 UTC" in message
+        assert "Here's the live **USD/INR** rate." in message
+        assert "Data fetched: 2026-03-22 23:58:00 UTC" in message
         assert payload["live"]["domain"] == "fx"
         assert payload["live"]["source"] == "Frankfurter API"
         assert payload["live"]["verified"] is True
@@ -101,10 +100,8 @@ def test_rag_chat_returns_deterministic_adapter_response_with_provenance() -> No
         assert response.status_code == 200
         payload = response.json()
         message = payload["message"]
-        assert "LIVE DATA RETRIEVED" in message
-        assert "Source: Open-Meteo" in message
-        assert "Fetched: 2026-03-22 23:58:00 UTC" in message
-        assert "Fetched: 2026-03-22 23:58:00 UTC" in message
+        assert "Current conditions for **Austin**." in message
+        assert "Data fetched: 2026-03-22 23:58:00 UTC" in message
         assert payload["sources"] == []
     finally:
         app.dependency_overrides.clear()

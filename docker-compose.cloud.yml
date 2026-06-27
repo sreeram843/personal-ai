@@ -53,7 +53,7 @@ services:
       LLM_WRITER_MODEL: ${LLM_CLOUD_WRITER_MODEL}
 
       ENABLE_FAST_CHAT: ${ENABLE_FAST_CHAT:-true}
-      ENABLE_LANGCHAIN_AGENT: ${ENABLE_LANGCHAIN_AGENT:-false}
+      ENABLE_TOOL_AGENT: ${ENABLE_TOOL_AGENT:-false}
 
       # Ollama still serves embeddings — keep pointing at the local container.
       OLLAMA_BASE_URL: http://ollama:11434

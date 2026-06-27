@@ -1,50 +1,115 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 import type { ChatMessage } from '../types';
 import { ChatMessageBubble } from './ChatMessageBubble';
+
+const VIRTUALIZE_THRESHOLD = 40;
 
 interface Props {
   scrollRef: RefObject<HTMLDivElement | null>;
   messages: ChatMessage[];
   isLoading: boolean;
+  isNearBottom: boolean;
+  editingUserMessageId: string | null;
   onCopy: (message: ChatMessage) => void;
+  onEditResend: (message: ChatMessage, newContent: string) => void;
+  onEditCancel: () => void;
+  onEditFromError: (message: ChatMessage) => void;
   onRegenerate: (message: ChatMessage) => void;
+  onRetry: (message: ChatMessage) => void;
   onFeedback: () => void;
+  onApproveTools?: (toolIds: string[]) => void;
 }
 
-/** Simple stacked message list — avoids virtualizer height overlap on long markdown replies. */
+function renderBubble(
+  message: ChatMessage,
+  index: number,
+  messages: ChatMessage[],
+  isLoading: boolean,
+  editingUserMessageId: string | null,
+  handlers: Omit<Props, 'scrollRef' | 'messages' | 'isLoading' | 'isNearBottom' | 'editingUserMessageId'>,
+) {
+  return (
+    <ChatMessageBubble
+      message={message}
+      isStreaming={isLoading && index === messages.length - 1}
+      isEditing={message.id === editingUserMessageId}
+      canEdit={!isLoading}
+      onCopy={handlers.onCopy}
+      onEditResend={handlers.onEditResend}
+      onEditCancel={handlers.onEditCancel}
+      onEditFromError={handlers.onEditFromError}
+      onRegenerate={handlers.onRegenerate}
+      onRetry={handlers.onRetry}
+      onFeedback={handlers.onFeedback}
+      onApproveTools={handlers.onApproveTools}
+    />
+  );
+}
+
 export function VirtualizedMessageList({
   scrollRef,
   messages,
   isLoading,
+  isNearBottom,
+  editingUserMessageId,
   onCopy,
+  onEditResend,
+  onEditCancel,
+  onEditFromError,
   onRegenerate,
+  onRetry,
   onFeedback,
+  onApproveTools,
 }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const lastMessage = messages[messages.length - 1];
+  const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
+  const handlers = {
+    onCopy,
+    onEditResend,
+    onEditCancel,
+    onEditFromError,
+    onRegenerate,
+    onRetry,
+    onFeedback,
+    onApproveTools,
+  };
 
   useEffect(() => {
-    const container = scrollRef.current;
-    if (!container || messages.length === 0) return;
+    setScrollParent(scrollRef.current);
+  }, [scrollRef]);
 
-    requestAnimationFrame(() => {
-      bottomRef.current?.scrollIntoView({ block: 'end' });
-    });
-  }, [messages.length, lastMessage?.id, lastMessage?.content, scrollRef]);
+  if (messages.length === 0) {
+    return null;
+  }
+
+  if (messages.length <= VIRTUALIZE_THRESHOLD || !scrollParent) {
+    return (
+      <div className="flex w-full flex-col gap-2">
+        {messages.map((message, index) => (
+          <div key={message.id} className="message-enter">
+            {renderBubble(message, index, messages, isLoading, editingUserMessageId, handlers)}
+          </div>
+        ))}
+        <div aria-hidden className="h-px w-full shrink-0" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex w-full flex-col gap-2">
-      {messages.map((message, index) => (
-        <ChatMessageBubble
-          key={message.id}
-          message={message}
-          isStreaming={isLoading && index === messages.length - 1}
-          onCopy={onCopy}
-          onRegenerate={onRegenerate}
-          onFeedback={onFeedback}
-        />
-      ))}
-      <div ref={bottomRef} aria-hidden className="h-px w-full shrink-0" />
-    </div>
+    <Virtuoso
+      customScrollParent={scrollParent}
+      data={messages}
+      followOutput={isNearBottom ? 'auto' : false}
+      increaseViewportBy={{ top: 500, bottom: 500 }}
+      computeItemKey={(_, message) => message.id}
+      itemContent={(index, message) => (
+        <div className="message-enter pb-2">
+          {renderBubble(message, index, messages, isLoading, editingUserMessageId, handlers)}
+        </div>
+      )}
+      components={{
+        Footer: () => <div aria-hidden className="h-px w-full shrink-0" />,
+      }}
+    />
   );
 }

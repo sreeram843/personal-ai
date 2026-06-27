@@ -1,0 +1,66 @@
+[
+  {
+    "id": "hotpot-single-hop-city",
+    "query": "In which city was Arthur's Magazine first published?",
+    "top_k": 2,
+    "expected_paths": ["retrieval/arthur-magazine.md"],
+    "candidates": [
+      {
+        "id": "c1",
+        "score": 0.72,
+        "text": "Arthur's Magazine (1844–1846) was an American literary periodical published in Philadelphia.",
+        "metadata": {"path": "retrieval/arthur-magazine.md", "name": "arthur-magazine.md"}
+      },
+      {
+        "id": "c2",
+        "score": 0.78,
+        "text": "Boston Common is a central public park in Boston, Massachusetts.",
+        "metadata": {"path": "retrieval/distractor-boston.md", "name": "distractor-boston.md"}
+      },
+      {
+        "id": "c3",
+        "score": 0.65,
+        "text": "Philadelphia is the largest city in Pennsylvania.",
+        "metadata": {"path": "retrieval/philadelphia.md", "name": "philadelphia.md"}
+      }
+    ]
+  },
+  {
+    "id": "hotpot-multi-hop-state",
+    "query": "Which state contains the city where Arthur's Magazine was first published?",
+    "top_k": 3,
+    "expected_paths": ["retrieval/arthur-magazine.md", "retrieval/philadelphia.md"],
+    "candidates": [
+      {
+        "id": "c1",
+        "score": 0.68,
+        "text": "Arthur's Magazine was first published in Philadelphia in 1844.",
+        "metadata": {"path": "retrieval/arthur-magazine.md", "name": "arthur-magazine.md"}
+      },
+      {
+        "id": "c2",
+        "score": 0.71,
+        "text": "Philadelphia is the largest city in Pennsylvania.",
+        "metadata": {"path": "retrieval/philadelphia.md", "name": "philadelphia.md"}
+      },
+      {
+        "id": "c3",
+        "score": 0.74,
+        "text": "The Ohio River flows along the southern border of Ohio.",
+        "metadata": {"path": "retrieval/distractor-ohio.md", "name": "distractor-ohio.md"}
+      }
+    ]
+  },
+  {
+    "id": "corpus-deployment-notes",
+    "query": "Summarize deployment guidance from my uploaded notes with citations",
+    "expect_document_grounded": true,
+    "expect_corpus_overview": false
+  },
+  {
+    "id": "corpus-themes-across-docs",
+    "query": "What themes appear across my uploaded documents?",
+    "expect_document_grounded": true,
+    "expect_corpus_overview": true
+  }
+]

@@ -26,14 +26,17 @@ def test_chat_agent_has_network_tools(registry_with_tools: ToolRegistry) -> None
     tools = registry_with_tools.list_tools_for_role(CHAT_AGENT_ROLE)
     assert "fx_rate" in tools
     assert "market_price" in tools
+    assert "get_crypto_price" in tools
+    assert "get_game_score" in tools
     assert "weather" in tools
     assert "web_search" in tools
+    assert "get_air_quality" in tools
 
 
 def test_resolved_tool_query_accepts_query_or_user_query() -> None:
-    from app.services.builtin_tools import _resolved_tool_query
+    from app.services.tool_invocation import resolved_tool_query
 
-    assert _resolved_tool_query(query="usd to inr") == "usd to inr"
-    assert _resolved_tool_query(user_query="weather in austin") == "weather in austin"
-    assert _resolved_tool_query(query="", user_query="latest ai news") == "latest ai news"
-    assert _resolved_tool_query() == ""
+    assert resolved_tool_query(query="usd to inr") == "usd to inr"
+    assert resolved_tool_query(user_query="weather in austin") == "weather in austin"
+    assert resolved_tool_query(query="", user_query="latest ai news") == "latest ai news"
+    assert resolved_tool_query() == ""

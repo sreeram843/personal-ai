@@ -28,8 +28,8 @@ export function AboutPanel({ open, onClose }: Props) {
           <div className="flex items-center gap-3">
             <CuraiLogo state="idle" size={36} />
             <div>
-              <div className="text-xs uppercase tracking-[0.28em] text-[var(--phosphor-dim)]">About</div>
-              <div className="text-lg font-semibold text-[var(--phosphor-bright)]">CurAI</div>
+              <div className="type-eyebrow !tracking-[0.28em]">About</div>
+              <div className="font-display text-lg font-semibold tracking-tight text-[var(--phosphor-bright)]">CurAI</div>
             </div>
           </div>
           <button
@@ -51,7 +51,7 @@ export function AboutPanel({ open, onClose }: Props) {
           </p>
 
           <div>
-            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[var(--phosphor-dim)]">What you can do</div>
+            <div className="mb-1 type-eyebrow !tracking-[0.18em]">What you can do</div>
             <ul className="list-disc space-y-1 pl-5 text-[var(--phosphor)]">
               <li>Chat in Direct mode for fast responses</li>
               <li>Use Smart mode for retrieval, live data, and orchestrated workflows</li>
@@ -61,7 +61,7 @@ export function AboutPanel({ open, onClose }: Props) {
           </div>
 
           <div>
-            <div className="mb-1 text-[10px] uppercase tracking-[0.18em] text-[var(--phosphor-dim)]">Privacy</div>
+            <div className="mb-1 type-eyebrow !tracking-[0.18em]">Privacy</div>
             <p>
               Conversations are stored per user. Only you can list, open, or delete your chats after signing in.
             </p>

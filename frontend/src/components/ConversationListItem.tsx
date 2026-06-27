@@ -83,9 +83,9 @@ export function ConversationListItem({
   };
 
   return (
-    <div ref={rootRef} className="group relative flex items-center gap-1">
+    <div ref={rootRef} className="group relative flex items-center gap-0.5">
       {isRenaming ? (
-        <div className="min-w-0 flex-1 rounded-lg border border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] px-2.5 py-2">
+        <div className="min-w-0 flex-1 rounded-[10px] border border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] px-2.5 py-2">
           <input
             ref={inputRef}
             value={draftTitle}
@@ -97,7 +97,7 @@ export function ConversationListItem({
               }
             }}
             onBlur={commitRename}
-            className="w-full bg-transparent text-xs font-medium text-[var(--phosphor-bright)] outline-none"
+            className="w-full bg-transparent text-sm font-medium text-[var(--phosphor-bright)] outline-none"
             aria-label="Rename conversation"
           />
         </div>
@@ -107,32 +107,35 @@ export function ConversationListItem({
           onClick={() => onSelect(item.id)}
           title={item.title}
           aria-current={isActive ? 'true' : undefined}
-          className={clsx(
-            'sidebar-conversation-item min-w-0 flex-1 rounded-lg px-2.5 py-2 text-left transition',
-            isActive
-              ? 'bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)] shadow-[inset_0_0_0_1px_var(--ui-border)]'
-              : 'text-[var(--phosphor)] hover:bg-[var(--ui-hover)]',
-          )}
+          data-active={isActive ? 'true' : 'false'}
+          className="panel-rail__item panel-rail__item--stacked sidebar-conversation-item min-w-0 flex-1 pr-8"
         >
-          <div className="flex min-w-0 items-center gap-1.5">
+          <div className="flex min-w-0 w-full items-center gap-1.5">
             {item.pinned && (
               <Pin className="h-3 w-3 shrink-0 rotate-45 text-[var(--phosphor-dim)]" aria-hidden />
             )}
-            <div className={clsx('truncate text-xs', isActive ? 'font-semibold' : 'font-medium')}>{item.title}</div>
+            <div
+              className={clsx(
+                'conversation-title-fade panel-rail__item-label min-w-0',
+                isActive ? 'font-semibold text-[var(--phosphor-bright)]' : 'font-medium',
+              )}
+            >
+              {item.title}
+            </div>
           </div>
-          <div className="mt-0.5 text-[10px] text-[var(--phosphor-dim)]">
+          <div className="type-meta mt-0.5">
             {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Today'} · {item.messageCount} messages
           </div>
         </button>
       )}
 
       {!isRenaming && (
-        <div className="relative shrink-0">
+        <div className="absolute right-1 top-1/2 z-10 -translate-y-1/2">
           <button
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
             className={clsx(
-              'conversation-menu-btn touch-target grid h-10 w-10 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] md:h-8 md:w-8',
+              'conversation-menu-btn touch-target grid h-8 w-8 place-content-center rounded-lg text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)]',
               menuOpen ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100',
             )}
             aria-label={`Actions for ${item.title}`}
@@ -143,10 +146,7 @@ export function ConversationListItem({
           </button>
 
           {menuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-panel-strong)] py-1 shadow-xl"
-            >
+            <div role="menu" className="panel-rail__menu">
               <button
                 type="button"
                 role="menuitem"
@@ -154,7 +154,7 @@ export function ConversationListItem({
                   setMenuOpen(false);
                   onTogglePin(item.id, !item.pinned);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+                className="panel-rail__menu-item"
               >
                 <Pin className="h-4 w-4 shrink-0" />
                 {item.pinned ? 'Unpin' : 'Pin'}
@@ -166,7 +166,7 @@ export function ConversationListItem({
                   setMenuOpen(false);
                   setIsRenaming(true);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
+                className="panel-rail__menu-item"
               >
                 <Pencil className="h-4 w-4 shrink-0" />
                 Rename
@@ -178,7 +178,7 @@ export function ConversationListItem({
                   setMenuOpen(false);
                   onDelete(item.id, item.title);
                 }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-300 transition hover:bg-red-500/10"
+                className="panel-rail__menu-item text-red-300 hover:bg-red-500/10"
               >
                 <Trash2 className="h-4 w-4 shrink-0" />
                 Delete

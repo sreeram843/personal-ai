@@ -15,6 +15,17 @@ Full methodology and interpretation: [../model-stress-testing.md](../model-stres
 | [stress-prod-parallel-2026-06-22.json](./stress-prod-parallel-2026-06-22.json) | `app.cura-i.com` | Stress 4×c2 | **2/4** pass, 2× HTTP 500 |
 | [stress-prod-sequential-2026-06-22.json](./stress-prod-sequential-2026-06-22.json) | `app.cura-i.com` | Stress 2×c1 | **2/2** pass, p50 **2.4 s** |
 | [stress-prod-latest.json](./stress-prod-latest.json) | Production | Index | Points to prod artifacts |
+| [eggplant-latest.json](./eggplant-latest.json) | Offline | Dataset eval | External benchmark download + probe summary |
+
+## Eggplant dataset eval
+
+Methodology and interpretation: [../eggplant-eval.md](../eggplant-eval.md).
+
+```bash
+make eggplant-setup
+make eggplant-download
+make eggplant-eval
+```
 
 ## Summary comparison
 

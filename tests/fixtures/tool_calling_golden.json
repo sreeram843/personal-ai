@@ -1,0 +1,44 @@
+[
+  {
+    "id": "bfcl-fx-usd-inr",
+    "query": "What is the current USD to INR exchange rate?",
+    "expected_domain": "fx",
+    "expected_tool_id": "fx_rate"
+  },
+  {
+    "id": "bfcl-weather-current",
+    "query": "What's the weather in London right now?",
+    "expected_domain": "weather_current",
+    "expected_tool_id": "weather"
+  },
+  {
+    "id": "bfcl-weather-forecast",
+    "query": "Give me a 5-day weather forecast for Tokyo",
+    "expected_domain": "weather_forecast",
+    "expected_tool_id": "weather_forecast"
+  },
+  {
+    "id": "bfcl-stock-ticker",
+    "query": "What is the current price of AAPL stock?",
+    "expected_domain": "stock",
+    "expected_tool_id": "market_price"
+  },
+  {
+    "id": "bfcl-news-topic",
+    "query": "Latest news about renewable energy",
+    "expected_domain": "news",
+    "expected_tool_id": "news"
+  },
+  {
+    "id": "bfcl-internal-docs",
+    "query": "Search my uploaded notes for deployment rollback steps",
+    "expected_tool_id": "search_documents",
+    "expect_document_grounded": true
+  },
+  {
+    "id": "bfcl-web-fresh",
+    "query": "What happened in the markets today?",
+    "expected_domain": "generic_fresh",
+    "expected_tool_id": "web_search"
+  }
+]

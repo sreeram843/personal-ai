@@ -8,6 +8,7 @@ from app.services.chat_messages import get_last_user_message
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.ollama import OllamaClient
 from app.services.orchestrated_chat import OrchestratedChatService
+from app.services.prompt_context import augment_system_prompt
 from app.services.system_prompt import get_system_prompt
 from app.services.tool_registry import ToolRegistry
 from app.services.vector_store import VectorStore
@@ -85,10 +86,28 @@ async def run_orchestrated_mode(
     )
     workflow = payload.workflow
     settings = get_settings()
+    query = get_last_user_message(payload).content
+    from app.core.deps import get_skill_catalog, get_user_memory_store
+    from app.services.skill_resolution import resolve_skill_for_request
+
+    skill_match = resolve_skill_for_request(
+        get_skill_catalog(),
+        user_id=user_id,
+        payload=payload,
+    )
+    system_prompt = augment_system_prompt(
+        get_system_prompt(),
+        user_query=query,
+        user_id=user_id,
+        settings=settings,
+        user_memory_store=get_user_memory_store(),
+        skill_addendum=skill_match.skill.system_addendum if skill_match else None,
+        skill_name=skill_match.skill.name if skill_match else None,
+    )
     return await service.run_mode(
         mode=mode,
-        query=get_last_user_message(payload).content,
-        system_prompt=get_system_prompt(),
+        query=query,
+        system_prompt=system_prompt,
         chat_history=[{"role": msg.role, "content": msg.content} for msg in payload.messages[:-1]],
         conversation_id=payload.conversation_id,
         user_id=user_id,

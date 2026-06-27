@@ -42,6 +42,12 @@ For deeper RAG evals, add fixture chunks and assert the orchestrator includes `[
 
 ## Optional extensions (not required in CI)
 
+- **Eggplant harness**: download ODSC + HiddenLayer datasets, run offline probes — see [eggplant-eval.md](./eggplant-eval.md) and `make eggplant-eval`
+- **Retrieval golden set**: `tests/fixtures/retrieval_golden.json` + HotpotQA-inspired corpus — `tests/test_eval_retrieval_accuracy.py`
+- **Tool routing golden set**: `tests/fixtures/tool_calling_golden.json` (BFCL-adapted) — `tests/test_eval_tool_routing.py`
+- **Workflow routing golden set**: `eggplant/fixtures/workflow_golden.json` — `tests/test_eval_workflow_routing.py`
+- **Live eggplant extensions**: `make eggplant-eval-live-full` (chat + indirect ingest/RAG + workflow + connectivity)
+- **Remote inference preflight**: `make check-remote-inference` before LM Studio live runs
 - **LLM-as-judge**: score answers against a rubric; keep behind a manual `pytest -m eval` marker
 - **Snapshot tests**: freeze routing decisions when refactoring heuristics
 - **Playwright flows**: upload → job poll → chat with citations (`frontend/tests/ui-flows.spec.ts`)
@@ -49,7 +55,9 @@ For deeper RAG evals, add fixture chunks and assert the orchestrator includes `[
 ## Running eval-focused tests
 
 ```bash
-python -m pytest tests/test_eval_routing_accuracy.py tests/test_eval_rag_grounding.py tests/test_eval_tenant_isolation.py -v
+python -m pytest tests/test_eval_routing_accuracy.py tests/test_eval_rag_grounding.py tests/test_eval_tenant_isolation.py tests/test_eval_retrieval_accuracy.py tests/test_eval_tool_routing.py tests/test_eval_workflow_routing.py -v
+# or
+make test-eval
 ```
 
 ## Real API integration (live providers)

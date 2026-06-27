@@ -21,6 +21,11 @@ from app.services.tool_registry import ToolRegistry
 from app.services.vector_store import VectorStore
 from app.services.web_search import WebSearchService
 from app.services.workflow_memory import WorkflowMemoryStore, build_workflow_memory_store
+from app.services.user_memory import UserMemoryStore, build_user_memory_store
+from app.services.schedule_store import ScheduleStore, build_schedule_store
+from app.services.mcp_store import McpServerStore, build_mcp_server_store
+from app.services.skill_loader import SkillCatalog, SkillStore, build_skill_catalog, build_skill_store
+from app.services.agent_task_store import AgentTaskStore, build_agent_task_store
 from app.services.job_store import JobStore
 from app.db.session import get_db
 
@@ -67,6 +72,7 @@ def get_web_search() -> WebSearchService:
         timeout=10,
         geocoder=geocoder,
         market_data=market_data,
+        settings=settings,
     )
 
 
@@ -85,6 +91,48 @@ def get_workflow_memory_store() -> WorkflowMemoryStore:
         max_entries=settings.workflow_memory_max_entries,
         backend=settings.workflow_memory_backend,
         redis_url=settings.redis_url,
+    )
+
+
+@lru_cache
+def get_user_memory_store() -> UserMemoryStore:
+    settings = get_settings()
+    return build_user_memory_store(
+        file_path=settings.user_memory_path,
+        max_entries=settings.user_memory_max_entries,
+    )
+
+
+@lru_cache
+def get_schedule_store() -> ScheduleStore:
+    settings = get_settings()
+    return build_schedule_store(file_path=settings.scheduled_reports_path)
+
+
+@lru_cache
+def get_mcp_server_store() -> McpServerStore:
+    settings = get_settings()
+    return build_mcp_server_store(file_path=settings.mcp_servers_path)
+
+
+@lru_cache
+def get_skill_store() -> SkillStore:
+    settings = get_settings()
+    return build_skill_store(file_path=settings.user_skills_path)
+
+
+@lru_cache
+def get_skill_catalog() -> SkillCatalog:
+    settings = get_settings()
+    return build_skill_catalog(bundled_root=settings.bundled_skills_path, store=get_skill_store())
+
+
+@lru_cache
+def get_agent_task_store() -> AgentTaskStore:
+    settings = get_settings()
+    return build_agent_task_store(
+        file_path=settings.agent_tasks_path,
+        max_tasks_per_user=settings.agent_tasks_max_per_user,
     )
 
 
@@ -120,7 +168,16 @@ def get_tool_registry() -> ToolRegistry:
     from app.services.builtin_tools import register_builtin_tools
 
     registry = ToolRegistry()
-    register_builtin_tools(registry, get_web_search())
+    register_builtin_tools(
+        registry,
+        get_web_search(),
+        live_data=get_live_data_manager(),
+        ollama=get_ollama_client(),
+        vector_store=get_vector_store(),
+        settings=get_settings(),
+        llm_gateway=get_llm_gateway(),
+        model_profile=get_workflow_model_profile(),
+    )
     return registry
 
 
@@ -165,6 +222,12 @@ __all__ = [
     "get_web_search",
     "get_live_data_manager",
     "get_workflow_memory_store",
+    "get_user_memory_store",
+    "get_schedule_store",
+    "get_mcp_server_store",
+    "get_skill_store",
+    "get_skill_catalog",
+    "get_agent_task_store",
     "get_llm_gateway",
     "get_workflow_model_profile",
     "get_tool_registry",

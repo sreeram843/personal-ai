@@ -10,6 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from app.api.auth_routes import router as auth_router
 from app.api.conversation_routes import router as conversation_router
 from app.api.demo_routes import router as demo_router
+from app.api.agent_routes import router as agent_router
+from app.api.openai_routes import router as openai_router
+from app.api.mcp_routes import router as mcp_router
+from app.api.schedule_routes import router as schedule_router
 from app.api.routes import router
 from app.core.config import get_settings
 
@@ -32,6 +36,10 @@ def create_app() -> FastAPI:
     app.include_router(router)
     app.include_router(auth_router)
     app.include_router(conversation_router)
+    app.include_router(schedule_router)
+    app.include_router(mcp_router)
+    app.include_router(agent_router)
+    app.include_router(openai_router)
     app.include_router(demo_router)
 
     @app.middleware("http")

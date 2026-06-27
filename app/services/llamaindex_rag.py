@@ -4,6 +4,7 @@ import importlib
 from typing import Any, Dict, List, Optional
 
 from app.core.config import Settings
+from app.services.sentence_window import SentenceWindowChunk, WINDOW_METADATA_KEY
 
 
 def _import_llamaindex() -> Dict[str, Any]:
@@ -27,6 +28,38 @@ def _import_llamaindex() -> Dict[str, Any]:
         "QdrantVectorStore": getattr(li_qdrant, "QdrantVectorStore"),
         "QdrantClient": getattr(qdrant_client_mod, "QdrantClient"),
     }
+
+
+def parse_sentence_window_chunks_with_llamaindex(
+    text: str,
+    metadata: Dict[str, Any],
+    *,
+    window_size: int,
+) -> List[SentenceWindowChunk]:
+    """Parse sentence-window chunks using LlamaIndex's SentenceWindowNodeParser."""
+    mods = _import_llamaindex()
+    Document = mods["Document"]
+    SentenceWindowNodeParser = mods["SentenceWindowNodeParser"]
+
+    parser = SentenceWindowNodeParser.from_defaults(
+        window_size=window_size,
+        window_metadata_key=WINDOW_METADATA_KEY,
+    )
+    document = Document(text=text, metadata=dict(metadata))
+    nodes = parser.get_nodes_from_documents([document])
+
+    chunks: List[SentenceWindowChunk] = []
+    for index, node in enumerate(nodes):
+        sentence = str(getattr(node, "text", "") or "").strip()
+        if not sentence:
+            continue
+        node_metadata = dict(getattr(node, "metadata", {}) or {})
+        window = str(node_metadata.get(WINDOW_METADATA_KEY) or sentence).strip() or sentence
+        node_metadata[WINDOW_METADATA_KEY] = window
+        node_metadata.setdefault("sentence_index", index)
+        node_metadata["chunking"] = "sentence_window_llamaindex"
+        chunks.append(SentenceWindowChunk(sentence=sentence, window=window, metadata=node_metadata))
+    return chunks
 
 
 def _build_index(settings: Settings) -> Any:
@@ -65,27 +98,18 @@ def ingest_documents_with_llamaindex(
     docs: List[Dict[str, Any]],
     user_id: str,
 ) -> int:
-    """Ingest documents through LlamaIndex with sentence-window chunking."""
+    """Backward-compatible helper returning chunk count for sentence-window ingest."""
+    from app.services.sentence_window import stored_documents_from_sentence_chunks
+
     if not docs:
         return 0
-
-    mods = _import_llamaindex()
-    Document = mods["Document"]
-    SentenceWindowNodeParser = mods["SentenceWindowNodeParser"]
-
-    index = _build_index(settings)
-    parser = SentenceWindowNodeParser.from_defaults(window_size=3)
-
-    nodes = []
-    for item in docs:
-        text = item.get("text", "")
-        metadata = {**(item.get("metadata") or {}), "user_id": user_id}
-        doc = Document(text=text, metadata=metadata)
-        nodes.extend(parser.get_nodes_from_documents([doc]))
-
-    if nodes:
-        index.insert_nodes(nodes)
-    return len(nodes)
+    stored = stored_documents_from_sentence_chunks(
+        docs,
+        user_id=user_id,
+        window_size=settings.llamaindex_sentence_window_size,
+        prefer_llamaindex=True,
+    )
+    return len(stored)
 
 
 def query_with_llamaindex(
@@ -111,12 +135,15 @@ def query_with_llamaindex(
         score = float(getattr(node, "score", 0.0) or 0.0)
         if score_threshold is not None and score < score_threshold:
             continue
+        node_obj = getattr(node, "node", None)
+        payload = dict(getattr(node_obj, "metadata", {}) or {})
+        text = str(getattr(node_obj, "text", "") or "")
         source_items.append(
             {
-                "id": str(getattr(getattr(node, "node", None), "node_id", f"li-{idx}")),
+                "id": str(getattr(node_obj, "node_id", f"li-{idx}")),
                 "score": score,
-                "text": str(getattr(getattr(node, "node", None), "text", "") or ""),
-                "metadata": dict(getattr(getattr(node, "node", None), "metadata", {}) or {}),
+                "text": text,
+                "metadata": payload,
             }
         )
 
@@ -128,5 +155,6 @@ def query_with_llamaindex(
 
 __all__ = [
     "ingest_documents_with_llamaindex",
+    "parse_sentence_window_chunks_with_llamaindex",
     "query_with_llamaindex",
 ]

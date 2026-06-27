@@ -39,6 +39,7 @@ def _to_summary(conversation, message_count: int) -> ConversationSummary:
         id=str(conversation.id),
         title=conversation.title,
         mode=conversation.mode,
+        assistant_id=conversation.assistant_id,
         created_at=conversation.created_at,
         updated_at=conversation.updated_at,
         message_count=message_count,
@@ -74,7 +75,13 @@ def create_conversation_route(
     user: CurrentUser,
     db: Session = Depends(get_db),
 ) -> ConversationSummary:
-    conversation = create_conversation(db, user, title=body.title, mode=body.mode)
+    conversation = create_conversation(
+        db,
+        user,
+        title=body.title,
+        mode=body.mode,
+        assistant_id=body.assistant_id,
+    )
     return _to_summary(conversation, 0)
 
 
@@ -85,10 +92,10 @@ def update_conversation_route(
     user: CurrentUser,
     db: Session = Depends(get_db),
 ) -> ConversationSummary:
-    if body.title is None and body.pinned is None:
+    if body.title is None and body.pinned is None and body.assistant_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="At least one of title or pinned is required",
+            detail="At least one of title, pinned, or assistant_id is required",
         )
 
     conversation = update_conversation_for_user(
@@ -97,6 +104,7 @@ def update_conversation_route(
         conversation_id,
         title=body.title,
         pinned=body.pinned,
+        assistant_id=body.assistant_id,
     )
     if conversation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")

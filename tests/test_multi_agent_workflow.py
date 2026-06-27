@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -14,13 +15,15 @@ from app.core.deps import (
     get_workflow_model_profile,
     get_workflow_memory_store,
 )
+from app.core.config import get_settings
 from app.main import create_app
 from tests.conftest import apply_db_auth_overrides
+from tests.llm_gateway_stub import LLMGatewayStubMixin
 from app.services.llm_gateway import StageModelConfig, WorkflowModelProfile
 from app.services.orchestrated_chat import OrchestratedChatService
 
 
-class _StubGateway:
+class _StubGateway(LLMGatewayStubMixin):
     def __init__(self) -> None:
         self.calls = 0
         self.providers = []
@@ -196,7 +199,7 @@ class _StubResolvedLiveDataManager(_StubLiveDataManager):
             source="Stub",
             fetched_at_utc="2026-04-01 00:00:00 UTC",
             ttl_seconds=60,
-            data={},
+            data={"base": "USD", "quote": "INR", "rate": 83.0},
         )
 
     def render(self, result):
@@ -334,7 +337,8 @@ def test_workflow_chat_endpoint_short_circuits_live_data(db_session) -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert "LIVE RESULT" in payload["message"]
+    assert "Here's the live **USD/INR** rate." in payload["message"]
+    assert "Data fetched: 2026-04-01 00:00:00 UTC" in payload["message"]
     assert payload["workflow"] is None
 
 
@@ -424,6 +428,12 @@ def test_smart_chat_stream_sets_selected_mode_header(db_session) -> None:
 
 
 def test_multi_agent_workflow_uses_stage_provider_routing() -> None:
+    routing_settings = get_settings().model_copy(
+        update={
+            "retrieval_query_decomposition_enabled": False,
+            "enable_self_rag_retry": False,
+        }
+    )
     gateway = _StubGateway()
     service = OrchestratedChatService(
         embed_client=_StubOllama(),
@@ -434,23 +444,24 @@ def test_multi_agent_workflow_uses_stage_provider_routing() -> None:
         memory_store=_StubWorkflowMemoryStore(),
     )
 
-    result = asyncio.run(
-        service.run_mode(
-            mode='workflow',
-            query="Route different workflow stages to different providers.",
-            system_prompt="You are a principled assistant.",
-            chat_history=[],
-            conversation_id='conversation-5',
-            user_id='00000000-0000-0000-0000-000000000005',
-            top_k=4,
-            score_threshold=None,
-            options={},
-            use_rag=True,
-            include_trace=True,
-            persist_memory=False,
-            max_steps=6,
+    with patch("app.services.orchestrated_chat.get_settings", return_value=routing_settings):
+        result = asyncio.run(
+            service.run_mode(
+                mode='workflow',
+                query="Route different workflow stages to different providers.",
+                system_prompt="You are a principled assistant.",
+                chat_history=[],
+                conversation_id='conversation-5',
+                user_id='00000000-0000-0000-0000-000000000005',
+                top_k=4,
+                score_threshold=None,
+                options={},
+                use_rag=True,
+                include_trace=True,
+                persist_memory=False,
+                max_steps=6,
+            )
         )
-    )
 
     assert result.message == "Final coordinated answer."
     assert gateway.providers == ["openai", "ollama", "openai", "openai", "ollama"]

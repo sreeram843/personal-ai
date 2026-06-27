@@ -1,8 +1,9 @@
 """Centralized tool registry with role-based access control."""
 
+from contextvars import ContextVar, Token
 from datetime import datetime, timedelta
 import logging
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional, Tuple
 from uuid import uuid4
 
 from app.schemas.tool import (
@@ -23,9 +24,28 @@ class ToolRegistry:
 
     def __init__(self) -> None:
         self._tools: Dict[str, ToolSpec] = {}
-        self._executor_map: Dict[str, callable] = {}
+        self._executor_map: Dict[str, Callable] = {}
         self._capability_grants: Dict[str, CapabilityGrant] = {}
         self._enforcer = SandboxPolicyEnforcer()
+        self._session_tools: ContextVar[Dict[str, Tuple[ToolSpec, Callable]]] = ContextVar(
+            "tool_registry_session", default={}
+        )
+
+    def activate_session_tools(self, tools: Dict[str, Tuple[ToolSpec, Callable]]) -> Token:
+        """Attach per-request tools (e.g. user MCP connectors) without mutating global registry."""
+        return self._session_tools.set(dict(tools))
+
+    def deactivate_session_tools(self, token: Token) -> None:
+        self._session_tools.reset(token)
+
+    def _resolve_tool_entry(self, tool_id: str) -> Tuple[Optional[ToolSpec], Optional[Callable]]:
+        session = self._session_tools.get()
+        if tool_id in session:
+            spec, executor = session[tool_id]
+            return spec, executor
+        if tool_id in self._tools:
+            return self._tools[tool_id], self._executor_map.get(tool_id)
+        return None, None
 
     def register_tool(self, tool_spec: ToolSpec, executor_fn: callable) -> None:
         """Register a tool with execution function.
@@ -46,8 +66,14 @@ class ToolRegistry:
         return self._tools.get(tool_id)
 
     def list_tools_for_role(self, role: str) -> Dict[str, ToolSpec]:
-        """List all tools available to a specific role."""
-        return {tool_id: spec for tool_id, spec in self._tools.items() if role in spec.allowed_roles}
+        """List all tools available to a specific role (global + active session overlay)."""
+        merged: Dict[str, ToolSpec] = {
+            tool_id: spec for tool_id, spec in self._tools.items() if role in spec.allowed_roles
+        }
+        for tool_id, (spec, _executor) in self._session_tools.get().items():
+            if role in spec.allowed_roles:
+                merged[tool_id] = spec
+        return merged
 
     def list_tools_by_capability(self, capability: ToolCapability) -> Dict[str, ToolSpec]:
         """List all tools that provide a specific capability."""
@@ -59,7 +85,7 @@ class ToolRegistry:
         Returns:
             ToolInvocationResult with success status and output/error
         """
-        tool_spec = self.get_tool(request.tool_id)
+        tool_spec, _executor_hint = self._resolve_tool_entry(request.tool_id)
         if not tool_spec:
             return ToolInvocationResult(
                 tool_id=request.tool_id,
@@ -124,8 +150,7 @@ class ToolRegistry:
                 duration_seconds=0.0,
             )
 
-        # Execute with enforcer
-        executor = self._executor_map.get(request.tool_id)
+        _tool_spec, executor = self._resolve_tool_entry(request.tool_id)
         if not executor:
             return ToolInvocationResult(
                 tool_id=request.tool_id,

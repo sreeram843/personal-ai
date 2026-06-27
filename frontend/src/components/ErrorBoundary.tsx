@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="classic-font flex min-h-dvh items-center justify-center bg-[var(--ui-bg)] px-6 text-[var(--phosphor)]">
           <div className="elevated-panel w-full max-w-lg rounded-3xl border border-[var(--ui-border)] p-8 text-center">
-            <div className="text-[11px] uppercase tracking-[0.35em] text-[var(--phosphor-dim)]">Application Error</div>
+            <div className="type-eyebrow !tracking-[0.35em]">Application Error</div>
             <h1 className="mt-3 text-xl font-semibold text-[var(--phosphor-bright)]">The chat UI hit an unexpected error</h1>
             <p className="mt-3 text-sm leading-relaxed text-[var(--phosphor-dim)]">{this.state.message}</p>
             <button

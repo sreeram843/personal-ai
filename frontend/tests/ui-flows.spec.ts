@@ -21,18 +21,24 @@ test.describe('browser interaction flows', () => {
       { id: 'a1', role: 'assistant', content: 'CACHE PIPELINE VERIFIED' },
     ]);
 
-    await page.route('**/chat', async (route) => {
+    await page.route('**/chat/stream', async (route) => {
       if (route.request().method() !== 'POST') {
         await route.continue();
         return;
       }
       await route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          message: 'CACHE PIPELINE VERIFIED',
-          conversation_id: 'conv-1',
-        }),
+        contentType: 'text/event-stream',
+        body: [
+          `data: ${JSON.stringify({ type: 'conversation', conversation_id: 'conv-1' })}`,
+          `data: ${JSON.stringify({
+            type: 'final',
+            response: {
+              message: 'CACHE PIPELINE VERIFIED',
+              conversation_id: 'conv-1',
+            },
+          })}`,
+        ].join('\n\n') + '\n\n',
       });
     });
 
@@ -130,5 +136,76 @@ test.describe('browser interaction flows', () => {
 
     await expect(page.getByText('sample-notes.md')).toBeVisible();
     await expect(page.getByText('SUCCESS')).toBeVisible();
+  });
+
+  test('upload then smart chat can return a cited assistant response', async ({ page }) => {
+    await mockConversationMessages(page, 'conv-upload-1', [
+      {
+        id: 'u1',
+        role: 'user',
+        content: 'Summarize my uploaded notes',
+      },
+      {
+        id: 'a1',
+        role: 'assistant',
+        content: 'According to [sample-notes.md], the upload pipeline is verified.',
+      },
+    ]);
+
+    await page.route('**/ingest', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ count: 2 }),
+      });
+    });
+
+    await page.route('**/smart_chat/stream', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream',
+        body: [
+          `data: ${JSON.stringify({ type: 'conversation', conversation_id: 'conv-upload-1' })}`,
+          `data: ${JSON.stringify({
+            type: 'final',
+            response: {
+              message: 'According to [sample-notes.md], the upload pipeline is verified.',
+              conversation_id: 'conv-upload-1',
+              sources: [
+                {
+                  id: 'doc-upload-1',
+                  score: 0.991,
+                  metadata: {
+                    name: 'sample-notes.md',
+                    path: 'sample-notes.md',
+                  },
+                },
+              ],
+            },
+          })}`,
+        ].join('\n\n') + '\n\n',
+      });
+    });
+
+    await preparePage(page);
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'sample-notes.md',
+      mimeType: 'text/markdown',
+      buffer: Buffer.from('# Sample\n\nUpload pipeline verified.\n', 'utf-8'),
+    });
+    await expect(page.getByText('SUCCESS')).toBeVisible();
+
+    await page.getByPlaceholder(/Message/).fill('Summarize my uploaded notes');
+    await page.getByRole('button', { name: 'Send message' }).click();
+
+    await expect(page.getByRole('log')).toContainText('upload pipeline is verified');
   });
 });

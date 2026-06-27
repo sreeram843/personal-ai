@@ -33,11 +33,16 @@ def create_conversation(
     *,
     title: Optional[str] = None,
     mode: Optional[str] = "smart",
+    assistant_id: Optional[str] = None,
 ) -> Conversation:
+    normalized_assistant = (assistant_id or "").strip()
+    if normalized_assistant in {"", "default"}:
+        normalized_assistant = None
     conversation = Conversation(
         user_id=user.id,
         title=title or "New conversation",
         mode=mode or "smart",
+        assistant_id=normalized_assistant,
     )
     db.add(conversation)
     db.commit()
@@ -95,6 +100,7 @@ def update_conversation_for_user(
     *,
     title: Optional[str] = None,
     pinned: Optional[bool] = None,
+    assistant_id: Optional[str] = None,
 ) -> Optional[Conversation]:
     conversation = get_conversation_for_user(db, user_id, conversation_id)
     if conversation is None:
@@ -106,6 +112,10 @@ def update_conversation_for_user(
 
     if pinned is not None:
         conversation.pinned_at = datetime.now(timezone.utc) if pinned else None
+
+    if assistant_id is not None:
+        normalized_assistant = assistant_id.strip()
+        conversation.assistant_id = normalized_assistant or None
 
     db.add(conversation)
     db.commit()
@@ -132,7 +142,15 @@ def resolve_conversation_for_chat(
         if conversation is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
         return conversation
-    return create_conversation(db, user, mode=mode)
+
+    from app.services.skill_resolution import assistant_id_from_options
+
+    return create_conversation(
+        db,
+        user,
+        mode=mode,
+        assistant_id=assistant_id_from_options(payload.options),
+    )
 
 
 def _touch_conversation(db: Session, conversation: Conversation) -> None:
@@ -185,7 +203,41 @@ def _assistant_metadata(response: ChatResponse, *, mode: str) -> dict:
         metadata["sources"] = [source.model_dump() for source in response.sources]
     if response.workflow:
         metadata["workflow"] = response.workflow.model_dump()
+    if response.reasoning:
+        metadata["reasoning"] = response.reasoning
+    if response.sentiment:
+        metadata["sentiment"] = response.sentiment
+    if response.prompt_tokens is not None:
+        metadata["prompt_tokens"] = response.prompt_tokens
+    if response.completion_tokens is not None:
+        metadata["completion_tokens"] = response.completion_tokens
+    if response.blocks:
+        metadata["blocks"] = [block.model_dump() for block in response.blocks]
+    if response.live:
+        metadata["live"] = response.live.model_dump()
     return metadata
+
+
+def _patch_last_user_message_prompt_tokens(
+    db: Session,
+    conversation: Conversation,
+    prompt_tokens: int,
+) -> None:
+    last_user = db.scalar(
+        select(Message)
+        .where(
+            Message.conversation_id == conversation.id,
+            Message.role == MessageRole.user,
+        )
+        .order_by(Message.created_at.desc())
+        .limit(1)
+    )
+    if last_user is None:
+        return
+    metadata = dict(last_user.metadata_json or {})
+    metadata["prompt_tokens"] = prompt_tokens
+    last_user.metadata_json = metadata
+    db.add(last_user)
 
 
 def persist_assistant_turn(
@@ -195,13 +247,16 @@ def persist_assistant_turn(
     *,
     mode: str,
 ) -> Message:
-    return append_message(
+    if response.prompt_tokens is not None:
+        _patch_last_user_message_prompt_tokens(db, conversation, response.prompt_tokens)
+    message = append_message(
         db,
         conversation,
         role=MessageRole.assistant,
         content=response.message,
         metadata=_assistant_metadata(response, mode=mode),
     )
+    return message
 
 
 def attach_conversation_id(response: ChatResponse, conversation: Conversation) -> ChatResponse:

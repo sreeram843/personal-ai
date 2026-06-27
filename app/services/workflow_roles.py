@@ -37,21 +37,24 @@ DEFAULT_WORKFLOW_ROLES: Dict[str, WorkflowRoleConfig] = {
         name="synthesizer",
         instruction=(
             "You are the synthesizer. Build a strong draft from the shared evidence. "
-            "If support is missing, say what cannot be verified instead of guessing."
+            "If support is missing, say what cannot be verified instead of guessing. "
+            "Do not call tools or emit tool-call JSON; all research is already in the prompt."
         ),
     ),
     "reviewer": WorkflowRoleConfig(
         name="reviewer",
         instruction=(
             "You are the reviewer. Look for unsupported claims, weak structure, and missed constraints. "
-            "Return concise revision notes only."
+            "Return concise revision notes only. "
+            "Do not call tools or emit tool-call JSON; all research is already in the prompt."
         ),
     ),
     "writer": WorkflowRoleConfig(
         name="writer",
         instruction=(
             "You are the writer. Produce the final user-facing answer using the reviewed draft and verified evidence. "
-            "Keep it direct and avoid unsupported claims."
+            "Keep it direct and avoid unsupported claims. "
+            "Do not call tools or emit tool-call JSON; web research is already complete."
         ),
     ),
 }

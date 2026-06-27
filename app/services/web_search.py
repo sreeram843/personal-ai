@@ -29,7 +29,7 @@ def _fmt_utc() -> str:
 
 
 class WebSearchService:
-    """Search the web using DuckDuckGo."""
+    """Search the web using configured providers (Tavily, Perplexity) or DuckDuckGo fallback."""
 
     def __init__(
         self,
@@ -38,28 +38,35 @@ class WebSearchService:
         *,
         geocoder=None,
         market_data=None,
+        settings=None,
     ):
         """Initialize web search service."""
         self.max_results = max_results
         self.timeout = timeout
         self._geocoder = geocoder
         self._market_data = market_data
+        self._settings = settings
 
     async def search(self, query: str) -> list[dict]:
-        """Search DuckDuckGo for query results.
-        
-        Args:
-            query: Search query string
-            
+        """Search the web for query results.
+
         Returns:
             List of search results with 'title', 'body', 'href' keys
         """
-        try:
-            # Run DDGS search in threadpool to avoid blocking
-            results = await asyncio.to_thread(
-                self._search_sync,
-                query
+        if self._settings is not None:
+            from app.services.web_providers.router import web_search as provider_search
+
+            provider_results = await provider_search(
+                query=query,
+                settings=self._settings,
+                max_results=self.max_results,
+                timeout=float(self.timeout),
             )
+            if provider_results:
+                return provider_results
+
+        try:
+            results = await asyncio.to_thread(self._search_sync, query)
             return results
         except Exception as exc:
             logger.error(f"Web search error for query '{query}': {exc}")
@@ -590,6 +597,28 @@ class WebSearchService:
 
         return enriched
 
+    async def scrape_url_content(self, url: str) -> str:
+        """Scrape a URL to Markdown via Firecrawl when configured."""
+        target = (url or "").strip()
+        if not target:
+            return "ERROR: URL is required"
+        if self._settings is None:
+            return "ERROR: web scrape is not configured"
+
+        from app.services.web_providers.router import scrape_url as provider_scrape
+
+        markdown = await provider_scrape(
+            url=target,
+            settings=self._settings,
+            max_chars=8000,
+        )
+        if not markdown:
+            excerpt = await self._fetch_page_excerpt(target)
+            if excerpt:
+                return f"Scraped excerpt from {target}:\n\n{excerpt}"
+            return "ERROR 404: LIVE DATA NOT VERIFIED"
+        return f"Scraped Markdown from {target}:\n\n{markdown}"
+
     def _search_sync(self, query: str) -> list[dict]:
         """Synchronous DuckDuckGo search (runs in threadpool)."""
         try:
@@ -610,6 +639,17 @@ class WebSearchService:
         """Fetch and extract a short plain-text excerpt from a webpage."""
         if not url:
             return ""
+
+        if self._settings is not None and self._settings.firecrawl_api_key:
+            from app.services.web_providers.router import scrape_url as provider_scrape
+
+            markdown = await provider_scrape(
+                url=url,
+                settings=self._settings,
+                max_chars=2000,
+            )
+            if markdown:
+                return markdown
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
@@ -649,7 +689,10 @@ class WebSearchService:
             href = result.get("href", "")
             excerpt = result.get("excerpt", "")
             fetched_at_utc = result.get("fetched_at_utc", "")
+            provider = result.get("provider", "")
             context_lines.append(f"\n[Web Result {idx}] {title}")
+            if provider:
+                context_lines.append(f"Provider: {provider}")
             if href:
                 context_lines.append(f"URL: {href}")
             if fetched_at_utc:

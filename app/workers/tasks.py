@@ -76,6 +76,7 @@ async def run_workflow_task(
         get_llm_gateway,
         get_ollama_client,
         get_run_store,
+        get_tool_registry,
         get_vector_store,
         get_web_search,
         get_workflow_memory_store,
@@ -97,6 +98,7 @@ async def run_workflow_task(
             vector_store=get_vector_store(),
             web_search=get_web_search(),
             workflow_memory=get_workflow_memory_store(),
+            tool_registry=get_tool_registry(),
         )
         if response.workflow:
             response.workflow.run_id = run_id
@@ -112,3 +114,45 @@ async def run_workflow_task(
         if job_id:
             job_store.update_job(job_id, status=BackgroundJobStatus.FAILED, error=str(exc))
         raise
+
+
+async def scheduled_reports_tick(ctx: dict) -> Dict[str, Any]:
+    """ARQ cron hook: enqueue due scheduled workflow reports."""
+    settings = get_settings()
+    if not settings.enable_background_workers:
+        return {"skipped": True, "processed": 0}
+
+    from app.core.deps import get_run_store, get_schedule_store
+    from app.services.task_queue import get_task_queue
+
+    store = get_schedule_store()
+    due = store.list_due()
+    if not due:
+        return {"processed": 0}
+
+    run_store = get_run_store()
+    task_queue = get_task_queue()
+    processed = 0
+    for schedule in due:
+        run = run_store.create_run(mode="workflow", conversation_id=None, user_id=schedule.user_id)
+        payload = {
+            "message": schedule.prompt,
+            "workflow": {
+                "enabled": True,
+                "use_rag": True,
+                "include_trace": True,
+                "persist_memory": True,
+                "max_steps": 6,
+            },
+        }
+        try:
+            await task_queue.enqueue_workflow(
+                run_id=run.run_id,
+                user_id=schedule.user_id,
+                payload=payload,
+            )
+            store.mark_run(schedule.id, run_id=run.run_id)
+            processed += 1
+        except Exception:
+            logger.exception("Scheduled report %s failed to enqueue", schedule.id)
+    return {"processed": processed}

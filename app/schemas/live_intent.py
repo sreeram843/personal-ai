@@ -11,6 +11,7 @@ LiveDomain = Literal[
     "weather_current",
     "weather_forecast",
     "news",
+    "game_score",
     "generic_fresh",
 ]
 
