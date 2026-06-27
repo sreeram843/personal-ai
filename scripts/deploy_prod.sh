@@ -39,6 +39,25 @@ compose() {
     "$@"
 }
 
+stop_host_caddy_if_needed() {
+  if [ -z "${CADDY_APP_DOMAIN:-}" ]; then
+    return 0
+  fi
+  printf '\n[%s] Ensuring host ports 80/443 are free for Docker Caddy\n' "$(date '+%H:%M:%S')"
+  if systemctl is-active --quiet caddy 2>/dev/null; then
+    printf 'Stopping system Caddy service...\n'
+    sudo systemctl stop caddy
+    sudo systemctl disable caddy
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    if ss -tln | grep -qE ':80 |:443 '; then
+      printf 'WARN: Something still listens on 80/443:\n'
+      ss -tlnp | grep -E ':80 |:443 ' || true
+      printf 'Stop it before Docker Caddy can start (e.g. sudo systemctl stop caddy nginx apache2).\n'
+    fi
+  fi
+}
+
 printf '\n[%s] Pulling latest code (optional — skip if CI already synced)\n' "$(date '+%H:%M:%S')"
 if [ "${DEPLOY_SKIP_GIT:-0}" != "1" ] && [ -d .git ]; then
   git fetch origin main
@@ -46,6 +65,7 @@ if [ "${DEPLOY_SKIP_GIT:-0}" != "1" ] && [ -d .git ]; then
 fi
 
 printf '\n[%s] Building and starting stack\n' "$(date '+%H:%M:%S')"
+stop_host_caddy_if_needed
 compose up -d --build
 
 printf '\n[%s] Waiting for Ollama (embeddings)\n' "$(date '+%H:%M:%S')"
