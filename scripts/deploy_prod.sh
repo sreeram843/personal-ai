@@ -21,10 +21,20 @@ if [ ! -f "$ENV_FILE" ]; then
   exit 1
 fi
 
+# shellcheck disable=SC1090
+set -a
+source "$ENV_FILE"
+set +a
+
+COMPOSE_FILES=(-f docker-compose.yml -f docker-compose.cloud.yml)
+if [ -n "${CADDY_APP_DOMAIN:-}" ]; then
+  COMPOSE_FILES+=(-f docker-compose.caddy.yml)
+fi
+
 compose() {
   docker compose \
     --profile cloud-chat --profile workers \
-    -f docker-compose.yml -f docker-compose.cloud.yml \
+    "${COMPOSE_FILES[@]}" \
     --env-file "$ENV_FILE" \
     "$@"
 }
@@ -68,6 +78,13 @@ compose exec -T app python -c "from app.core.deps import get_vector_store; get_v
 printf '\n[%s] Health checks\n' "$(date '+%H:%M:%S')"
 curl -fsS http://127.0.0.1:8000/health
 curl -fsS http://127.0.0.1:8000/ready
+
+if [ -n "${CADDY_APP_DOMAIN:-}" ]; then
+  curl -fsS "https://${CADDY_APP_DOMAIN}/health"
+  if [ -n "${CADDY_GRAFANA_DOMAIN:-}" ]; then
+    curl -fsS "https://${CADDY_GRAFANA_DOMAIN}/api/health"
+  fi
+fi
 
 printf '\n[%s] Auth / OAuth configuration\n' "$(date '+%H:%M:%S')"
 chmod +x scripts/verify_prod_auth.sh

@@ -1,0 +1,21 @@
+# HTTPS reverse proxy for production (Docker Compose + docker-compose.caddy.yml).
+#
+# Required env vars (from .env.cloud):
+#   CADDY_APP_DOMAIN      e.g. app.cura-i.com
+#   CADDY_GRAFANA_DOMAIN  e.g. grafana.app.cura-i.com
+#   CADDY_ACME_EMAIL      Let's Encrypt contact email
+#
+# DNS: A records for both domains → VM external IP.
+# Auth: Grafana login (GF_SECURITY_ADMIN_*). Prometheus is NOT exposed publicly.
+
+{
+	email {$CADDY_ACME_EMAIL}
+}
+
+{$CADDY_APP_DOMAIN} {
+	reverse_proxy app:8000
+}
+
+{$CADDY_GRAFANA_DOMAIN} {
+	reverse_proxy grafana:3000
+}

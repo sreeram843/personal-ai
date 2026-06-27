@@ -1,0 +1,56 @@
+# HTTPS reverse proxy overlay (Caddy + Let's Encrypt).
+#
+# Enable by setting CADDY_APP_DOMAIN in .env.cloud, then redeploy:
+#   ./scripts/deploy_prod.sh
+#
+# One-time host prep (stop conflicting system Caddy on port 443):
+#   ./scripts/setup_grafana_subdomain.sh
+#
+# Usage (manual):
+#   docker compose --profile cloud-chat \
+#     -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml \
+#     --env-file .env.cloud up -d
+
+services:
+  app:
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  grafana:
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.app.cura-i.com}
+      GF_SERVER_DOMAIN: ${GRAFANA_DOMAIN:-grafana.app.cura-i.com}
+      GF_SERVER_ENFORCE_DOMAIN: "true"
+      GF_SECURITY_COOKIE_SECURE: "true"
+
+  prometheus:
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: personal-ai-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      CADDY_APP_DOMAIN: ${CADDY_APP_DOMAIN:-app.cura-i.com}
+      CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.app.cura-i.com}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-}
+    volumes:
+      - ./monitoring/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - personal-ai-network
+    depends_on:
+      - app
+      - grafana
+
+volumes:
+  caddy_data:
+  caddy_config:

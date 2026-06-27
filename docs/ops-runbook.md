@@ -39,6 +39,8 @@ curl -s http://localhost:3100/ready
 
 Public URL: **https://app.cura-i.com**
 
+Grafana (HTTPS subdomain): **https://grafana.app.cura-i.com** — see [monitoring-subdomain.md](./monitoring-subdomain.md).
+
 Deploy path is usually `/opt/personal-ai` with `.env.cloud` on the server.
 
 ```bash
