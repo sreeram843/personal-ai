@@ -369,3 +369,15 @@ Benchmark results (smoke + stress, local + prod): [docs/model-stress-testing.md]
 - RAG exposed as a `ToolRegistry` tool for the agent
 
 Track progress in [docs/roadmap.md](docs/roadmap.md) and [docs/multi-agent-improvement-roadmap.md](docs/multi-agent-improvement-roadmap.md).
+
+## CurAI CLI (agentic coding)
+
+Terminal agent for natural-language tasks in your repo (read/search/edit files, run commands):
+
+```bash
+cd cli && pip install -e .
+curai ask "summarize the FastAPI entrypoint"
+curai chat   # interactive REPL
+```
+
+See [cli/README.md](cli/README.md) for configuration (Ollama, permissions, OpenAI-compatible LLMs).

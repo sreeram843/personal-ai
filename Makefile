@@ -1,4 +1,4 @@
-.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval check-remote-inference
+.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-cli cli-smoke test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval check-remote-inference cli-install
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
 COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
@@ -32,6 +32,9 @@ help:
 	@echo "make model-stress-local   - Concurrent chat stress test (local remote inference)"
 	@echo "make model-stress-prod    - Lighter chat stress test (needs AUTH_TOKEN, app.cura-i.com)"
 	@echo "make test-frontend  - Run Playwright browser suite"
+	@echo "make cli-install    - Install CurAI CLI (pip install -e ./cli)"
+	@echo "make test-cli       - Run CurAI CLI unit tests"
+	@echo "make cli-smoke      - Mocked LLM smoke test (no Ollama)"
 	@echo "make security-check - Run lightweight security checks"
 	@echo "make compose-validate - Validate docker compose config"
 	@echo "make compose-smoke - Run lightweight docker compose smoke test"
@@ -174,6 +177,15 @@ status:
 
 test-backend:
 	python -m pytest --cov-fail-under=35
+
+cli-install:
+	pip install -e ./cli
+
+test-cli:
+	pip install -e './cli[dev]' && cd cli && python -m pytest -q
+
+cli-smoke:
+	$(or $(shell test -x .venv/bin/python && echo .venv/bin/python),python) cli/scripts/smoke_generic_answer.py
 
 test-frontend:
 	cd frontend && npm run test:ui
