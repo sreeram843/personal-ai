@@ -11,6 +11,7 @@ interface Props {
   isLoading: boolean;
   isNearBottom: boolean;
   editingUserMessageId: string | null;
+  hideActions?: boolean;
   onCopy: (message: ChatMessage) => void;
   onEditResend: (message: ChatMessage, newContent: string) => void;
   onEditCancel: () => void;
@@ -34,7 +35,8 @@ function renderBubble(
       message={message}
       isStreaming={isLoading && index === messages.length - 1}
       isEditing={message.id === editingUserMessageId}
-      canEdit={!isLoading}
+      canEdit={!isLoading && !handlers.hideActions}
+      hideActions={handlers.hideActions}
       onCopy={handlers.onCopy}
       onEditResend={handlers.onEditResend}
       onEditCancel={handlers.onEditCancel}
@@ -53,6 +55,7 @@ export function VirtualizedMessageList({
   isLoading,
   isNearBottom,
   editingUserMessageId,
+  hideActions = false,
   onCopy,
   onEditResend,
   onEditCancel,
@@ -64,6 +67,7 @@ export function VirtualizedMessageList({
 }: Props) {
   const [scrollParent, setScrollParent] = useState<HTMLElement | null>(null);
   const handlers = {
+    hideActions,
     onCopy,
     onEditResend,
     onEditCancel,

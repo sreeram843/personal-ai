@@ -11,6 +11,8 @@ class DemoConfigResponse(BaseModel):
     enabled: bool
     max_questions: int
     intro: str
+    full_app_url: Optional[str] = None
+    suggested_prompts: List[str] = Field(default_factory=list)
 
 
 class DemoChatRequest(BaseModel):

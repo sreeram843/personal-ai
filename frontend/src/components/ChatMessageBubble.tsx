@@ -18,6 +18,8 @@ interface Props {
   isStreaming?: boolean;
   isEditing?: boolean;
   canEdit?: boolean;
+  /** Hide copy/edit/regenerate/feedback controls (portfolio demo). */
+  hideActions?: boolean;
   onCopy?: (message: ChatMessage) => void;
   onEdit?: (message: ChatMessage) => void;
   onEditResend?: (message: ChatMessage, newContent: string) => void;
@@ -106,6 +108,7 @@ export function ChatMessageBubble({
   isStreaming,
   isEditing = false,
   canEdit = true,
+  hideActions = false,
   onCopy,
   onEdit,
   onEditResend,
@@ -118,7 +121,7 @@ export function ChatMessageBubble({
 }: Props) {
   const isUser = message.role === 'user';
   const [localEditing, setLocalEditing] = useState(false);
-  const editing = isUser && (isEditing || localEditing);
+  const editing = isUser && (isEditing || localEditing) && !hideActions;
   const thinkingPhrase = useThinkingPhrase(message, Boolean(isStreaming));
 
   const assistantLogoState = resolveAssistantLogoState(message, Boolean(isStreaming));
@@ -126,11 +129,12 @@ export function ChatMessageBubble({
     !isUser && Boolean(isStreaming) && isPlaceholderAssistantContent(message.content);
   const messageError = !isUser ? resolveMessageError(message) : null;
   const showAssistantActions =
+    !hideActions &&
     !isUser &&
     !isStreaming &&
     !isPlaceholderAssistantContent(message.content) &&
     !messageError;
-  const showUserActions = isUser && !isStreaming && !editing && canEdit;
+  const showUserActions = !hideActions && isUser && !isStreaming && !editing && canEdit;
   const showStreamingCaret =
     !isUser && Boolean(isStreaming) && !isPlaceholderAssistantContent(message.content);
 
