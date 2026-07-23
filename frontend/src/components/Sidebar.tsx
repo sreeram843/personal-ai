@@ -34,11 +34,6 @@ interface Props {
   assistantsLoading?: boolean;
 }
 
-const MODE_ITEMS: Array<{ id: ConversationMode; label: string; icon: typeof MessageSquare }> = [
-  { id: 'chat', label: 'Chat', icon: MessageSquare },
-  { id: 'smart', label: 'Smart', icon: Sparkles },
-];
-
 export function Sidebar({
   mode,
   onModeChange,
@@ -186,28 +181,32 @@ export function Sidebar({
 
           <div className="panel-rail__group shrink-0">
             <div className="panel-rail__eyebrow type-eyebrow">Mode</div>
-            <ul className="panel-rail__list" role="list">
-              {MODE_ITEMS.map((item) => {
-                const Icon = item.icon;
-                const isActive = mode === item.id;
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => onModeChange(item.id)}
-                      title={item.label}
-                      aria-label={item.label}
-                      aria-pressed={isActive}
-                      data-active={isActive ? 'true' : 'false'}
-                      className="panel-rail__item"
-                    >
-                      <Icon className="panel-rail__item-icon h-4 w-4" aria-hidden />
-                      <span className="panel-rail__item-label">{item.label}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="grid grid-cols-2 gap-1.5">
+              {(
+                [
+                  { id: 'chat' as const, label: 'Chat', icon: MessageSquare },
+                  { id: 'smart' as const, label: 'Smart', icon: Sparkles },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onModeChange(item.id)}
+                  title={item.label}
+                  aria-label={item.label}
+                  aria-pressed={mode === item.id}
+                  className={clsx(
+                    'flex min-h-[44px] items-center justify-center gap-1 rounded-md border px-2 py-2 text-xs font-medium transition md:min-h-0 md:py-1.5',
+                    mode === item.id
+                      ? 'border-[var(--ui-border-strong)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
+                      : 'border-[var(--ui-border)] text-[var(--phosphor-dim)] hover:bg-[var(--ui-bg-elevated)]',
+                  )}
+                >
+                  <item.icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="panel-rail__group shrink-0">

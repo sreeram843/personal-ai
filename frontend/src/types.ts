@@ -88,6 +88,8 @@ export interface AgentSendOptions {
   approvedToolIds?: string[];
 }
 
+export type ConversationMode = 'chat' | 'smart';
+
 export type Role = 'user' | 'assistant' | 'system';
 
 export type ChatErrorKind = 'network' | 'timeout' | 'rate_limit' | 'refused' | 'unknown';
@@ -197,8 +199,6 @@ export interface UploadStatus {
   status: 'idle' | 'uploading' | 'success' | 'error';
   error?: string;
 }
-
-export type ConversationMode = 'chat' | 'smart';
 
 export interface DemoConfig {
   enabled: boolean;

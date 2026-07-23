@@ -70,6 +70,10 @@ def is_external_web_lookup_query(user_query: str) -> bool:
     if is_document_grounded_query(user_query):
         return False
     lowered = user_query.lower()
+    if any(signal in lowered for signal in _NEAR_SIGNALS) and any(
+        hint in lowered for hint in _LOCAL_ENTITY_HINTS
+    ):
+        return True
     if any(hint in lowered for hint in _LOCAL_ENTITY_HINTS):
         return True
     has_recommendation = any(re.search(pattern, lowered) for pattern in _RECOMMENDATION_PATTERNS)
@@ -207,6 +211,16 @@ _RECOMMENDATION_PATTERNS: Final[tuple[str, ...]] = (
 _PLACE_HINT_PATTERN = re.compile(
     r"\b(?:in|near|around|at)\s+[A-Z][\w\s\-']{2,}|\b(?:bbq|barbecue|barbeque|restaurant)\b",
     re.IGNORECASE,
+)
+
+_NEAR_SIGNALS: Final[tuple[str, ...]] = (
+    "near me",
+    "nearby",
+    "around me",
+    "close to me",
+    "in my area",
+    "my location",
+    "current location",
 )
 
 _LOCAL_ENTITY_HINTS: Final[tuple[str, ...]] = (

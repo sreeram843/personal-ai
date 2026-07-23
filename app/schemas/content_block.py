@@ -23,6 +23,7 @@ ContentBlockType = Literal[
     "odds",
     "election",
     "news",
+    "nearby_places",
     "text",
 ]
 

@@ -27,20 +27,22 @@ def skip_live_short_circuit(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(
-    ("query", "fast_chat", "tool_agent", "expected"),
+    ("query", "fast_chat", "tool_agent", "expected", "fallback"),
     [
-        ("hi", True, True, "fast"),
-        ("thanks", True, True, "fast"),
-        ("What is NVDA trading at today?", True, True, "tools"),
-        ("Explain quantum computing", True, True, "tools"),
-        ("Explain quantum computing", True, False, "orchestrated"),
+        ("hi", True, True, "fast", "orchestrated"),
+        ("thanks", True, True, "fast", "orchestrated"),
+        ("What is NVDA trading at today?", True, True, "tools", "orchestrated"),
+        ("Explain quantum computing", True, True, "tools", "orchestrated"),
+        ("Explain quantum computing", True, False, "orchestrated", "orchestrated"),
+        ("Explain quantum computing", True, False, "fast", "fast"),
         (
             "Compare three deployment strategies for multi-tenant RAG and recommend trade-offs",
             True,
             True,
             "orchestrated",
+            "orchestrated",
         ),
-        ("ok", True, False, "fast"),
+        ("ok", True, False, "fast", "orchestrated"),
     ],
 )
 def test_resolve_chat_execution_strategy(
@@ -48,8 +50,13 @@ def test_resolve_chat_execution_strategy(
     fast_chat: bool,
     tool_agent: bool,
     expected: str,
+    fallback: str,
 ) -> None:
-    settings = Settings(enable_fast_chat=fast_chat, enable_tool_agent=tool_agent)
+    settings = Settings(
+        enable_fast_chat=fast_chat,
+        enable_tool_agent=tool_agent,
+        chat_fallback_strategy=fallback,
+    )
     assert resolve_chat_execution_strategy(query, settings) == expected
 
 

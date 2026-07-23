@@ -175,7 +175,7 @@ class _StubWorkflowMemoryStore:
 
 
 class _StubLiveDataManager:
-    async def resolve(self, content: str):
+    async def resolve(self, content: str, chat_history=None):
         return None
 
     def is_live_intent_query(self, content: str) -> bool:
@@ -189,7 +189,7 @@ class _StubLiveDataManager:
 
 
 class _StubResolvedLiveDataManager(_StubLiveDataManager):
-    async def resolve(self, content: str):
+    async def resolve(self, content: str, chat_history=None):
         from app.schemas.adapter import AdapterResult
 
         return AdapterResult(
@@ -401,7 +401,7 @@ def test_smart_chat_endpoint_auto_routes_with_trace(db_session) -> None:
     assert any(step["agent"] == "writer" for step in payload["workflow"]["steps"])
 
 
-def test_smart_chat_stream_sets_selected_mode_header(db_session) -> None:
+def test_smart_chat_stream_sets_route_header(db_session) -> None:
     app = create_app()
     apply_db_auth_overrides(app, db_session)
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
@@ -423,8 +423,33 @@ def test_smart_chat_stream_sets_selected_mode_header(db_session) -> None:
     app.dependency_overrides.clear()
 
     assert response.status_code == 200
-    assert response.headers["x-smart-mode"] == "workflow"
+    assert response.headers["x-chat-route"] == "workflow"
     assert response.headers['content-type'].startswith('text/event-stream')
+
+
+def test_chat_stream_stays_on_direct_chat_route(db_session) -> None:
+    app = create_app()
+    apply_db_auth_overrides(app, db_session)
+    app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
+    app.dependency_overrides[get_llm_gateway] = lambda: _StubGateway()
+    app.dependency_overrides[get_workflow_model_profile] = _stub_model_profile
+    app.dependency_overrides[get_vector_store] = lambda: _StubVectorStore()
+    app.dependency_overrides[get_web_search] = lambda: _StubWebSearch()
+    app.dependency_overrides[get_live_data_manager] = lambda: _StubLiveDataManager()
+    app.dependency_overrides[get_workflow_memory_store] = lambda: _StubWorkflowMemoryStore()
+
+    client = TestClient(app)
+    response = client.post(
+        "/chat/stream",
+        json={
+            "messages": [{"role": "user", "content": "Please compare options and draft a strategy."}],
+        },
+    )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.headers["x-chat-route"] == "chat"
 
 
 def test_multi_agent_workflow_uses_stage_provider_routing() -> None:

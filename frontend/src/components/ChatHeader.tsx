@@ -16,9 +16,7 @@ const headerIconBtn =
   'touch-target grid h-10 w-10 shrink-0 place-content-center rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)]/50 text-[var(--phosphor)] transition hover:border-[var(--ui-border-strong)] hover:bg-[var(--ui-bg-elevated)] active:scale-[0.99] dark:bg-transparent md:h-8 md:w-8';
 
 export function ChatHeader({ mode, logoState, conversationTitle, assistantName, onOpenSidebar }: Props) {
-  const isSmart = mode === 'smart';
-  const modeLabel = isSmart ? 'Smart chat' : 'Direct chat';
-
+  const modeLabel = mode === 'smart' ? 'Smart chat' : 'Direct chat';
   const isBusy = logoState === 'thinking' || logoState === 'active' || logoState === 'error';
 
   return (

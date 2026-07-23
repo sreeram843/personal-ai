@@ -46,7 +46,7 @@ make eggplant-eval
 | `GET /ready` | ready (Ollama + Qdrant) |
 | Mac Mini `192.168.10.1:1234` | Reachable from app container |
 | `POST /chat` (14B) | OK, ~25 s sample |
-| `POST /smart_chat/stream` | OK |
+| `POST /chat/stream` | OK (primary UI path; `/smart_chat/stream` is a deprecated alias) |
 | `real_api_smoke.sh` | 4/4 HTTP checks |
 
 ## Production smoke (2026-06-22)

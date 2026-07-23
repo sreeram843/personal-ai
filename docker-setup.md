@@ -7,7 +7,8 @@ This file is now a quick pointer to the current container workflow. The detailed
 - `app`: FastAPI serving both the API and the built frontend on port `8000`
 - `ollama`: local LLM runtime on port `11434`
 - `qdrant`: vector store on ports `6333` and `6334`
-- `redis`: adapter cache backend on port `6379`
+- `redis`: adapter cache, ARQ job queue, and optional job/run state on port `6379`
+- `worker`: optional ARQ background worker (`make up-workers` or `--profile workers`)
 - `prometheus`: metrics scraper on port `9090`
 - `grafana`: dashboards on port `3000`
 

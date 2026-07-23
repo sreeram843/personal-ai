@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import re
-from typing import Optional
+from typing import Optional, Sequence
 
 from app.schemas.live_intent import LiveDomain, LiveIntent
 from app.services.live_sports import SportsGameQuery, detect_sports_game_query
+from app.services.local_places import (
+    detect_nearby_places_follow_up,
+    extract_nearby_category,
+    extract_nearby_location,
+    is_nearby_places_query,
+)
 from app.services.web_search import (
     detect_commodity_query,
     detect_stock_query,
@@ -19,7 +25,11 @@ from app.services.web_search import (
 )
 
 
-def route_live_intent(query: str) -> Optional[LiveIntent]:
+def route_live_intent(
+    query: str,
+    *,
+    chat_history: Sequence[dict[str, str]] | None = None,
+) -> Optional[LiveIntent]:
     """
     Classify a user query into a live-data domain with structured slots.
 
@@ -75,6 +85,27 @@ def route_live_intent(query: str) -> Optional[LiveIntent]:
             domain="news",
             slots={"topic": topic},
             confidence=0.9,
+        )
+
+    follow_up = detect_nearby_places_follow_up(text, chat_history or ())
+    if follow_up:
+        return LiveIntent(
+            domain="nearby_places",
+            slots=follow_up,
+            confidence=0.9,
+        )
+
+    if is_nearby_places_query(text):
+        category = extract_nearby_category(text)
+        location = extract_nearby_location(text)
+        return LiveIntent(
+            domain="nearby_places",
+            slots={
+                "category": category,
+                "location": location or "",
+                "needs_location": not bool(location),
+            },
+            confidence=0.9 if location else 0.85,
         )
 
     sports = detect_sports_game_query(text)

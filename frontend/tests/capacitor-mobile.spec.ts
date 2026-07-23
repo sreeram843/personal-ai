@@ -13,7 +13,7 @@ test.describe('capacitor mobile shell', () => {
   });
 
   test('shows navigation drawer controls on mobile', async ({ page }) => {
-    await prepareAuthenticatedPage(page, { mode: 'smart' });
+    await prepareAuthenticatedPage(page);
     await expect(page.getByRole('button', { name: 'Open navigation' })).toBeVisible();
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await expect(page.getByTitle('Close navigation')).toBeVisible();
@@ -21,7 +21,7 @@ test.describe('capacitor mobile shell', () => {
   });
 
   test('closes navigation drawer after selecting new conversation', async ({ page }) => {
-    await prepareAuthenticatedPage(page, { mode: 'chat' });
+    await prepareAuthenticatedPage(page);
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await expect(page.getByRole('button', { name: 'Dismiss menu overlay' })).toBeVisible();
     await page.getByRole('button', { name: 'Start new conversation' }).click();
@@ -30,7 +30,7 @@ test.describe('capacitor mobile shell', () => {
   });
 
   test('toggles theme from settings on mobile', async ({ page }) => {
-    await prepareAuthenticatedPage(page, { mode: 'chat' });
+    await prepareAuthenticatedPage(page);
     await page.getByRole('button', { name: 'Open navigation' }).click();
     await page.getByRole('button', { name: /Account menu for/ }).click();
     await page.getByRole('menuitem', { name: 'Settings' }).click();

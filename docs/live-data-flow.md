@@ -67,6 +67,7 @@ flowchart TD
 | `weather_current` | `location` | "weather in Austin" |
 | `weather_forecast` | `location`, `days` | "forecast for Austin tomorrow" |
 | `news` | `topic` | "latest ai news" |
+| `nearby_places` | `category`, `location` | "restaurants near me", follow-up location in thread |
 | `generic_fresh` | _(none)_ | freshness wording only — does not fail closed |
 
 `LiveDataManager.is_live_intent_query()` returns true for any routed intent, including `generic_fresh`.
@@ -83,8 +84,11 @@ flowchart TD
 4. Weather forecast
 5. Current weather
 6. News
+7. Nearby places (OpenStreetMap / Overpass; may ask for location via clarification gate)
 
-This order matters because some weather prompts overlap and forecast intent should win before current-weather handling.
+For `nearby_places`, `LiveDataManager` may return a clarifying question when location or category is ambiguous (`nearby_places_clarification.py` + chat history for follow-ups).
+
+Weather forecast is checked before current weather because overlapping prompts should prefer forecast intent.
 
 ---
 
@@ -124,7 +128,7 @@ flowchart LR
 
 ## API Guardrails
 
-Both `/chat` and `/rag_chat` follow the same sequence:
+Both `/chat`, `/chat/stream`, and `/rag_chat` follow the same live-data short-circuit:
 
 ```mermaid
 flowchart TD

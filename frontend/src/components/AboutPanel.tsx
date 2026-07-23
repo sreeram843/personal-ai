@@ -53,8 +53,7 @@ export function AboutPanel({ open, onClose }: Props) {
           <div>
             <div className="mb-1 type-eyebrow !tracking-[0.18em]">What you can do</div>
             <ul className="list-disc space-y-1 pl-5 text-[var(--phosphor)]">
-              <li>Chat in Direct mode for fast responses</li>
-              <li>Use Smart mode for retrieval, live data, and orchestrated workflows</li>
+              <li>Chat with automatic routing to live data, your documents, or multi-step workflows</li>
               <li>Upload documents to build a personal knowledge base</li>
               <li>Keep a private history of conversations on this device and server</li>
             </ul>

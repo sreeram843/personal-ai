@@ -39,7 +39,7 @@
 - [ ] RAG chat returns sources after ingesting a document.
 - [ ] Live FX or weather query returns verified provenance.
 - [ ] Metrics endpoint returns Prometheus text output.
-- [ ] UI mode switching and uploads work in the browser.
+- [ ] Unified chat and document uploads work in the browser (`POST /chat/stream`).
 - [ ] Assistant messages show response time after completion (when backend deployed).
 - [ ] Mobile drawer and account menu theme toggle (`npm run test:capacitor`).
 - [ ] `make real-api-smoke` passes.

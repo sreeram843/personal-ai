@@ -178,20 +178,12 @@ export async function mockConversationMessages(
   });
 }
 
-export async function prepareAuthenticatedPage(
-  page: Page,
-  options: { mode?: 'chat' | 'smart' } = {},
-): Promise<void> {
+export async function prepareAuthenticatedPage(page: Page): Promise<void> {
   await installApiBootstrapMocks(page);
-  await page.addInitScript(({ mode }) => {
+  await page.addInitScript(() => {
     localStorage.clear();
     localStorage.setItem('personal-ai-auth-token', 'playwright-test-token');
-    if (mode) {
-      localStorage.setItem('personal-ai-mode', JSON.stringify(mode));
-    }
-  }, options);
+  });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  const readyText =
-    options.mode === 'chat' ? 'Start a direct model conversation' : 'Start a smart-routed conversation';
-  await page.getByText(readyText).waitFor({ state: 'visible', timeout: 15000 });
+  await page.getByText('What can I help with?').waitFor({ state: 'visible', timeout: 15000 });
 }

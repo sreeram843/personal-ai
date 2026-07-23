@@ -2,7 +2,7 @@
 
 ## Scope and Safety
 
-This roadmap is based on high-level architecture patterns and observable behavior, not on reusing proprietary leaked implementation code.
+This roadmap is based on high-level architecture patterns and observable behavior.
 
 ## Current Strengths in This Repository
 

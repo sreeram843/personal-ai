@@ -1,4 +1,4 @@
-import { FileText, GitCompare, Mail, Sparkles, Zap } from 'lucide-react';
+import { FileText, GitCompare, Mail, MapPin, Sparkles, Zap } from 'lucide-react';
 import type { ConversationMode } from '../types';
 import { CuraiLogo } from './CuraiLogo';
 
@@ -7,30 +7,24 @@ interface Props {
   onSelectPrompt: (prompt: string) => void;
 }
 
-const CHAT_CHIPS = [
-  { label: 'Summarize a document', prompt: 'Summarize the key points from a document I will paste below.', icon: FileText },
-  { label: 'Compare two things', prompt: 'Compare two options and list pros and cons for each.', icon: GitCompare },
+const STARTER_CHIPS = [
+  { label: 'Search my docs', prompt: 'Search my uploaded documents and answer:', icon: FileText },
+  { label: 'Places near me', prompt: 'Find good restaurants near me', icon: MapPin },
+  { label: 'Compare options', prompt: 'Compare two options and list pros and cons for each.', icon: GitCompare },
+  { label: 'Morning briefing', prompt: 'Give me a morning briefing with weather, news, and anything urgent.', icon: Zap },
   { label: 'Draft an email', prompt: 'Draft a concise, professional email for the following situation:', icon: Mail },
+  { label: 'Deep analysis', prompt: 'Analyze this topic in depth, citing sources where possible:', icon: Sparkles },
 ] as const;
 
-const SMART_CHIPS = [
-  { label: 'Search my docs', prompt: 'Search my uploaded documents and answer:', icon: FileText },
-  { label: 'Deep analysis', prompt: 'Analyze this topic in depth, citing sources where possible:', icon: Sparkles },
-  { label: 'Morning briefing', prompt: 'Give me a morning briefing with weather, news, and anything urgent.', icon: Zap },
+const HINTS = [
+  { label: 'Grounded answers', prompt: 'What do my documents say about our Q3 roadmap?' },
+  { label: 'Live data', prompt: 'What is the weather in Austin today?' },
+  { label: 'Workflow trace', prompt: 'Plan and execute a multi-step research workflow on:' },
+  { label: 'Quick edits', prompt: 'Rewrite this paragraph to be clearer and more concise:' },
 ] as const;
 
 export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
-  const chips = mode === 'smart' ? SMART_CHIPS : CHAT_CHIPS;
-  const hints =
-    mode === 'smart'
-      ? [
-          { label: 'Grounded answers', prompt: 'What do my documents say about our Q3 roadmap?' },
-          { label: 'Workflow trace', prompt: 'Plan and execute a multi-step research workflow on:' },
-        ]
-      : [
-          { label: 'Quick edits', prompt: 'Rewrite this paragraph to be clearer and more concise:' },
-          { label: 'Fast back-and-forth', prompt: 'Help me brainstorm ideas for:' },
-        ];
+  const isSmart = mode === 'smart';
 
   return (
     <div className="empty-state-card elevated-panel rounded-xl p-4 text-left sm:p-5">
@@ -43,18 +37,18 @@ export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
           <div>
             <div className="type-eyebrow">New conversation</div>
             <div className="font-display mt-1 text-xl font-semibold leading-snug tracking-tight text-[var(--phosphor-bright)] sm:text-2xl">
-              {mode === 'smart' ? 'Start a smart-routed conversation' : 'Start a direct model conversation'}
+              {isSmart ? 'Start a smart-routed conversation' : 'Start a direct model conversation'}
             </div>
           </div>
         </div>
         <div className="mt-2 text-base leading-relaxed text-[var(--phosphor)]">
-          {mode === 'smart'
-            ? 'Pick a starter below or type your own prompt. Smart mode routes to chat, retrieval, or workflow as needed.'
-            : 'Pick a starter below or type your own prompt for fast, direct responses.'}
+          {isSmart
+            ? 'Pick a starter below or type your own prompt. Smart mode routes to live data, your documents, or a multi-step workflow automatically.'
+            : 'Pick a starter below or type your own prompt. Chat mode keeps responses fast and direct—switch to Smart for grounding and workflow trace.'}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {chips.map(({ label, prompt, icon: Icon }) => (
+          {STARTER_CHIPS.map(({ label, prompt, icon: Icon }) => (
             <button
               key={label}
               type="button"
@@ -68,7 +62,7 @@ export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {hints.map(({ label, prompt }) => (
+          {HINTS.map(({ label, prompt }) => (
             <button
               key={label}
               type="button"

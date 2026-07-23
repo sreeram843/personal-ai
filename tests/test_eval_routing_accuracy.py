@@ -32,7 +32,7 @@ def test_smart_mode_routing_golden_fixture(case: dict) -> None:
     [
         ("hi", "chat"),
         ("thanks", "chat"),
-        ("Rewrite this email to be friendlier", "rag"),
+        ("Rewrite this email to be friendlier", "chat"),
         ("Summarize my uploaded notes with citations", "rag"),
         (
             "Compare three deployment strategies for multi-tenant RAG and recommend a roadmap with trade-offs",
@@ -41,7 +41,7 @@ def test_smart_mode_routing_golden_fixture(case: dict) -> None:
         (
             "What is best bbq in Austin and compare that with best bbq in Dallas? "
             "Get a winner and compare it with Joes bbq KC",
-            "rag",
+            "workflow",
         ),
     ],
 )

@@ -96,7 +96,7 @@ Results can be saved as JSON via `--output`.
 | Mac Mini reachability | `192.168.10.1:1234` OK from app container |
 | `GET /auth/config` | `AUTH_DISABLED=true` |
 | `POST /chat` (14B) | OK |
-| `POST /smart_chat/stream` | OK (17+25 → 42) |
+| `POST /chat/stream` | OK (17+25 → 42); primary UI path (`/smart_chat/stream` is a deprecated alias) |
 | Sample single chat latency | **~25.2s** (`latency_ms` ≈ 25,174 ms) |
 
 `real_api_smoke.sh`: 4/4 HTTP checks passed (provider probe skipped on host — missing `pydantic_settings` outside Docker).
