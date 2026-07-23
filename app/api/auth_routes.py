@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.core.auth import (
     CurrentUser,
     ensure_dev_user,
-    get_or_create_user_by_email,
     get_or_create_user_by_google,
 )
 from app.core.config import Settings, get_settings
@@ -20,18 +19,23 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.google_auth import GoogleAuthError, verify_google_id_token
+from app.services.settings_store import get_signup_mode
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.get("/config", response_model=AuthConfigResponse)
-def read_auth_config(settings: Settings = Depends(get_settings)) -> AuthConfigResponse:
+def read_auth_config(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> AuthConfigResponse:
     """Public auth configuration for the frontend login flow."""
     google_client_id = (settings.google_client_id or "").strip() or None
     return AuthConfigResponse(
         auth_disabled=settings.auth_disabled,
         google_client_id=google_client_id,
         google_auth_enabled=not settings.auth_disabled and google_client_id is not None,
+        signup_mode=get_signup_mode(db, settings),
     )
 
 
@@ -41,16 +45,14 @@ def issue_token(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ) -> TokenResponse:
-    """Issue a JWT for API access. In dev mode returns the fixed dev user token."""
+    """Issue a JWT for API access. Open email minting is disabled when auth is on."""
     if settings.auth_disabled:
         user = ensure_dev_user(db, settings)
     else:
-        if not body.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="email is required when authentication is enabled",
-            )
-        user = get_or_create_user_by_email(db, str(body.email))
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email token minting is disabled. Use Google sign-in or an invite.",
+        )
 
     token = create_access_token(user_id=user.id, settings=settings)
     return TokenResponse(access_token=token, user_id=str(user.id))
@@ -93,12 +95,18 @@ def google_sign_in(
 
     email = claims.get("email")
     display_name = claims.get("name")
-    user = get_or_create_user_by_google(
-        db,
-        sub=sub,
-        email=str(email).strip() if email else None,
-        display_name=str(display_name).strip() if display_name else None,
-    )
+    try:
+        user = get_or_create_user_by_google(
+            db,
+            sub=sub,
+            email=str(email).strip() if email else None,
+            display_name=str(display_name).strip() if display_name else None,
+            settings=settings,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
     token = create_access_token(user_id=user.id, settings=settings)
     return TokenResponse(access_token=token, user_id=str(user.id))
 

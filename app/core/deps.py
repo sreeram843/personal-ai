@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Optional
 
 from app.core.config import get_settings
 from app.services.adapter_cache import build_adapter_cache
@@ -142,18 +143,64 @@ def get_llm_gateway() -> LLMGateway:
     adapters = {
         "ollama": OllamaLLMAdapter(get_ollama_client()),
     }
-    if settings.llm_openai_base_url:
-        adapters["openai"] = OpenAICompatibleLLMAdapter(
-            base_url=settings.llm_openai_base_url,
-            api_key=settings.llm_openai_api_key,
+    base_url = settings.llm_openai_base_url
+    api_key = settings.llm_openai_api_key
+    default_provider = settings.llm_default_provider
+    provider_alias: Optional[str] = None
+    try:
+        from app.db.session import get_session_factory
+        from app.services.settings_store import get_effective_openai_config, get_effective_routing
+
+        db = get_session_factory()()
+        try:
+            effective = get_effective_openai_config(db, settings)
+            routing = get_effective_routing(db, settings)
+            if effective.base_url:
+                base_url = effective.base_url
+                api_key = effective.api_key
+                provider_alias = effective.provider_name
+            default_provider = routing.default_provider
+        finally:
+            db.close()
+    except Exception:
+        pass
+    if base_url:
+        openai_adapter = OpenAICompatibleLLMAdapter(
+            base_url=base_url,
+            api_key=api_key,
             timeout=settings.llm_openai_timeout,
         )
-    return LLMGateway(adapters=adapters, default_provider=settings.llm_default_provider)
+        adapters["openai"] = openai_adapter
+        if provider_alias and provider_alias not in adapters:
+            adapters[provider_alias] = openai_adapter
+        if default_provider not in adapters and "openai" in adapters:
+            # Keep OpenAI-compatible routing working when DB provider name differs.
+            adapters[default_provider] = adapters["openai"]
+    return LLMGateway(adapters=adapters, default_provider=default_provider)
 
 
 @lru_cache
 def get_workflow_model_profile() -> WorkflowModelProfile:
     settings = get_settings()
+    try:
+        from app.db.session import get_session_factory
+        from app.services.settings_store import get_effective_routing
+
+        db = get_session_factory()()
+        try:
+            routing = get_effective_routing(db, settings)
+            return WorkflowModelProfile(
+                planner=StageModelConfig(provider=routing.planner_provider, model=routing.planner_model),
+                synthesizer=StageModelConfig(
+                    provider=routing.synthesizer_provider, model=routing.synthesizer_model
+                ),
+                reviewer=StageModelConfig(provider=routing.reviewer_provider, model=routing.reviewer_model),
+                writer=StageModelConfig(provider=routing.writer_provider, model=routing.writer_model),
+            )
+        finally:
+            db.close()
+    except Exception:
+        pass
     return WorkflowModelProfile(
         planner=StageModelConfig(provider=settings.llm_planner_provider, model=settings.llm_planner_model),
         synthesizer=StageModelConfig(provider=settings.llm_synthesizer_provider, model=settings.llm_synthesizer_model),

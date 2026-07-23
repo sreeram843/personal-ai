@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -22,6 +22,8 @@ class UserResponse(BaseModel):
     id: str
     email: Optional[str] = None
     display_name: Optional[str] = None
+    role: str = "user"
+    is_active: bool = True
 
     @classmethod
     def from_db(cls, user) -> "UserResponse":
@@ -29,6 +31,8 @@ class UserResponse(BaseModel):
             id=str(user.id),
             email=user.email,
             display_name=user.display_name,
+            role=getattr(user, "role", None) or "user",
+            is_active=bool(getattr(user, "is_active", True)),
         )
 
 
@@ -36,6 +40,7 @@ class AuthConfigResponse(BaseModel):
     auth_disabled: bool
     google_client_id: Optional[str] = None
     google_auth_enabled: bool = False
+    signup_mode: str = "invite"
 
 
 class GoogleAuthRequest(BaseModel):

@@ -36,7 +36,11 @@ def test_auth_config_when_google_enabled(db_session, auth_settings: Settings) ->
 
 def test_google_sign_in_creates_user_and_returns_token(db_session, auth_settings: Settings) -> None:
     settings = auth_settings.model_copy(
-        update={"auth_disabled": False, "google_client_id": "test-client.apps.googleusercontent.com"},
+        update={
+            "auth_disabled": False,
+            "google_client_id": "test-client.apps.googleusercontent.com",
+            "auth_signup_mode": "open",
+        },
     )
     client = build_client(db_session, settings)
     claims = {

@@ -143,6 +143,12 @@ class Settings(BaseSettings):
     dev_user_email: str = "dev@localhost"
     dev_user_display_name: str = "Dev User"
     google_client_id: Optional[str] = None
+    # Comma-separated emails promoted to admin on login/bootstrap
+    admin_emails: str = ""
+    # invite | open — open allows Google auto-create without invite
+    auth_signup_mode: str = "invite"
+    # Fernet master key for encrypting provider API keys in DB (required in prod)
+    settings_secret_key: Optional[str] = None
 
     # Public portfolio demo (embeddable /demo UI, no auth)
     demo_enabled: bool = False

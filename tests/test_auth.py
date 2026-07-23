@@ -43,15 +43,27 @@ def test_auth_me_with_bearer_token_when_auth_enabled(
     db_session,
     auth_settings: Settings,
 ) -> None:
+    from app.db.models import User, UserRole
+
     auth_settings = auth_settings.model_copy(update={"auth_disabled": False})
     client = build_client(db_session, auth_settings)
     try:
         unauthenticated = client.get("/auth/me")
         assert unauthenticated.status_code == 401
 
-        token_response = client.post("/auth/token", json={"email": "alice@example.com"})
-        assert token_response.status_code == 200
-        token = token_response.json()["access_token"]
+        forbidden = client.post("/auth/token", json={"email": "alice@example.com"})
+        assert forbidden.status_code == 403
+
+        user = User(
+            id=uuid.uuid4(),
+            email="alice@example.com",
+            display_name="Alice",
+            role=UserRole.user.value,
+            is_active=True,
+        )
+        db_session.add(user)
+        db_session.commit()
+        token = create_access_token(user_id=user.id, settings=auth_settings)
 
         authenticated = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
         assert authenticated.status_code == 200
@@ -70,11 +82,11 @@ def test_invalid_bearer_token_returns_401(db_session, auth_settings: Settings) -
         client.close()
 
 
-def test_token_requires_email_when_auth_enabled(db_session, auth_settings: Settings) -> None:
+def test_token_minting_forbidden_when_auth_enabled(db_session, auth_settings: Settings) -> None:
     auth_settings = auth_settings.model_copy(update={"auth_disabled": False})
     client = build_client(db_session, auth_settings)
     try:
         response = client.post("/auth/token", json={})
-        assert response.status_code == 400
+        assert response.status_code == 403
     finally:
         client.close()

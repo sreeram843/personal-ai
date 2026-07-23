@@ -218,7 +218,19 @@ class LLMGateway:
         if adapter is None:
             raise RuntimeError(f"No LLM adapter registered for provider '{selected_provider}'")
         async with observe_llm_call(provider=selected_provider, model=model):
-            return await adapter.generate(messages=messages, model=model, options=options)
+            result = await adapter.generate(messages=messages, model=model, options=options)
+        try:
+            from app.services.usage_meter import record_llm_usage
+
+            record_llm_usage(
+                provider=selected_provider,
+                model=model,
+                prompt_tokens=result.prompt_tokens,
+                completion_tokens=result.completion_tokens,
+            )
+        except Exception:
+            pass
+        return result
 
 
 __all__ = [

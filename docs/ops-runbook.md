@@ -98,14 +98,20 @@ cd /opt/personal-ai
 AUTH_DISABLED=false
 GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
 JWT_SECRET=<long-random-secret>
-CORS_ORIGINS=http://YOUR_PUBLIC_HOST:8000
+ADMIN_EMAILS=you@example.com
+AUTH_SIGNUP_MODE=invite
+SETTINGS_SECRET_KEY=<long-random-secret>
+CORS_ORIGINS=https://app.cura-i.com,https://admin.cura-i.com
+CADDY_ADMIN_DOMAIN=admin.cura-i.com
 ```
 
-3. **Google Cloud Console** → OAuth client → **Authorized JavaScript origins** must list the exact URL users open (scheme + host + port), e.g. `http://35.x.x.x:8000`. A mismatch causes the button to fail silently or with `origin_mismatch`.
+3. **Google Cloud Console** → OAuth client → **Authorized JavaScript origins** must list the exact URL users open (scheme + host + port), e.g. `https://app.cura-i.com` and `https://admin.cura-i.com`. A mismatch causes the button to fail silently or with `origin_mismatch`.
 
 4. **`AUTH_DISABLED=true`** (default) bypasses login entirely — OAuth will appear “broken” if you expected a login screen.
 
 5. After changing `.env.cloud`, rebuild the app container (`compose up -d --build`) so env vars reload.
+
+6. **Admin portal** — see [admin-portal.md](./admin-portal.md). Staff sign in at `https://admin.cura-i.com` (same Google OAuth). Invite-only signup is the default; promote yourself via `ADMIN_EMAILS`.
 
 ## Remote inference (MacBook + Mac Mini)
 

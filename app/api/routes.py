@@ -35,6 +35,7 @@ from app.schemas.documents import IngestRequest, IngestResponse
 from app.schemas.jobs import BackgroundJob, BackgroundJobKind, BackgroundJobStatus
 from app.schemas.run import RunStatus, WorkflowRun
 from app.services.chat_execution import execute_chat_mode, execute_chat_mode_stream
+from app.services.usage_meter import set_usage_context
 from app.services.live_data_manager import LiveDataManager
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.llamaindex_rag import query_with_llamaindex
@@ -535,6 +536,7 @@ async def chat(
     workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
 ) -> ChatResponse:
     """Answer a chat request through the shared orchestrated backend path."""
+    set_usage_context(user_id=user.id, route="chat")
 
     async def handler(request: ChatRequest, _conversation: Conversation) -> ChatResponse:
         shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
@@ -575,6 +577,7 @@ async def chat_stream(
     workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
 ) -> StreamingResponse:
     """Streaming chat with live block events during tool runs."""
+    set_usage_context(user_id=user.id, route="chat")
 
     async def stream_factory(request: ChatRequest) -> AsyncIterator[str]:
         try:
@@ -627,6 +630,7 @@ async def rag_chat(
     workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
 ) -> ChatResponse:
     """Answer a RAG request through the shared orchestrated backend path."""
+    set_usage_context(user_id=user.id, route="rag")
 
     async def handler(request: ChatRequest, _conversation: Conversation) -> ChatResponse:
         shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
@@ -668,6 +672,7 @@ async def workflow_chat(
     run_store: RunStore = Depends(get_run_store),
 ) -> ChatResponse:
     """Answer a request through the shared orchestrated backend path with trace output."""
+    set_usage_context(user_id=user.id, route="workflow")
 
     async def handler(request: ChatRequest, _conversation: Conversation) -> ChatResponse:
         shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
@@ -720,6 +725,7 @@ async def workflow_chat_stream(
     run_store: RunStore = Depends(get_run_store),
 ) -> StreamingResponse:
     """Stream workflow step progress and final response as SSE."""
+    set_usage_context(user_id=user.id, route="workflow")
 
     async def stream_factory(request: ChatRequest) -> AsyncIterator[str]:
         shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
@@ -804,6 +810,7 @@ async def smart_chat(
     run_store: RunStore = Depends(get_run_store),
 ) -> ChatResponse:
     """Smart entrypoint that auto-routes to chat, rag, or workflow."""
+    set_usage_context(user_id=user.id, route="smart")
 
     async def handler(request: ChatRequest, _conversation: Conversation) -> ChatResponse:
         shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
@@ -857,6 +864,7 @@ async def smart_chat_stream(
     run_store: RunStore = Depends(get_run_store),
 ) -> StreamingResponse:
     """Smart streaming entrypoint with automatic mode selection."""
+    set_usage_context(user_id=user.id, route="smart")
 
     selected_mode = _select_smart_mode(payload)
 

@@ -58,12 +58,20 @@ def test_list_messages_and_delete_conversation(client: TestClient, db_session) -
 
 
 def test_conversations_are_isolated_between_users(db_session, auth_settings: Settings) -> None:
+    from app.core.security import create_access_token
+    from app.db.models import User, UserRole
+
     settings = auth_settings.model_copy(update={"auth_disabled": False})
+    alice = User(email="alice@example.com", display_name="Alice", role=UserRole.user.value, is_active=True)
+    bob = User(email="bob@example.com", display_name="Bob", role=UserRole.user.value, is_active=True)
+    db_session.add_all([alice, bob])
+    db_session.commit()
+
     alice_client = build_client(db_session, settings)
     bob_client = build_client(db_session, settings)
     try:
-        alice_token = alice_client.post("/auth/token", json={"email": "alice@example.com"}).json()["access_token"]
-        bob_token = bob_client.post("/auth/token", json={"email": "bob@example.com"}).json()["access_token"]
+        alice_token = create_access_token(user_id=alice.id, settings=settings)
+        bob_token = create_access_token(user_id=bob.id, settings=settings)
         alice_headers = {"Authorization": f"Bearer {alice_token}"}
         bob_headers = {"Authorization": f"Bearer {bob_token}"}
 
