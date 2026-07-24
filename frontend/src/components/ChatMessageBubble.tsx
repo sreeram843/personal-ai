@@ -197,7 +197,6 @@ export function ChatMessageBubble({
                     content={message.content}
                     blocks={message.blocks}
                     showStreamingCaret={showStreamingCaret}
-                    showLiveSkeleton={message.showLiveSkeleton}
                   />
                   {message.pendingToolApprovals && message.pendingToolApprovals.length > 0 ? (
                     <div className="flex flex-col gap-2 rounded-xl border border-[rgba(224,164,70,0.35)] bg-[rgba(224,164,70,0.1)] px-4 py-3">

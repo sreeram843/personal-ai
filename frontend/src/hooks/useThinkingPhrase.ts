@@ -21,9 +21,6 @@ const WORKFLOW_PHRASES = [
 ] as const;
 
 function pickPhrasePool(message: ChatMessage): readonly string[] {
-  if (message.showLiveSkeleton) {
-    return ['Loading live data and verifying sources…', 'Fetching the latest figures…'] as const;
-  }
   const steps = message.workflow?.steps ?? [];
   if (steps.some((step) => step.status === 'in_progress' || step.status === 'planned')) {
     return WORKFLOW_PHRASES;

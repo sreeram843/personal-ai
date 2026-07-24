@@ -230,7 +230,6 @@ export default function App({ authConfig, user }: AppProps) {
       role: 'assistant',
       content: '',
       createdAt: Date.now(),
-      showLiveSkeleton: true,
     };
 
     let requestHistory: ChatMessage[];
@@ -391,6 +390,7 @@ export default function App({ authConfig, user }: AppProps) {
           content: '',
           errorKind: kind,
           errorDetail: detail,
+          showLiveSkeleton: false,
         },
       ]);
     } finally {
