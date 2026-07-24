@@ -66,11 +66,13 @@ def test_normalize_provider_model_deepseek_aliases() -> None:
 
 def test_normalize_provider_model_retired_groq_aliases() -> None:
     scout = "meta-llama/llama-4-scout-17b-16e-instruct"
-    assert normalize_provider_model("groq", scout) == "llama-3.3-70b-versatile"
+    assert normalize_provider_model("groq", scout) == "openai/gpt-oss-20b"
     # Provider may be labeled openai while still using Groq model ids.
-    assert normalize_provider_model("openai", scout) == "llama-3.3-70b-versatile"
-    assert normalize_provider_model("groq", "qwen/qwen3-32b") == "llama-3.3-70b-versatile"
-    assert normalize_provider_model("groq", "llama-3.3-70b-versatile") == "llama-3.3-70b-versatile"
+    assert normalize_provider_model("openai", scout) == "openai/gpt-oss-20b"
+    assert normalize_provider_model("groq", "qwen/qwen3-32b") == "openai/gpt-oss-20b"
+    assert normalize_provider_model("groq", "llama-3.3-70b-versatile") == "openai/gpt-oss-120b"
+    assert normalize_provider_model("groq", "llama-3.1-8b-instant") == "openai/gpt-oss-20b"
+    assert normalize_provider_model("deepseek", "llama-3.3-70b-versatile") == "deepseek-v4-flash"
 
 
 def test_llm_gateway_falls_back_to_default_provider() -> None:

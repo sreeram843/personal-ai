@@ -69,7 +69,7 @@ Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
 
    | Provider | `base_url` | Example model ids |
    |----------|------------|-------------------|
-   | Groq | `https://api.groq.com/openai` | `llama-3.1-8b-instant`, `llama-3.3-70b-versatile` |
+   | Groq | `https://api.groq.com/openai` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` (legacy `llama-3.1-8b-instant` / `llama-3.3-70b-versatile` / scout are remapped) |
    | Perplexity (Sonar chat) | `https://api.perplexity.ai` | `sonar`, `sonar-pro`, `sonar-reasoning-pro` |
    | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash`, `gemini-2.5-pro` |
    | OpenAI | `https://api.openai.com` | `gpt-4o-mini`, `gpt-4o` |

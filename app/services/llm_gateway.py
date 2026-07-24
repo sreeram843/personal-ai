@@ -145,21 +145,33 @@ _PROVIDER_MODEL_ALIASES: Dict[str, Dict[str, str]] = {
         "deepseek-chat": "deepseek-v4-flash",
         "deepseek-reasoner": "deepseek-v4-pro",
         "deepseek-coder": "deepseek-v4-flash",
+        # Common misconfig: Groq model ids pointed at DeepSeek.
+        "llama-3.3-70b-versatile": "deepseek-v4-flash",
+        "llama-3.1-8b-instant": "deepseek-v4-flash",
+        "meta-llama/llama-4-scout-17b-16e-instruct": "deepseek-v4-flash",
     },
-    # Groq shut these down 2026-07-17; Admin routing often still stores them.
+    # Groq: scout/qwen3-32b shut down 2026-07-17; llama 3.1/3.3 shut down 2026-08-16
+    # (some free/dev keys already return model_not_found early).
     "groq": {
-        "meta-llama/llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
-        "llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
-        "qwen/qwen3-32b": "llama-3.3-70b-versatile",
+        "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "qwen/qwen3-32b": "openai/gpt-oss-20b",
+        "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+    },
+    "openai": {
+        "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant": "openai/gpt-oss-20b",
     },
 }
 
-# Also remap by model id alone — Admin may register Groq under name "openai"
-# or another OpenAI-compatible label while still sending Groq model ids.
+# Remap by model id alone for Groq-only retired ids when the Admin provider
+# label is ambiguous (e.g. cold-start provider named "openai" backed by Groq).
 _GLOBAL_MODEL_ALIASES: Dict[str, str] = {
-    "meta-llama/llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
-    "llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
-    "qwen/qwen3-32b": "llama-3.3-70b-versatile",
+    "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+    "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+    "qwen/qwen3-32b": "openai/gpt-oss-20b",
 }
 
 
