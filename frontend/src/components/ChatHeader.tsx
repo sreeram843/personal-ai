@@ -21,8 +21,8 @@ export function ChatHeader({ mode, logoState, conversationTitle, assistantName, 
 
   return (
     <header
-      className="z-10 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-panel)] px-3 py-2 text-[var(--phosphor)] sm:px-4"
-      style={{ paddingTop: 'max(0.5rem, var(--safe-area-top))' }}
+      className="z-10 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-bg)] px-4 py-3 text-[var(--phosphor)] sm:px-8 sm:py-[18px]"
+      style={{ paddingTop: 'max(0.75rem, var(--safe-area-top))' }}
     >
       <div className="flex min-w-0 flex-1 items-center gap-2">
         {onOpenSidebar && (
@@ -48,7 +48,9 @@ export function ChatHeader({ mode, logoState, conversationTitle, assistantName, 
             {conversationTitle}
           </div>
           {assistantName ? (
-            <div className="type-meta truncate normal-case tracking-normal">Assistant: {assistantName}</div>
+            <div className="type-meta truncate normal-case tracking-normal text-[var(--ui-text-secondary)]">
+              Assistant: {assistantName}
+            </div>
           ) : null}
         </div>
       </div>

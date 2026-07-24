@@ -1,9 +1,15 @@
-import { Check, Loader2, XCircle } from 'lucide-react';
 import type { UploadStatus } from '../types';
 
 interface Props {
   items: UploadStatus[];
 }
+
+const statusColor: Record<UploadStatus['status'], string> = {
+  idle: 'text-[var(--phosphor-dim)]',
+  uploading: 'text-[var(--phosphor-dim)]',
+  success: 'text-[#6fcf97]',
+  error: 'text-[var(--ui-danger)]',
+};
 
 export function UploadStatusList({ items }: Props) {
   if (items.length === 0) {
@@ -11,22 +17,20 @@ export function UploadStatusList({ items }: Props) {
   }
 
   return (
-    <div className="mt-4 space-y-2" aria-live="polite" aria-label="Upload status updates">
+    <div
+      className="mx-auto mb-2 flex w-full max-w-[640px] flex-col gap-1.5"
+      aria-live="polite"
+      aria-label="Upload status updates"
+    >
       {items.map((item) => (
         <div
           key={item.id}
-          className="flex items-center justify-between rounded-lg border border-[var(--ui-border)] bg-[var(--ui-panel)] px-4 py-2 text-sm text-[var(--phosphor)]"
+          className="flex items-center justify-between rounded-[10px] border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-2"
         >
-          <div>
-            <div className="font-medium text-[var(--phosphor)]">{item.name}</div>
-            {item.error && <div className="text-[11px] text-[var(--ui-danger)]">{item.error}</div>}
-          </div>
-          <div className="flex items-center gap-1 text-[var(--phosphor-dim)]">
-            {item.status === 'uploading' && <Loader2 className="h-4 w-4 animate-spin text-[var(--ui-focus)]" />}
-            {item.status === 'success' && <Check className="h-4 w-4 text-[var(--ui-focus)]" />}
-            {item.status === 'error' && <XCircle className="h-4 w-4 text-[var(--ui-danger)]" />}
-            <span className="text-[11px]">{item.status.toUpperCase()}</span>
-          </div>
+          <div className="min-w-0 truncate text-[12.5px] text-[var(--text-primary)]">{item.name}</div>
+          <span className={`shrink-0 pl-2 text-[11px] font-medium tracking-wide ${statusColor[item.status]}`}>
+            {item.status === 'error' && item.error ? item.error : item.status.toUpperCase()}
+          </span>
         </div>
       ))}
     </div>

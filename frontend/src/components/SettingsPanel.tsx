@@ -196,7 +196,7 @@ export function SettingsPanel({
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
-        className="settings-dialog flex max-h-[min(720px,92vh)] w-full max-w-[920px] flex-col overflow-hidden"
+        className="settings-dialog flex max-h-[min(600px,92vh)] w-full max-w-[920px] flex-col overflow-hidden"
       >
         <button
           type="button"
@@ -213,7 +213,7 @@ export function SettingsPanel({
               <div className="panel-rail__header settings-nav-rail__header">
                 <h2
                   id="settings-title"
-                  className="font-display text-sm font-semibold tracking-tight text-[var(--phosphor-bright)]"
+                  className="px-2.5 pb-[18px] text-[17px] font-semibold text-[var(--phosphor-bright)]"
                 >
                   Settings
                 </h2>
@@ -261,7 +261,7 @@ export function SettingsPanel({
 
             <div className="settings-content-body">
               {error ? (
-                <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-100">
+                <div className="mb-4 rounded-lg border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] px-3 py-2 text-xs text-[#f87171]">
                   {error}
                 </div>
               ) : null}
@@ -421,7 +421,7 @@ export function SettingsPanel({
                           className={clsx(
                             'rounded-lg border px-2 py-1 text-[10px]',
                             skill.enabled
-                              ? 'border-emerald-500/30 text-emerald-200'
+                              ? 'border-emerald-500/30 text-emerald-400'
                               : 'border-[var(--ui-border)] text-[var(--phosphor-dim)]',
                           )}
                         >

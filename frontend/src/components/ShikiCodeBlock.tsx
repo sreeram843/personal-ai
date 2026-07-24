@@ -1,4 +1,3 @@
-import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { codeToHtml } from 'shiki';
 
@@ -63,28 +62,26 @@ export function ShikiCodeBlock({ language, code }: Props) {
   };
 
   return (
-    <div className="message-code-block shiki-block overflow-hidden rounded-xl border border-[var(--ui-border)]">
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-1.5">
-        <span className="classic-mono text-[11px] uppercase tracking-wide text-[var(--phosphor-dim)]">
+    <div className="message-code-block shiki-block overflow-hidden rounded-2xl border border-[var(--ui-border)] shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+      <div className="flex items-center justify-between gap-2 border-b border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3.5 py-2">
+        <span className="classic-mono text-[11px] uppercase tracking-[0.04em] text-[var(--phosphor-dim)]">
           {displayLang}
         </span>
         <button
           type="button"
           onClick={() => void handleCopy()}
-          className="grid h-7 w-7 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg)] hover:text-[var(--phosphor)]"
-          aria-label={copied ? 'Copied' : 'Copy code'}
-          title={copied ? 'Copied' : 'Copy'}
+          className="classic-mono cursor-pointer text-[11px] text-[var(--phosphor-dim)] transition hover:text-[var(--phosphor)]"
         >
-          {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
+          {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
       {html ? (
         <div
-          className="shiki-wrapper overflow-x-auto text-[0.8125rem] leading-relaxed [&_pre]:m-0 [&_pre]:bg-transparent [&_pre]:p-3"
+          className="shiki-wrapper overflow-x-auto text-[12.5px] leading-[1.6] [&_pre]:m-0 [&_pre]:bg-transparent [&_pre]:px-4 [&_pre]:py-3.5"
           dangerouslySetInnerHTML={{ __html: html }}
         />
       ) : (
-        <pre className="classic-mono overflow-x-auto bg-[var(--ui-bg)] p-3 text-[0.8125rem] leading-relaxed text-[var(--phosphor-bright)]">
+        <pre className="classic-mono overflow-x-auto bg-[var(--ui-bg)] px-4 py-3.5 text-[12.5px] leading-[1.6] text-[var(--phosphor-bright)]">
           <code>{code}</code>
         </pre>
       )}

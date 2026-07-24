@@ -22,15 +22,15 @@ export function ProfilePanel({ user, authConfig }: Props) {
 
   return (
     <section className="space-y-5">
-      <div className="flex items-center gap-4 rounded-xl border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-4 py-4">
-        <div className="grid h-14 w-14 shrink-0 place-content-center rounded-full bg-[var(--ui-panel-strong)] text-base font-semibold text-[var(--phosphor-bright)]">
+      <div className="flex items-center gap-3.5 rounded-[10px] bg-[var(--ui-bg-elevated)] px-[18px] py-4">
+        <div className="grid h-[42px] w-[42px] shrink-0 place-content-center rounded-full bg-[var(--ui-accent)] text-sm font-bold text-[var(--ui-accent-fg)]">
           {userInitials(user)}
         </div>
         <div className="min-w-0">
-          <div className="truncate font-display text-lg font-semibold tracking-tight text-[var(--phosphor-bright)]">
+          <div className="truncate text-[14.5px] font-semibold text-[var(--phosphor-bright)]">
             {name}
           </div>
-          <div className="truncate text-sm text-[var(--phosphor-dim)]">{email}</div>
+          <div className="truncate text-[12.5px] text-[var(--ui-text-secondary)]">{email}</div>
         </div>
       </div>
 

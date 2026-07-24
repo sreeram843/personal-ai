@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body{margin:0;background:#f0eee9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+  .dv-turn{padding:40px 44px 60px}
+  .dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+  .dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px}
+  .dv-tname{font:600 14px/1.2 system-ui,sans-serif;color:#1a1a1a}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:10px}
+  .dv-oid{font:600 11px ui-monospace,Menlo,monospace;padding:3px 8px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px}
+  .dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+  .dv-card{width:1240px;height:800px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.18);overflow:hidden}
+  .dv-next{margin:26px 0 0;font:12px/1.6 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+  .cur-scroll::-webkit-scrollbar{width:8px}
+  .cur-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px}
+  @keyframes cur-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  @keyframes cur-spin-rev{from{transform:rotate(360deg)}to{transform:rotate(0deg)}}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><span class="dv-tid">1</span><span class="dv-tname">CurAI — three visual directions</span></div>
+  <div class="dv-opts">
+
+    <!-- ============ OPTION 1A — Refined Dark + Amber ============ -->
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><span class="dv-oid">1a</span>Refined Dark + Amber — closest to current, cleaner spacing &amp; hierarchy</div>
+      <div class="dv-card" style="display:flex;background:#18140f;font-family:inherit">
+        <!-- sidebar -->
+        <div style="width:264px;flex:none;background:#1d1712;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;padding:20px 16px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 4px 20px">
+            <div style="width:30px;height:30px;border-radius:8px;background:#2a2018;display:flex;align-items:center;justify-content:center">
+              <svg width="18" height="18" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP1S" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP1S)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#e0a446" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#e0a446" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#e0a446" opacity="0.55"></path></svg>
+            </div>
+            <span style="font-size:16px;font-weight:600;color:#f3ede4;letter-spacing:.2px">CurAI</span>
+          </div>
+          <button onClick="{{ p1NewConvo }}" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#e0a446;border:none;border-radius:8px;color:#1a1408;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:22px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.5"><path d="M12 5v14M5 12h14"></path></svg>
+            New conversation
+          </button>
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,.32);margin:0 4px 10px">RECENT</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div onClick="{{ p1SelectC1 }}" style="{{ p1RowC1Style }}">
+              <div style="font-size:13px;color:#eee6d8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">How are you different from ChatGPT?</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.34);margin-top:3px">Jun 28 · 4 messages</div>
+            </div>
+            <div onClick="{{ p1SelectC2 }}" style="{{ p1RowC2Style }}">
+              <div style="font-size:13px;color:#eee6d8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Design a scalable appointment system</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.34);margin-top:3px">Jun 28 · 2 messages</div>
+            </div>
+            <div onClick="{{ p1SelectC3 }}" style="{{ p1RowC3Style }}">
+              <div style="font-size:13px;color:#eee6d8;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Production API latency root cause</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.34);margin-top:3px">Jun 28 · 2 messages</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div onClick="{{ p1OpenSettings }}" style="display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;cursor:pointer;border-top:1px solid rgba(255,255,255,.06);margin-top:8px;padding-top:16px">
+            <div style="width:30px;height:30px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1a1408">SM</div>
+            <div>
+              <div style="font-size:13px;color:#f3ede4;font-weight:600">Sriram Mentey</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.34)">Settings</div>
+            </div>
+          </div>
+        </div>
+        <!-- main -->
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;position:relative">
+          <div style="padding:18px 32px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span style="font-size:13px;color:rgba(255,255,255,.5)">Assistant: CurAI</span>
+          </div>
+          <sc-if value="{{ p1ViewNew }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:20px">
+              <div style="width:60px;height:60px;border-radius:16px;background:#241b12;display:flex;align-items:center;justify-content:center">
+                <svg width="38" height="38" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP1E" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP1E)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#e0a446" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#e0a446" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#e0a446" opacity="0.55"></path></svg>
+              </div>
+              <div style="font-size:26px;font-weight:600;color:#f6f1e8;text-align:center">Start a direct model conversation</div>
+              <div style="font-size:14.5px;color:rgba(255,255,255,.45);text-align:center;max-width:440px">Pick a starter below or type your own prompt for fast, direct responses.</div>
+              <div style="display:flex;gap:10px;margin-top:6px">
+                <div style="padding:9px 16px;border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:13px;color:#e9e2d4;display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>Summarize a document</div>
+                <div style="padding:9px 16px;border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:13px;color:#e9e2d4;display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>Compare two things</div>
+                <div style="padding:9px 16px;border:1px solid rgba(255,255,255,.12);border-radius:20px;font-size:13px;color:#e9e2d4;display:flex;align-items:center;gap:7px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 7l-10 6L2 7"></path></svg>Draft an email</div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ p1ViewChat }}" hint-placeholder-val="{{ false }}">
+            <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:28px 40px;display:flex;flex-direction:column;gap:22px">
+              <div style="align-self:flex-end;max-width:66%;background:#2a2018;border-radius:14px 14px 4px 14px;padding:14px 18px;color:#f3ede4;font-size:14.5px;line-height:1.5">How are you different from ChatGPT?</div>
+              <div style="display:flex;gap:14px;max-width:78%">
+                <div style="width:30px;height:30px;border-radius:9px;background:#241b12;flex:none;display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP1C" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ p1Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP1C)"></path></svg></div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="font-size:16px;font-weight:600;color:#f6f1e8">Differences from ChatGPT</div>
+                  <div style="font-size:14.5px;line-height:1.65;color:rgba(255,255,255,.72)">I'm designed for clear, concise, well-structured answers. Here's how that plays out in practice.</div>
+                  <div style="font-size:13.5px;font-weight:600;color:#e0a446;margin-top:4px">Response style</div>
+                  <div style="font-size:14px;line-height:1.6;color:rgba(255,255,255,.62);padding-left:16px;border-left:2px solid rgba(224,164,70,.35)">Short paragraphs, headings and bullets over long conversational blocks — built for scanning fast.</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          <div style="padding:18px 32px 24px;border-top:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:10px;background:#221a12;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 10px 10px 18px">
+              <span style="flex:1;font-size:14px;color:rgba(255,255,255,.35)">Message...</span>
+              <div onClick="{{ p1Send }}" style="width:34px;height:34px;border-radius:9px;background:#e0a446;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg></div>
+            </div>
+          </div>
+
+          <!-- settings modal -->
+          <sc-if value="{{ p1SettingsOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:rgba(10,8,5,.72);display:flex;align-items:center;justify-content:center">
+              <div style="width:900px;height:600px;background:#1d1712;border:1px solid rgba(255,255,255,.08);border-radius:12px;display:flex;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+                <div style="width:220px;flex:none;background:#201911;padding:24px 14px;display:flex;flex-direction:column;gap:2px">
+                  <div style="font-size:17px;font-weight:600;color:#f6f1e8;padding:0 10px 18px">Settings</div>
+                  <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,.3);padding:10px 10px 6px">ACCOUNT</div>
+                  <div onClick="{{ p1SetTabProfile }}" style="{{ p1NavProfileStyle }}">Profile</div>
+                  <div onClick="{{ p1SetTabAppearance }}" style="{{ p1NavAppearanceStyle }}">Appearance</div>
+                  <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,.3);padding:14px 10px 6px">AGENT</div>
+                  <div onClick="{{ p1SetTabPermissions }}" style="{{ p1NavPermissionsStyle }}">Permissions</div>
+                  <div onClick="{{ p1SetTabMcp }}" style="{{ p1NavMcpStyle }}">MCP</div>
+                  <div onClick="{{ p1SetTabDoctor }}" style="{{ p1NavDoctorStyle }}">Doctor</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;position:relative">
+                  <div onClick="{{ p1CloseSettings }}" style="position:absolute;top:20px;right:24px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.4)">✕</div>
+                  <div class="cur-scroll" style="padding:28px 32px;overflow-y:auto;flex:1">
+                    <sc-if value="{{ p1TabProfile }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-size:19px;font-weight:600;color:#f6f1e8;margin-bottom:6px">Profile</div>
+                      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:20px">Your account details and sign-in identity.</div>
+                      <div style="background:#241b12;border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:20px">
+                        <div style="width:42px;height:42px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1408">SM</div>
+                        <div><div style="font-size:14.5px;font-weight:600;color:#f3ede4">Sriram Mentey</div><div style="font-size:12.5px;color:rgba(255,255,255,.4)">menteysriram43@gmail.com</div></div>
+                      </div>
+                      <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;color:rgba(255,255,255,.34);margin-bottom:6px">SIGN-IN METHOD</div>
+                      <div style="font-size:14px;color:#eee6d8;margin-bottom:18px">Google</div>
+                      <div style="font-size:12.5px;color:rgba(255,255,255,.35)">Account details come from your sign-in provider.</div>
+                    </sc-if>
+                    <sc-if value="{{ p1TabAppearance }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:600;color:#f6f1e8;margin-bottom:6px">Appearance</div>
+                      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:20px">Choose light or dark mode for the interface.</div>
+                      <div onClick="{{ p1PickDark }}" style="{{ p1ApDarkStyle }}"><div style="font-size:14.5px;font-weight:600;color:#f3ede4">Dark</div><div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-top:3px">Dim panel with amber accents — easier at night.</div></div>
+                      <div onClick="{{ p1PickLight }}" style="{{ p1ApLightStyle }}"><div style="font-size:14.5px;font-weight:600;color:#f3ede4">Light</div><div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-top:3px">Bright canvas with charcoal text.</div></div>
+                    </sc-if>
+                    <sc-if value="{{ p1TabPermissions }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:600;color:#f6f1e8;margin-bottom:6px">Permissions</div>
+                      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:20px">Choose when tools run automatically.</div>
+                      <div onClick="{{ p1PickAuto }}" style="{{ p1PermAutoStyle }}"><div style="font-size:14.5px;font-weight:600;color:#f3ede4">Auto</div><div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-top:3px">Run read tools automatically; audit write/MCP tools.</div></div>
+                      <div onClick="{{ p1PickAsk }}" style="{{ p1PermAskStyle }}"><div style="font-size:14.5px;font-weight:600;color:#f3ede4">Ask</div><div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-top:3px">Pause on external/write tools until you approve.</div></div>
+                      <div onClick="{{ p1PickPlan }}" style="{{ p1PermPlanStyle }}"><div style="font-size:14.5px;font-weight:600;color:#f3ede4">Plan</div><div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-top:3px">Describe tool calls without executing them.</div></div>
+                    </sc-if>
+                    <sc-if value="{{ p1TabMcp }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:600;color:#f6f1e8;margin-bottom:6px">MCP</div>
+                      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:20px">Connect Model Context Protocol servers.</div>
+                      <div style="border:1px dashed rgba(255,255,255,.16);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:10px">
+                        <div style="font-size:14px;font-weight:600;color:#eee6d8">GitHub</div>
+                        <div style="font-size:13px;color:rgba(255,255,255,.4);font-family:ui-monospace,monospace">https://api.githubcopilot.com/mcp/readonly</div>
+                        <div style="align-self:flex-start;padding:9px 16px;background:#e0a446;border-radius:8px;font-size:13px;font-weight:600;color:#1a1408">Add server</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ p1TabDoctor }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:600;color:#f6f1e8;margin-bottom:6px">Doctor</div>
+                      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:20px">Run health checks on runtime components.</div>
+                      <div style="background:rgba(224,164,70,.14);border:1px solid rgba(224,164,70,.35);border-radius:8px;padding:12px 16px;color:#e0a446;font-size:13.5px;font-weight:600;margin-bottom:14px">Status: degraded — MCP enabled but no servers configured</div>
+                      <div style="background:#0f0c08;border-radius:8px;padding:14px 16px;font-family:ui-monospace,monospace;font-size:12px;color:rgba(255,255,255,.55);line-height:1.7">postgres: ok · redis: ok · llm: ok (openai)</div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 1B — Ink & Signal ============ -->
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><span class="dv-oid">1b</span>Ink &amp; Signal — deep navy, technical/precise, cyan accent</div>
+      <div class="dv-card" style="display:flex;background:#0a0d13;font-family:inherit">
+        <div style="width:260px;flex:none;background:#0d1119;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;padding:22px 16px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 2px 22px">
+            <div style="width:28px;height:28px;border-radius:7px;background:#0f1620;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP2S" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="2.5" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="2.5" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="2.5" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP2S)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#4fd1c5" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#4fd1c5" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#4fd1c5" opacity="0.55"></path></svg></div>
+            <span style="font-size:15px;font-weight:700;color:#e7f2f2;letter-spacing:.3px">CurAI</span>
+          </div>
+          <button onClick="{{ p2NewConvo }}" style="display:flex;align-items:center;justify-content:center;gap:9px;padding:11px 14px;background:transparent;border:1px solid #4fd1c5;border-radius:7px;color:#4fd1c5;font-size:12.5px;font-weight:600;cursor:pointer;margin-bottom:24px;font-family:ui-monospace,monospace">
+            + NEW_CONVERSATION
+          </button>
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;color:rgba(255,255,255,.28);margin:0 2px 10px;font-family:ui-monospace,monospace">// RECENT</div>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div onClick="{{ p2SelectC1 }}" style="{{ p2RowC1Style }}">
+              <div style="font-size:12.5px;color:#dbe7e7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">how_are_you_different_from_chatgpt</div>
+              <div style="font-size:10.5px;color:rgba(255,255,255,.3);margin-top:3px;font-family:ui-monospace,monospace">06.28 · 4 msgs</div>
+            </div>
+            <div onClick="{{ p2SelectC2 }}" style="{{ p2RowC2Style }}">
+              <div style="font-size:12.5px;color:#dbe7e7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">scalable_appointment_system</div>
+              <div style="font-size:10.5px;color:rgba(255,255,255,.3);margin-top:3px;font-family:ui-monospace,monospace">06.28 · 2 msgs</div>
+            </div>
+            <div onClick="{{ p2SelectC3 }}" style="{{ p2RowC3Style }}">
+              <div style="font-size:12.5px;color:#dbe7e7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">api_latency_root_cause</div>
+              <div style="font-size:10.5px;color:rgba(255,255,255,.3);margin-top:3px;font-family:ui-monospace,monospace">06.28 · 2 msgs</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div onClick="{{ p2OpenSettings }}" style="display:flex;align-items:center;gap:10px;padding:12px 8px;border-radius:7px;cursor:pointer;border-top:1px solid rgba(255,255,255,.06);padding-top:18px">
+            <div style="width:28px;height:28px;border-radius:6px;background:#161d29;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#4fd1c5;border:1px solid rgba(79,209,197,.3)">SM</div>
+            <div><div style="font-size:12.5px;color:#e7f2f2;font-weight:600">Sriram Mentey</div><div style="font-size:10.5px;color:rgba(255,255,255,.3);font-family:ui-monospace,monospace">settings →</div></div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;position:relative">
+          <div style="padding:16px 32px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;font-family:ui-monospace,monospace;color:#4fd1c5;background:rgba(79,209,197,.1);padding:3px 8px;border-radius:4px">ASSISTANT: CURAI</span>
+          </div>
+          <sc-if value="{{ p2ViewNew }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:18px">
+              <div style="width:64px;height:64px;border-radius:16px;background:#0f1620;display:flex;align-items:center;justify-content:center"><svg width="40" height="40" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP2E" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="2.5" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="2.5" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="2.5" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP2E)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#4fd1c5" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#4fd1c5" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#4fd1c5" opacity="0.55"></path></svg></div>
+              <div style="font-size:11px;font-family:ui-monospace,monospace;color:#4fd1c5;letter-spacing:2px">NEW_SESSION</div>
+              <div style="font-size:27px;font-weight:700;color:#eef7f7;text-align:center">Start a direct model conversation</div>
+              <div style="font-size:14px;color:rgba(255,255,255,.4);text-align:center;max-width:440px">Pick a starter below or type your own prompt for fast, direct responses.</div>
+              <div style="display:flex;gap:10px;margin-top:8px">
+                <div style="padding:9px 16px;border:1px solid rgba(79,209,197,.28);border-radius:6px;font-size:12.5px;color:#cfe9e9;font-family:ui-monospace,monospace">summarize()</div>
+                <div style="padding:9px 16px;border:1px solid rgba(79,209,197,.28);border-radius:6px;font-size:12.5px;color:#cfe9e9;font-family:ui-monospace,monospace">compare()</div>
+                <div style="padding:9px 16px;border:1px solid rgba(79,209,197,.28);border-radius:6px;font-size:12.5px;color:#cfe9e9;font-family:ui-monospace,monospace">draft_email()</div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ p2ViewChat }}" hint-placeholder-val="{{ false }}">
+            <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:26px 40px;display:flex;flex-direction:column;gap:22px">
+              <div style="align-self:flex-end;max-width:64%;background:#161d29;border:1px solid rgba(79,209,197,.2);border-radius:10px 10px 2px 10px;padding:13px 17px;color:#e7f2f2;font-size:14px;line-height:1.5">How are you different from ChatGPT?</div>
+              <div style="display:flex;gap:14px;max-width:78%">
+                <div style="width:26px;height:26px;border-radius:6px;background:#0f1620;flex:none;display:flex;align-items:center;justify-content:center"><svg width="17" height="17" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP2C" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="3" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="3" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#4fd1c5" stroke-width="3" opacity="0.85"></ellipse><circle cx="0" cy="0" r="4" fill="#4fd1c5"><animateMotion dur="{{ p2Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP2C)"></path></svg></div>
+                <div style="display:flex;flex-direction:column;gap:11px">
+                  <div style="font-size:15.5px;font-weight:700;color:#eef7f7">DIFFERENCES_FROM_CHATGPT</div>
+                  <div style="font-size:14px;line-height:1.6;color:rgba(255,255,255,.65)">Built for clear, concise, well-structured answers rather than long free-form replies.</div>
+                  <div style="font-size:12px;font-weight:700;color:#4fd1c5;font-family:ui-monospace,monospace;margin-top:2px">01 · RESPONSE_STYLE</div>
+                  <div style="font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.55);padding-left:14px;border-left:2px solid rgba(79,209,197,.35)">Headings, bullets, short paragraphs — optimized for scanning, not reading start to end.</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          <div style="padding:16px 32px 22px;border-top:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:10px;background:#0d131c;border:1px solid rgba(79,209,197,.22);border-radius:8px;padding:10px 10px 10px 16px">
+              <span style="flex:1;font-size:13.5px;color:rgba(255,255,255,.3);font-family:ui-monospace,monospace">&gt; message...</span>
+              <div onClick="{{ p2Send }}" style="width:32px;height:32px;border-radius:6px;background:#4fd1c5;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#08111a" stroke-width="2.4"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ p2SettingsOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:rgba(4,6,10,.78);display:flex;align-items:center;justify-content:center">
+              <div style="width:900px;height:600px;background:#0d1119;border:1px solid rgba(79,209,197,.2);border-radius:10px;display:flex;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.6)">
+                <div style="width:210px;flex:none;background:#0a0d13;padding:24px 14px;display:flex;flex-direction:column;gap:2px">
+                  <div style="font-size:11px;font-weight:700;color:#eef7f7;padding:0 10px 18px;font-family:ui-monospace,monospace;letter-spacing:1px">SETTINGS</div>
+                  <div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,.28);padding:8px 10px 6px;font-family:ui-monospace,monospace">ACCOUNT</div>
+                  <div onClick="{{ p2SetTabProfile }}" style="{{ p2NavProfileStyle }}">Profile</div>
+                  <div onClick="{{ p2SetTabAppearance }}" style="{{ p2NavAppearanceStyle }}">Appearance</div>
+                  <div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,.28);padding:12px 10px 6px;font-family:ui-monospace,monospace">AGENT</div>
+                  <div onClick="{{ p2SetTabPermissions }}" style="{{ p2NavPermissionsStyle }}">Permissions</div>
+                  <div onClick="{{ p2SetTabMcp }}" style="{{ p2NavMcpStyle }}">MCP</div>
+                  <div onClick="{{ p2SetTabDoctor }}" style="{{ p2NavDoctorStyle }}">Doctor</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;position:relative">
+                  <div onClick="{{ p2CloseSettings }}" style="position:absolute;top:20px;right:24px;width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.4);font-family:ui-monospace,monospace">✕</div>
+                  <div class="cur-scroll" style="padding:28px 32px;overflow-y:auto;flex:1">
+                    <sc-if value="{{ p2TabProfile }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-size:18px;font-weight:700;color:#eef7f7;margin-bottom:6px">Profile</div>
+                      <div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:20px">Your account details and sign-in identity.</div>
+                      <div style="background:#161d29;border:1px solid rgba(79,209,197,.15);border-radius:8px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:20px">
+                        <div style="width:40px;height:40px;border-radius:7px;background:linear-gradient(135deg,#4fd1c5,#3aa6e0);display:flex;align-items:center;justify-content:center;font-weight:800;color:#08111a">SM</div>
+                        <div><div style="font-size:14px;font-weight:600;color:#e7f2f2">Sriram Mentey</div><div style="font-size:12px;color:rgba(255,255,255,.4);font-family:ui-monospace,monospace">menteysriram43@gmail.com</div></div>
+                      </div>
+                      <div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;color:rgba(255,255,255,.3);margin-bottom:6px;font-family:ui-monospace,monospace">SIGN-IN_METHOD</div>
+                      <div style="font-size:13.5px;color:#dbe7e7">Google</div>
+                    </sc-if>
+                    <sc-if value="{{ p2TabAppearance }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:18px;font-weight:700;color:#eef7f7;margin-bottom:6px">Appearance</div>
+                      <div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:20px">Choose light or dark mode for the interface.</div>
+                      <div onClick="{{ p2PickDark }}" style="{{ p2ApDarkStyle }}"><div style="font-size:14px;font-weight:600;color:#e7f2f2">Dark</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:3px">Deep navy panel with signal-cyan accents.</div></div>
+                      <div onClick="{{ p2PickLight }}" style="{{ p2ApLightStyle }}"><div style="font-size:14px;font-weight:600;color:#e7f2f2">Light</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:3px">Bright canvas, same signal accents.</div></div>
+                    </sc-if>
+                    <sc-if value="{{ p2TabPermissions }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:18px;font-weight:700;color:#eef7f7;margin-bottom:6px">Permissions</div>
+                      <div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:20px">Choose when tools run automatically.</div>
+                      <div onClick="{{ p2PickAuto }}" style="{{ p2PermAutoStyle }}"><div style="font-size:14px;font-weight:600;color:#e7f2f2">Auto</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:3px">Run read tools automatically; audit write/MCP tools.</div></div>
+                      <div onClick="{{ p2PickAsk }}" style="{{ p2PermAskStyle }}"><div style="font-size:14px;font-weight:600;color:#e7f2f2">Ask</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:3px">Pause on external/write tools until you approve.</div></div>
+                      <div onClick="{{ p2PickPlan }}" style="{{ p2PermPlanStyle }}"><div style="font-size:14px;font-weight:600;color:#e7f2f2">Plan</div><div style="font-size:12px;color:rgba(255,255,255,.4);margin-top:3px">Describe tool calls without executing them.</div></div>
+                    </sc-if>
+                    <sc-if value="{{ p2TabMcp }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:18px;font-weight:700;color:#eef7f7;margin-bottom:6px">MCP</div>
+                      <div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:20px">Connect Model Context Protocol servers.</div>
+                      <div style="border:1px dashed rgba(79,209,197,.3);border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px">
+                        <div style="font-size:13.5px;font-weight:600;color:#dbe7e7">GitHub</div>
+                        <div style="font-size:12px;color:rgba(255,255,255,.4);font-family:ui-monospace,monospace">https://api.githubcopilot.com/mcp/readonly</div>
+                        <div style="align-self:flex-start;padding:9px 16px;background:#4fd1c5;border-radius:6px;font-size:12.5px;font-weight:700;color:#08111a">Add server</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ p2TabDoctor }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:18px;font-weight:700;color:#eef7f7;margin-bottom:6px">Doctor</div>
+                      <div style="font-size:12.5px;color:rgba(255,255,255,.4);margin-bottom:20px">Run health checks on runtime components.</div>
+                      <div style="background:rgba(240,180,60,.12);border:1px solid rgba(240,180,60,.35);border-radius:7px;padding:12px 16px;color:#f0b43c;font-size:13px;font-weight:600;margin-bottom:14px">STATUS: DEGRADED — MCP enabled, no servers configured</div>
+                      <div style="background:#070a0f;border-radius:7px;padding:14px 16px;font-family:ui-monospace,monospace;font-size:11.5px;color:rgba(255,255,255,.5);line-height:1.7">postgres:ok · redis:ok · llm:ok(openai)</div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ OPTION 1C — Paper Minimal ============ -->
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><span class="dv-oid">1c</span>Paper Minimal — light, airy, single indigo accent, approachable</div>
+      <div class="dv-card" style="display:flex;background:#faf8f4;font-family:inherit">
+        <div style="width:264px;flex:none;background:#f3efe7;border-right:1px solid rgba(0,0,0,.06);display:flex;flex-direction:column;padding:22px 18px">
+          <div style="display:flex;align-items:center;gap:10px;padding:0 2px 22px">
+            <div style="width:28px;height:28px;border-radius:8px;background:#ece9fb;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP3S" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP3S)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#5b57d1" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#5b57d1" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#5b57d1" opacity="0.55"></path></svg></div>
+            <span style="font-size:16px;font-weight:700;color:#241f16;letter-spacing:.1px">CurAI</span>
+          </div>
+          <button onClick="{{ p3NewConvo }}" style="display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 14px;background:#5b57d1;border:none;border-radius:9px;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:24px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 5v14M5 12h14"></path></svg>
+            New conversation
+          </button>
+          <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:rgba(36,31,22,.4);margin:0 2px 10px">RECENT</div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <div onClick="{{ p3SelectC1 }}" style="{{ p3RowC1Style }}">
+              <div style="font-size:13.5px;color:#241f16;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">How are you different from ChatGPT?</div>
+              <div style="font-size:11.5px;color:rgba(36,31,22,.42);margin-top:3px">Jun 28 · 4 messages</div>
+            </div>
+            <div onClick="{{ p3SelectC2 }}" style="{{ p3RowC2Style }}">
+              <div style="font-size:13.5px;color:#241f16;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Design a scalable appointment system</div>
+              <div style="font-size:11.5px;color:rgba(36,31,22,.42);margin-top:3px">Jun 28 · 2 messages</div>
+            </div>
+            <div onClick="{{ p3SelectC3 }}" style="{{ p3RowC3Style }}">
+              <div style="font-size:13.5px;color:#241f16;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Production API latency root cause</div>
+              <div style="font-size:11.5px;color:rgba(36,31,22,.42);margin-top:3px">Jun 28 · 2 messages</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div onClick="{{ p3OpenSettings }}" style="display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:9px;cursor:pointer;border-top:1px solid rgba(0,0,0,.06);padding-top:18px">
+            <div style="width:30px;height:30px;border-radius:50%;background:#5b57d1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">SM</div>
+            <div><div style="font-size:13.5px;color:#241f16;font-weight:600">Sriram Mentey</div><div style="font-size:11.5px;color:rgba(36,31,22,.42)">Settings</div></div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;position:relative">
+          <div style="padding:18px 32px;border-bottom:1px solid rgba(0,0,0,.06);display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;color:rgba(36,31,22,.45)">Assistant: CurAI</span>
+          </div>
+          <sc-if value="{{ p3ViewNew }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:20px">
+              <div style="width:62px;height:62px;border-radius:17px;background:#ece9fb;display:flex;align-items:center;justify-content:center">
+                <svg width="40" height="40" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP3E" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP3E)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#5b57d1" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#5b57d1" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#5b57d1" opacity="0.55"></path></svg>
+              </div>
+              <div style="font-size:27px;font-weight:700;color:#1c1710;text-align:center">Start a direct model conversation</div>
+              <div style="font-size:14.5px;color:rgba(36,31,22,.55);text-align:center;max-width:440px">Pick a starter below or type your own prompt for fast, direct responses.</div>
+              <div style="display:flex;gap:10px;margin-top:6px">
+                <div style="padding:10px 17px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:22px;font-size:13px;color:#241f16;box-shadow:0 1px 2px rgba(0,0,0,.04)">Summarize a document</div>
+                <div style="padding:10px 17px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:22px;font-size:13px;color:#241f16;box-shadow:0 1px 2px rgba(0,0,0,.04)">Compare two things</div>
+                <div style="padding:10px 17px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:22px;font-size:13px;color:#241f16;box-shadow:0 1px 2px rgba(0,0,0,.04)">Draft an email</div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ p3ViewChat }}" hint-placeholder-val="{{ false }}">
+            <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:28px 40px;display:flex;flex-direction:column;gap:22px">
+              <div style="align-self:flex-end;max-width:66%;background:#5b57d1;border-radius:16px 16px 4px 16px;padding:14px 18px;color:#fff;font-size:14.5px;line-height:1.5">How are you different from ChatGPT?</div>
+              <div style="display:flex;gap:14px;max-width:78%">
+                <div style="width:30px;height:30px;border-radius:9px;background:#ece9fb;flex:none;display:flex;align-items:center;justify-content:center"><svg width="19" height="19" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradP3C" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs><g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g><g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#5b57d1" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#5b57d1"><animateMotion dur="{{ p3Ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g><path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradP3C)"></path></svg></div>
+                <div style="display:flex;flex-direction:column;gap:12px">
+                  <div style="font-size:16px;font-weight:700;color:#1c1710">Differences from ChatGPT</div>
+                  <div style="font-size:14.5px;line-height:1.65;color:rgba(36,31,22,.72)">I'm designed for clear, concise, well-structured answers over long conversational blocks.</div>
+                  <div style="font-size:13.5px;font-weight:700;color:#5b57d1;margin-top:4px">Response style</div>
+                  <div style="font-size:14px;line-height:1.6;color:rgba(36,31,22,.62);padding-left:16px;border-left:2px solid rgba(91,87,209,.3)">Headings, bullets and short paragraphs — built for scanning fast.</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+          <div style="padding:18px 32px 24px;border-top:1px solid rgba(0,0,0,.06)">
+            <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid rgba(0,0,0,.1);border-radius:14px;padding:10px 10px 10px 18px;box-shadow:0 1px 3px rgba(0,0,0,.04)">
+              <span style="flex:1;font-size:14px;color:rgba(36,31,22,.35)">Message...</span>
+              <div onClick="{{ p3Send }}" style="width:34px;height:34px;border-radius:10px;background:#5b57d1;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg></div>
+            </div>
+          </div>
+
+          <sc-if value="{{ p3SettingsOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;background:rgba(30,26,18,.4);display:flex;align-items:center;justify-content:center">
+              <div style="width:900px;height:600px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;display:flex;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.18)">
+                <div style="width:220px;flex:none;background:#f7f5f0;padding:24px 14px;display:flex;flex-direction:column;gap:2px">
+                  <div style="font-size:17px;font-weight:700;color:#1c1710;padding:0 10px 18px">Settings</div>
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:rgba(36,31,22,.38);padding:10px 10px 6px">ACCOUNT</div>
+                  <div onClick="{{ p3SetTabProfile }}" style="{{ p3NavProfileStyle }}">Profile</div>
+                  <div onClick="{{ p3SetTabAppearance }}" style="{{ p3NavAppearanceStyle }}">Appearance</div>
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:rgba(36,31,22,.38);padding:14px 10px 6px">AGENT</div>
+                  <div onClick="{{ p3SetTabPermissions }}" style="{{ p3NavPermissionsStyle }}">Permissions</div>
+                  <div onClick="{{ p3SetTabMcp }}" style="{{ p3NavMcpStyle }}">MCP</div>
+                  <div onClick="{{ p3SetTabDoctor }}" style="{{ p3NavDoctorStyle }}">Doctor</div>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;position:relative">
+                  <div onClick="{{ p3CloseSettings }}" style="position:absolute;top:20px;right:24px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(36,31,22,.4)">✕</div>
+                  <div class="cur-scroll" style="padding:28px 32px;overflow-y:auto;flex:1">
+                    <sc-if value="{{ p3TabProfile }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-size:19px;font-weight:700;color:#1c1710;margin-bottom:6px">Profile</div>
+                      <div style="font-size:13px;color:rgba(36,31,22,.5);margin-bottom:20px">Your account details and sign-in identity.</div>
+                      <div style="background:#f7f5f0;border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:20px">
+                        <div style="width:42px;height:42px;border-radius:50%;background:#5b57d1;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff">SM</div>
+                        <div><div style="font-size:14.5px;font-weight:600;color:#1c1710">Sriram Mentey</div><div style="font-size:12.5px;color:rgba(36,31,22,.5)">menteysriram43@gmail.com</div></div>
+                      </div>
+                      <div style="font-size:10.5px;font-weight:700;letter-spacing:1px;color:rgba(36,31,22,.4);margin-bottom:6px">SIGN-IN METHOD</div>
+                      <div style="font-size:14px;color:#241f16">Google</div>
+                    </sc-if>
+                    <sc-if value="{{ p3TabAppearance }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:700;color:#1c1710;margin-bottom:6px">Appearance</div>
+                      <div style="font-size:13px;color:rgba(36,31,22,.5);margin-bottom:20px">Choose light or dark mode for the interface.</div>
+                      <div onClick="{{ p3PickLight }}" style="{{ p3ApLightStyle }}"><div style="font-size:14.5px;font-weight:600;color:#1c1710">Light</div><div style="font-size:12.5px;color:rgba(36,31,22,.5);margin-top:3px">Bright canvas with charcoal text — best for daytime use.</div></div>
+                      <div onClick="{{ p3PickDark }}" style="{{ p3ApDarkStyle }}"><div style="font-size:14.5px;font-weight:600;color:#1c1710">Dark</div><div style="font-size:12.5px;color:rgba(36,31,22,.5);margin-top:3px">Dim panel with indigo accents.</div></div>
+                    </sc-if>
+                    <sc-if value="{{ p3TabPermissions }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:700;color:#1c1710;margin-bottom:6px">Permissions</div>
+                      <div style="font-size:13px;color:rgba(36,31,22,.5);margin-bottom:20px">Choose when tools run automatically.</div>
+                      <div onClick="{{ p3PickAuto }}" style="{{ p3PermAutoStyle }}"><div style="font-size:14.5px;font-weight:600;color:#1c1710">Auto</div><div style="font-size:12.5px;color:rgba(36,31,22,.5);margin-top:3px">Run read tools automatically; audit write/MCP tools.</div></div>
+                      <div onClick="{{ p3PickAsk }}" style="{{ p3PermAskStyle }}"><div style="font-size:14.5px;font-weight:600;color:#1c1710">Ask</div><div style="font-size:12.5px;color:rgba(36,31,22,.5);margin-top:3px">Pause on external/write tools until you approve.</div></div>
+                      <div onClick="{{ p3PickPlan }}" style="{{ p3PermPlanStyle }}"><div style="font-size:14.5px;font-weight:600;color:#1c1710">Plan</div><div style="font-size:12.5px;color:rgba(36,31,22,.5);margin-top:3px">Describe tool calls without executing them.</div></div>
+                    </sc-if>
+                    <sc-if value="{{ p3TabMcp }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:700;color:#1c1710;margin-bottom:6px">MCP</div>
+                      <div style="font-size:13px;color:rgba(36,31,22,.5);margin-bottom:20px">Connect Model Context Protocol servers.</div>
+                      <div style="border:1px dashed rgba(0,0,0,.14);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:10px">
+                        <div style="font-size:14px;font-weight:600;color:#241f16">GitHub</div>
+                        <div style="font-size:13px;color:rgba(36,31,22,.5);font-family:ui-monospace,monospace">https://api.githubcopilot.com/mcp/readonly</div>
+                        <div style="align-self:flex-start;padding:9px 16px;background:#5b57d1;border-radius:8px;font-size:13px;font-weight:600;color:#fff">Add server</div>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ p3TabDoctor }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:19px;font-weight:700;color:#1c1710;margin-bottom:6px">Doctor</div>
+                      <div style="font-size:13px;color:rgba(36,31,22,.5);margin-bottom:20px">Run health checks on runtime components.</div>
+                      <div style="background:#fdf1de;border:1px solid #f0c98a;border-radius:8px;padding:12px 16px;color:#9a6a1c;font-size:13.5px;font-weight:600;margin-bottom:14px">Status: degraded — MCP enabled but no servers configured</div>
+                      <div style="background:#f7f5f0;border-radius:8px;padding:14px 16px;font-family:ui-monospace,monospace;font-size:12px;color:rgba(36,31,22,.6);line-height:1.7">postgres: ok · redis: ok · llm: ok (openai)</div>
+                    </sc-if>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">Try next: "combine 1a's sidebar with 1c's settings" · "make 1b the light-mode default" · "pick 1a, add the Skills and Assistants tabs too"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = {
+    p1: { view: 'new', selectedConvo: null, settingsOpen: false, tab: 'profile', appearance: 'dark', permission: 'auto', thinking: false },
+    p2: { view: 'new', selectedConvo: null, settingsOpen: false, tab: 'profile', appearance: 'dark', permission: 'auto', thinking: false },
+    p3: { view: 'new', selectedConvo: null, settingsOpen: false, tab: 'profile', appearance: 'light', permission: 'auto', thinking: false }
+  };
+
+  update(p, patch) {
+    this.setState(s => ({ ...s, [p]: { ...s[p], ...patch } }));
+  }
+
+  sendMessage(p) {
+    if (this.state[p].thinking) return;
+    this.update(p, { thinking: true });
+    setTimeout(() => {
+      this.update(p, { thinking: false, view: 'chat', selectedConvo: 'c1' });
+    }, 1400);
+  }
+
+  renderVals() {
+    const out = {};
+    const themes = {
+      p1: { rowActive: 'background:#2a2018', text: '#eee6d8', navActive: 'background:#241b12;color:#f3ede4', navIdle: 'color:rgba(255,255,255,.55)', pickActive: 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)', pickIdle: 'border:1.5px solid rgba(255,255,255,.1);background:#201911' },
+      p2: { rowActive: 'background:#161d29', text: '#dbe7e7', navActive: 'background:#161d29;color:#eef7f7', navIdle: 'color:rgba(255,255,255,.5)', pickActive: 'border:1.5px solid #4fd1c5;background:rgba(79,209,197,.08)', pickIdle: 'border:1.5px solid rgba(255,255,255,.08);background:#0a0d13' },
+      p3: { rowActive: 'background:#ece9fb', text: '#241f16', navActive: 'background:#ece9fb;color:#1c1710', navIdle: 'color:rgba(36,31,22,.6)', pickActive: 'border:1.5px solid #5b57d1;background:rgba(91,87,209,.08)', pickIdle: 'border:1.5px solid rgba(0,0,0,.08);background:#fff' }
+    };
+    const baseRow = 'padding:10px 10px;border-radius:8px;cursor:pointer;';
+    const baseNav = 'padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13.5px;font-weight:500;margin-bottom:1px;';
+    const basePick = 'padding:14px 16px;border-radius:10px;cursor:pointer;margin-bottom:10px;';
+
+    ['p1', 'p2', 'p3'].forEach(p => {
+      const st = this.state[p];
+      const th = themes[p];
+      out[p + 'ViewNew'] = st.view === 'new';
+      out[p + 'ViewChat'] = st.view === 'chat';
+      out[p + 'SettingsOpen'] = st.settingsOpen;
+
+      ['profile', 'appearance', 'permissions', 'mcp', 'skills', 'assistants', 'tasks', 'doctor'].forEach(tab => {
+        const cap = tab.charAt(0).toUpperCase() + tab.slice(1);
+        out[p + 'Tab' + cap] = st.tab === tab;
+        out[p + 'Nav' + cap + 'Style'] = baseNav + (st.tab === tab ? th.navActive : th.navIdle);
+        out[p + 'SetTab' + cap] = () => this.update(p, { tab: tab });
+      });
+
+      ['c1', 'c2', 'c3'].forEach(c => {
+        out[p + 'Sel' + c.toUpperCase()] = st.selectedConvo === c;
+        out[p + 'Row' + c.toUpperCase() + 'Style'] = baseRow + (st.selectedConvo === c ? th.rowActive : '');
+        out[p + 'Select' + c.toUpperCase()] = () => this.update(p, { view: 'chat', selectedConvo: c });
+      });
+
+      const spin = st.thinking ? { r1: '0.55s', r2: '0.7s', r3: '0.6s' } : { r1: '9s', r2: '12s', r3: '15s' };
+      out[p + 'Ring1Dur'] = spin.r1;
+      out[p + 'Ring2Dur'] = spin.r2;
+      out[p + 'Ring3Dur'] = spin.r3;
+      out[p + 'Send'] = () => this.sendMessage(p);
+
+      out[p + 'NewConvo'] = () => this.update(p, { view: 'new', selectedConvo: null });
+      out[p + 'OpenSettings'] = () => this.update(p, { settingsOpen: true, tab: 'profile' });
+      out[p + 'CloseSettings'] = () => this.update(p, { settingsOpen: false });
+
+      out[p + 'ApDarkStyle'] = basePick + (st.appearance === 'dark' ? th.pickActive : th.pickIdle);
+      out[p + 'ApLightStyle'] = basePick + (st.appearance === 'light' ? th.pickActive : th.pickIdle);
+      out[p + 'PickDark'] = () => this.update(p, { appearance: 'dark' });
+      out[p + 'PickLight'] = () => this.update(p, { appearance: 'light' });
+
+      out[p + 'PermAutoStyle'] = basePick + (st.permission === 'auto' ? th.pickActive : th.pickIdle);
+      out[p + 'PermAskStyle'] = basePick + (st.permission === 'ask' ? th.pickActive : th.pickIdle);
+      out[p + 'PermPlanStyle'] = basePick + (st.permission === 'plan' ? th.pickActive : th.pickIdle);
+      out[p + 'PickAuto'] = () => this.update(p, { permission: 'auto' });
+      out[p + 'PickAsk'] = () => this.update(p, { permission: 'ask' });
+      out[p + 'PickPlan'] = () => this.update(p, { permission: 'plan' });
+    });
+
+    return out;
+  }
+}
+
+</script>
+</body>
+</html>

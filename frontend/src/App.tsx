@@ -654,8 +654,6 @@ export default function App({ authConfig, user }: AppProps) {
     <div className="app-shell classic-font flex min-h-0 flex-col overflow-hidden bg-[var(--ui-bg)] text-[var(--phosphor)] md:flex-row">
       <a href="#chat-main" className="skip-link">Skip to chat content</a>
       <Sidebar
-        mode={mode}
-        onModeChange={setMode}
         onNewChat={() => {
           setMobileSidebarOpen(false);
           void handleNewChat();
@@ -686,10 +684,6 @@ export default function App({ authConfig, user }: AppProps) {
         onLogout={handleLogout}
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
-        assistants={assistants}
-        selectedAssistantId={selectedAssistantId}
-        onSelectAssistant={setSelectedAssistantId}
-        assistantsLoading={assistantsLoading}
       />
       <AboutPanel open={aboutOpen} onClose={() => setAboutOpen(false)} />
       <SettingsPanel
@@ -719,12 +713,12 @@ export default function App({ authConfig, user }: AppProps) {
         >
           <div className="chat-column flex flex-col gap-2">
             {bootstrapError && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] px-4 py-3 text-sm text-[#f87171]">
                 <span>{bootstrapError}</span>
                 <button
                   type="button"
                   onClick={handleRetryBootstrap}
-                  className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-100 transition hover:bg-red-500/20"
+                  className="rounded-lg border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.15)] px-3 py-1.5 text-xs font-semibold text-[#f87171] transition hover:bg-[rgba(239,68,68,0.25)]"
                 >
                   Retry
                 </button>
@@ -754,7 +748,7 @@ export default function App({ authConfig, user }: AppProps) {
           </div>
         </div>
         <div className="composer-dock pointer-events-none absolute inset-x-0 z-20 px-3 pt-10 sm:px-4">
-          <div className="chat-column pointer-events-auto">
+          <div className="composer-column pointer-events-auto">
             {showJumpToLatest && (
               <div className="mb-2 flex justify-center">
                 <button
@@ -776,6 +770,12 @@ export default function App({ authConfig, user }: AppProps) {
                 disabled={isBootstrapping}
                 onAttach={handleUpload}
                 onFilesPasted={onFilesSelected}
+                mode={mode}
+                onModeChange={setMode}
+                assistants={assistants}
+                selectedAssistantId={selectedAssistantId}
+                onSelectAssistant={setSelectedAssistantId}
+                assistantsLoading={assistantsLoading}
               />
             </AttachmentDropZone>
           </div>

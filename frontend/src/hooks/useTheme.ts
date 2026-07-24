@@ -4,8 +4,7 @@ import { useLocalStorage } from './useLocalStorage';
 type Theme = 'light' | 'dark';
 
 export function useTheme(): [Theme, (theme: Theme) => void, () => void] {
-  const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const [theme, setTheme] = useLocalStorage<Theme>('personal-ai-theme', prefersDark ? 'dark' : 'light');
+  const [theme, setTheme] = useLocalStorage<Theme>('personal-ai-theme', 'dark');
 
   useEffect(() => {
     const root = window.document.documentElement;

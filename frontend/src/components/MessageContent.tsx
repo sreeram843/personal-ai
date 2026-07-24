@@ -36,7 +36,7 @@ const markdownComponents: Components = {
   },
   blockquote({ children }) {
     return (
-      <blockquote className="border-l-2 border-[var(--ui-border-strong)] pl-3 text-[var(--phosphor-dim)]">
+      <blockquote className="border-l-2 border-[rgba(224,164,70,0.35)] pl-4 text-[14px] leading-[1.6] text-[var(--ui-text-secondary)]">
         {children}
       </blockquote>
     );
@@ -99,21 +99,21 @@ const markdownComponents: Components = {
   },
   h1({ children }) {
     return (
-      <h1 className="font-display mt-3 text-lg font-semibold tracking-tight text-[var(--phosphor-bright)] first:mt-0">
+      <h1 className="font-display mt-3 text-[16px] font-semibold tracking-tight text-[var(--phosphor-bright)] first:mt-0">
         {children}
       </h1>
     );
   },
   h2({ children }) {
     return (
-      <h2 className="font-display mt-4 text-base font-semibold tracking-tight text-[var(--phosphor-bright)] first:mt-0">
+      <h2 className="font-display mt-3.5 text-[16px] font-semibold tracking-tight text-[var(--phosphor-bright)] first:mt-0">
         {children}
       </h2>
     );
   },
   h3({ children }) {
     return (
-      <h3 className="font-display mt-3 text-[15px] font-semibold tracking-tight text-[var(--phosphor-bright)] first:mt-0">
+      <h3 className="font-display mt-3 text-[14.5px] font-semibold tracking-tight text-[var(--phosphor-bright)] first:mt-0">
         {children}
       </h3>
     );

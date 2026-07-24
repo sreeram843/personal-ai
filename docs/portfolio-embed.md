@@ -12,7 +12,7 @@ DEMO_MAX_QUESTIONS=5
 DEMO_FULL_APP_URL=https://app.cura-i.com
 DEMO_CONTEXT_MAX_CHARS=12000
 # Optional custom intro shown as the first assistant message
-# DEMO_INTRO=Ask me about AI, live data, or my projects.
+# DEMO_INTRO=Ask about my work in AI, healthcare engineering, academics, or cricket — or try a live weather/FX question.
 # Allow your portfolio to iframe /demo (comma-separated origins)
 DEMO_EMBED_ALLOWED_ORIGINS=https://yourname.dev,https://www.yourname.dev
 ```
@@ -72,9 +72,13 @@ With the API on port 8000 and Vite on 5173, use `http://localhost:5173/demo` (Vi
 |------|--------|
 | Quota | Per browser session (`localStorage` session id), in-memory on the server (resets on deploy/restart) |
 | Knowledge | `app/prompts/demo-about.md` + `app/prompts/demo-cricket.md` (resume, academics, cricket stats) |
+| Live teaser | Allowlisted **weather** and **FX** queries inject verified live context into the reply (no full tool agent) |
 | Auth | None required for `/demo` |
-| Features | Fast/smart chat path only — no uploads, conversations, or sign-in |
-| Limit UI | Counter in header; input disabled after 5 questions with link to full app |
+| Features | Fast chat + optional live teaser; streaming status→final over SSE; no uploads, conversations, or sign-in |
+| UX | Suggested starter chips, always-visible Full app CTA when `DEMO_FULL_APP_URL` is set, action buttons hidden |
+| Limit UI | Counter in header; input disabled after N questions with link to full app |
+
+`GET /demo/config` returns `intro`, `max_questions`, `full_app_url`, and `suggested_prompts`. Chat uses `POST /demo/chat` or `POST /demo/chat/stream`.
 
 ## Files
 
