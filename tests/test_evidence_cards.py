@@ -77,7 +77,7 @@ class _SearchResult:
 
 
 class _StubVectorStore:
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         return [
             _SearchResult(
                 "doc-1",
@@ -148,7 +148,7 @@ def test_writer_uses_compact_evidence_cards_not_full_chunks() -> None:
 
 
 class _StubVectorStoreFull:
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         return [
             _SearchResult(
                 "doc-1",

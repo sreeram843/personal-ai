@@ -10,6 +10,7 @@ from app.schemas.chat import RetrievedChunk
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.ollama import OllamaClient
 from app.services.corpus_synthesis import pack_corpus_synthesis, should_use_corpus_synthesis
+from app.services.cross_encoder_rerank import score_with_cross_encoder
 from app.services.information_routing import is_corpus_overview_query
 from app.services.query_decomposition import expand_retrieval_queries
 from app.services.retrieval_rerank import rerank_and_pack, wide_retrieval_limit
@@ -81,12 +82,14 @@ async def retrieve_user_documents(
     wide_threshold = None if settings.retrieval_rerank_enabled else score_threshold
 
     candidates_by_id: dict[str, RetrievedChunk] = {}
-    for embedding in embeddings:
+    for embedding, variant in zip(embeddings, query_variants):
         results = vector_store.search(
             embedding,
             user_id=user_id,
             limit=search_limit,
             score_threshold=wide_threshold,
+            query_text=variant,
+            hybrid=settings.retrieval_hybrid_enabled,
         )
         for result in results:
             _merge_candidates(candidates_by_id, result, trust_lane=trust_lane)
@@ -107,12 +110,15 @@ async def retrieve_user_documents(
             pack_limit=pack_limit,
         )
     elif settings.retrieval_rerank_enabled:
+        ce_scores = await score_with_cross_encoder(query, candidates, settings=settings)
         sources = rerank_and_pack(
             query,
             candidates,
             limit=min(pack_limit, len(candidates)),
             prefer_document_summaries=is_corpus_overview_query(query),
             summary_boost=settings.retrieval_summary_boost,
+            cross_encoder_scores=ce_scores,
+            cross_encoder_weight=settings.retrieval_cross_encoder_weight,
         )
     else:
         sources = sorted(candidates, key=lambda item: item.score, reverse=True)[:pack_limit]

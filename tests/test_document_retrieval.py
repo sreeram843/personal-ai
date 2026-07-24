@@ -32,7 +32,7 @@ class _MultiQueryVectorStore:
             ],
         }
 
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         self.search_calls += 1
         key = "variant-b" if vector[0] > 0.5 else "variant-a"
         return self._results[key][:limit]

@@ -62,7 +62,19 @@ export function SourcesPanel({ sources }: Props) {
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-medium text-[var(--phosphor-bright)]">{title}</div>
                   {subtitle ? (
-                    <div className="truncate text-[11px] text-[var(--phosphor-dim)]">{subtitle}</div>
+                    /^https?:\/\//i.test(subtitle) ? (
+                      <a
+                        href={subtitle}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        className="block truncate text-[11px] text-[var(--phosphor-dim)] underline decoration-dotted underline-offset-2 hover:text-[var(--ui-accent)]"
+                      >
+                        {subtitle}
+                      </a>
+                    ) : (
+                      <div className="truncate text-[11px] text-[var(--phosphor-dim)]">{subtitle}</div>
+                    )
                   ) : null}
                 </div>
                 {score ? (

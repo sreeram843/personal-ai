@@ -22,7 +22,7 @@ from app.main import app as singleton_app, create_app
 
 
 class _StubVectorStore:
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         return []
 
 

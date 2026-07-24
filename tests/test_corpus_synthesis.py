@@ -129,7 +129,7 @@ def test_pack_corpus_synthesis_adds_graph_linked_neighbor() -> None:
 
 
 class _CorpusVectorStore:
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         return [
             type(
                 "Result",

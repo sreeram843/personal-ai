@@ -84,6 +84,7 @@ export default function App({ authConfig, user }: AppProps) {
   const [assistantsLoading, setAssistantsLoading] = useState(false);
   const [approvedToolIds, setApprovedToolIds] = useState<string[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useLocalStorage<boolean>('personal-ai-sidebar-collapsed', false);
+  const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('personal-ai-sidebar-width', 270);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -454,13 +455,16 @@ export default function App({ authConfig, user }: AppProps) {
   }, [conversationId, conversations, messages]);
 
   const handleDeleteConversation = async (id: string) => {
+    const deletingActive = conversationId === id;
+    if (deletingActive) {
+      controllerRef.current?.abort();
+      sendInFlightRef.current = false;
+      setIsLoading(false);
+      writeCachedMessages(queryClient, null, []);
+      setConversationId(null);
+    }
     try {
       await deleteConversationMutation.mutateAsync(id);
-      if (conversationId === id) {
-        controllerRef.current?.abort();
-        setConversationId(null);
-        writeCachedMessages(queryClient, null, []);
-      }
       showToast('Conversation deleted.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete conversation';
@@ -687,6 +691,8 @@ export default function App({ authConfig, user }: AppProps) {
         }}
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebarCollapsed={() => setSidebarCollapsed((prev) => !prev)}
+        sidebarWidth={sidebarWidth}
+        onSidebarWidthChange={setSidebarWidth}
         user={user}
         onOpenAbout={() => {
           setMobileSidebarOpen(false);

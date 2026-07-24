@@ -513,13 +513,6 @@ export async function refreshLiveBlock(subscriptionKey: string): Promise<Content
   return (await response.json()) as ContentBlock;
 }
 
-async function readFileAsText(file: File): Promise<string> {
-  if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
-    throw new Error('PDF upload is not supported yet. Use .txt or .md files.');
-  }
-  return file.text();
-}
-
 export async function uploadDocuments(
   files: File[],
   options?: { onJobStatus?: (status: string) => void },
@@ -527,19 +520,15 @@ export async function uploadDocuments(
   for (const file of files) {
     assertUploadAllowed(file);
   }
-  const documents = await Promise.all(
-    files.map(async (file) => ({
-      text: await readFileAsText(file),
-      metadata: {
-        path: file.name,
-        title: file.name,
-      },
-    })),
-  );
 
-  const response = await apiFetch('/ingest', {
+  const form = new FormData();
+  for (const file of files) {
+    form.append('files', file);
+  }
+
+  const response = await apiFetch('/ingest/files', {
     method: 'POST',
-    body: JSON.stringify({ documents }),
+    body: form,
   });
 
   if (!response.ok) {

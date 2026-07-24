@@ -52,6 +52,110 @@
     ]
   },
   {
+    "id": "ops-cache-restart",
+    "query": "How do I restart the cache before reindexing?",
+    "top_k": 2,
+    "expected_paths": ["docs/ops-runbook.md"],
+    "candidates": [
+      {
+        "id": "ops-1",
+        "score": 0.55,
+        "text": "Restart the cache service before reindexing search. Confirm redis PING returns PONG.",
+        "metadata": {"path": "docs/ops-runbook.md", "name": "ops-runbook.md"}
+      },
+      {
+        "id": "ops-2",
+        "score": 0.92,
+        "text": "Employee handbook: vacation requests must be submitted two weeks ahead.",
+        "metadata": {"path": "docs/handbook.md", "name": "handbook.md"}
+      },
+      {
+        "id": "ops-3",
+        "score": 0.88,
+        "text": "Marketing calendar for Q3 product launches and webinars.",
+        "metadata": {"path": "docs/marketing.md", "name": "marketing.md"}
+      }
+    ]
+  },
+  {
+    "id": "budget-q3-forecast",
+    "query": "budget forecast Q3 revenue",
+    "top_k": 1,
+    "expected_paths": ["finance/q3-forecast.md"],
+    "candidates": [
+      {
+        "id": "fin-1",
+        "score": 0.95,
+        "text": "Company overview and founding history from 2012.",
+        "metadata": {"path": "finance/overview.md", "name": "overview.md"}
+      },
+      {
+        "id": "fin-2",
+        "score": 0.55,
+        "text": "Budget forecast Q3 revenue increased twelve percent versus prior year.",
+        "metadata": {"path": "finance/q3-forecast.md", "name": "q3-forecast.md"}
+      },
+      {
+        "id": "fin-3",
+        "score": 0.90,
+        "text": "Office cafeteria menu updates for September.",
+        "metadata": {"path": "ops/cafeteria.md", "name": "cafeteria.md"}
+      }
+    ]
+  },
+  {
+    "id": "k8s-rollout-checklist",
+    "query": "kubernetes deployment rollout strategy checklist",
+    "top_k": 1,
+    "expected_paths": ["infra/k8s-rollout.md"],
+    "candidates": [
+      {
+        "id": "k1",
+        "score": 0.99,
+        "text": "Unrelated annual picnic schedule and team games.",
+        "metadata": {"path": "hr/picnic.md", "name": "picnic.md"}
+      },
+      {
+        "id": "k2",
+        "score": 0.97,
+        "text": "Office holiday calendar details for December.",
+        "metadata": {"path": "hr/holidays.md", "name": "holidays.md"}
+      },
+      {
+        "id": "k3",
+        "score": 0.60,
+        "text": "Kubernetes deployment rollout strategy checklist: canary, health probes, rollback.",
+        "metadata": {"path": "infra/k8s-rollout.md", "name": "k8s-rollout.md"}
+      }
+    ]
+  },
+  {
+    "id": "privacy-retention",
+    "query": "How long do we retain uploaded user documents?",
+    "top_k": 2,
+    "expected_paths": ["legal/privacy.md"],
+    "candidates": [
+      {
+        "id": "p1",
+        "score": 0.70,
+        "text": "Uploaded user documents are retained for 90 days after account deletion unless legally required longer.",
+        "metadata": {"path": "legal/privacy.md", "name": "privacy.md"}
+      },
+      {
+        "id": "p2",
+        "score": 0.85,
+        "text": "Brand voice guidelines for social media captions.",
+        "metadata": {"path": "marketing/voice.md", "name": "voice.md"}
+      },
+      {
+        "id": "p3",
+        "score": 0.66,
+        "text": "Incident response severity levels SEV1 through SEV4.",
+        "metadata": {"path": "ops/incident.md", "name": "incident.md"}
+      }
+    ]
+  },
+  {
     "id": "corpus-deployment-notes",
     "query": "Summarize deployment guidance from my uploaded notes with citations",
     "expect_document_grounded": true,

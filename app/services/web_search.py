@@ -73,12 +73,15 @@ class WebSearchService:
             return []
 
     async def get_live_fx_rate(self, base_currency: str, quote_currency: str) -> dict | None:
-        """Fetch live FX rate from Frankfurter API.
-
-        Returns a dict with base, quote, rate, and date when available.
-        """
+        """Fetch live FX rate from Frankfurter, with open.er-api.com fallback."""
         base = base_currency.upper().strip()
         quote = quote_currency.upper().strip()
+        primary = await self._fetch_frankfurter_fx(base, quote)
+        if primary is not None:
+            return primary
+        return await self._fetch_open_er_api_fx(base, quote)
+
+    async def _fetch_frankfurter_fx(self, base: str, quote: str) -> dict | None:
         url = f"https://api.frankfurter.dev/v1/latest?from={base}&to={quote}"
         try:
             async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
@@ -86,7 +89,7 @@ class WebSearchService:
                 response.raise_for_status()
                 payload = response.json()
         except Exception as exc:
-            logger.warning(f"FX rate fetch failed for {base}/{quote}: {exc}")
+            logger.warning(f"Frankfurter FX fetch failed for {base}/{quote}: {exc}")
             return None
 
         rates = payload.get("rates", {})
@@ -100,6 +103,33 @@ class WebSearchService:
             "rate": float(rate),
             "date": payload.get("date", ""),
             "source": "Frankfurter API",
+        }
+
+    async def _fetch_open_er_api_fx(self, base: str, quote: str) -> dict | None:
+        url = f"https://open.er-api.com/v6/latest/{base}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                payload = response.json()
+        except Exception as exc:
+            logger.warning(f"open.er-api FX fallback failed for {base}/{quote}: {exc}")
+            return None
+
+        if str(payload.get("result") or "").lower() not in {"success", ""}:
+            # Some responses omit result; still accept rates when present.
+            if "rates" not in payload:
+                return None
+        rates = payload.get("rates") or {}
+        rate = rates.get(quote)
+        if rate is None:
+            return None
+        return {
+            "base": payload.get("base_code", base),
+            "quote": quote,
+            "rate": float(rate),
+            "date": str(payload.get("time_last_update_utc") or payload.get("date") or ""),
+            "source": "open.er-api.com",
         }
 
     async def build_live_fx_context(self, user_query: str) -> str:
@@ -283,7 +313,13 @@ class WebSearchService:
         return None
 
     async def get_live_weather(self, location: str) -> dict | None:
-        """Fetch current weather for a location using Open-Meteo (no API key)."""
+        """Fetch current weather via Open-Meteo, with wttr.in JSON fallback."""
+        primary = await self._fetch_open_meteo_weather(location)
+        if primary is not None:
+            return primary
+        return await self._fetch_wttr_weather(location)
+
+    async def _fetch_open_meteo_weather(self, location: str) -> dict | None:
         best = await self._geocode_location(location)
         if not best:
             return None
@@ -307,7 +343,7 @@ class WebSearchService:
                 weather_resp.raise_for_status()
                 weather_payload = weather_resp.json()
         except Exception as exc:
-            logger.warning(f"Weather fetch failed for '{location}': {exc}")
+            logger.warning(f"Open-Meteo weather fetch failed for '{location}': {exc}")
             return None
 
         current = weather_payload.get("current") or {}
@@ -329,6 +365,66 @@ class WebSearchService:
             "wind_speed_unit": units.get("wind_speed_10m", "km/h"),
             "weather_code": current.get("weather_code"),
             "source": "Open-Meteo",
+        }
+
+    async def _fetch_wttr_weather(self, location: str) -> dict | None:
+        place = location.strip()
+        if not place:
+            return None
+        url = f"https://wttr.in/{place}"
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=True) as client:
+                response = await client.get(url, params={"format": "j1"})
+                response.raise_for_status()
+                payload = response.json()
+        except Exception as exc:
+            logger.warning(f"wttr.in weather fallback failed for '{place}': {exc}")
+            return None
+
+        current_list = payload.get("current_condition") or []
+        nearest = payload.get("nearest_area") or []
+        if not current_list:
+            return None
+        current = current_list[0] or {}
+        area = (nearest[0] if nearest else {}) or {}
+        area_name = ""
+        if isinstance(area.get("areaName"), list) and area["areaName"]:
+            area_name = str((area["areaName"][0] or {}).get("value") or "")
+        try:
+            temperature = float(current.get("temp_C"))
+        except (TypeError, ValueError):
+            temperature = None
+        try:
+            feels_like = float(current.get("FeelsLikeC"))
+        except (TypeError, ValueError):
+            feels_like = None
+        try:
+            humidity = float(current.get("humidity"))
+        except (TypeError, ValueError):
+            humidity = None
+        try:
+            wind_speed = float(current.get("windspeedKmph"))
+        except (TypeError, ValueError):
+            wind_speed = None
+        try:
+            precipitation = float(current.get("precipMM"))
+        except (TypeError, ValueError):
+            precipitation = None
+
+        return {
+            "location": area_name or place,
+            "time": str(current.get("localObsDateTime") or ""),
+            "temperature": temperature,
+            "temperature_unit": "C",
+            "feels_like": feels_like,
+            "humidity": humidity,
+            "humidity_unit": "%",
+            "precipitation": precipitation,
+            "precipitation_unit": "mm",
+            "wind_speed": wind_speed,
+            "wind_speed_unit": "km/h",
+            "weather_code": None,
+            "source": "wttr.in",
         }
 
     async def get_live_weather_forecast(self, location: str, days: int = 3) -> dict | None:

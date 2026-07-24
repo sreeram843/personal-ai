@@ -214,7 +214,7 @@ textarea {
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--phosphor-dim);
-  margin: 0 4px 10px;
+  margin: 0 4px 6px;
 }
 
 .type-meta {
@@ -499,7 +499,7 @@ html.dark ::selection {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  padding: 20px 16px 14px;
+  padding: 16px 12px 12px;
 }
 
 .panel-rail__header {
@@ -507,7 +507,7 @@ html.dark ::selection {
   shrink: 0;
   align-items: center;
   gap: 10px;
-  padding: 0 4px 20px;
+  padding: 0 4px 14px;
 }
 
 .panel-rail__header .font-display {
@@ -545,7 +545,7 @@ html.dark ::selection {
   align-items: center;
   gap: 10px;
   border-radius: 8px;
-  padding: 10px;
+  padding: 8px 10px;
   text-align: left;
   font-size: 13px;
   font-weight: 500;
@@ -585,8 +585,8 @@ html.dark ::selection {
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
-  padding-top: 9px;
-  padding-bottom: 9px;
+  padding-top: 7px;
+  padding-bottom: 7px;
 }
 
 .panel-rail__item--stacked .panel-rail__item-label {
@@ -616,11 +616,11 @@ html.dark ::selection {
   shrink: 0;
   align-items: center;
   gap: 10px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   border-radius: 8px;
   border: none;
   background: var(--ui-accent);
-  padding: 11px 14px;
+  padding: 9px 12px;
   font-size: 13px;
   font-weight: 600;
   color: var(--ui-accent-fg);
@@ -671,6 +671,26 @@ html.dark ::selection {
   flex-shrink: 0;
 }
 
+.sidebar-resize-handle {
+  z-index: 5;
+}
+
+.sidebar-resize-handle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  left: calc(50% - 1px);
+  width: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle--active::after {
+  background: var(--ui-accent);
+}
+
 .panel-rail__empty {
   border-radius: 10px;
   padding: 10px;
@@ -686,7 +706,7 @@ html.dark ::selection {
 }
 
 .panel-rail__scroll .panel-rail__group + .panel-rail__group {
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .panel-rail__menu--up {
@@ -1134,6 +1154,17 @@ html.capacitor-native #root {
   min-width: 44px;
 }
 
+/* On mouse/trackpad, the 44px minimum (an Apple/Android touch-accessibility
+   guideline) just pads out icon buttons that don't need it — shrink back to
+   the button's own visible size so toolbars like the composer row read tight
+   instead of spaced out. Touch devices keep the full 44px hit target. */
+@media (hover: hover) and (pointer: fine) {
+  .touch-target {
+    min-height: 0;
+    min-width: 0;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   .conversation-menu-btn {
     opacity: 1;
@@ -1282,8 +1313,7 @@ html.capacitor-native #root {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.starter-chip:hover,
-.starter-hint:hover {
+.starter-chip:hover {
   box-shadow: 0 0 14px color-mix(in srgb, var(--ui-accent) 15%, transparent);
 }
 
@@ -1303,18 +1333,6 @@ html.capacitor-native #root {
   line-height: 1.5;
   background: var(--ui-user-bubble);
   color: var(--ui-user-bubble-fg);
-}
-
-.message-float-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  border-radius: 16px;
-  padding: 16px 18px;
-  border: 1px solid var(--ui-border);
-  background: var(--ui-bg-elevated);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 @keyframes empty-state-icon-pulse {

@@ -22,3 +22,9 @@ PyJWT==2.10.1
 email-validator==2.2.0
 google-auth==2.37.0
 cryptography>=44.0.0
+pypdf==5.4.0
+# Required directly by the /ingest/files multipart upload endpoint (app/api/routes.py).
+# Currently satisfied transitively via fastapi==0.111.0, but fastapi split this
+# into the fastapi[standard] extra in later releases — pin explicitly so a
+# routine fastapi bump can't silently break file upload.
+python-multipart==0.0.32

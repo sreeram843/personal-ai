@@ -54,6 +54,7 @@ DEFAULT_WORKFLOW_ROLES: Dict[str, WorkflowRoleConfig] = {
         instruction=(
             "You are the writer. Produce the final user-facing answer using the reviewed draft and verified evidence. "
             "Keep it direct and avoid unsupported claims. "
+            "Preserve draft evidence markers ([[evidence:<id>]]) or convert them to [path]/style citations. "
             "Do not call tools or emit tool-call JSON; web research is already complete."
         ),
     ),

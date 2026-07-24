@@ -81,7 +81,9 @@ export function useConversationMessages(conversationId: string | null, enabled: 
       return mergeFetchedMessages(mapped, cached);
     },
     enabled,
-    placeholderData: (previous) => previous,
+    // Keep prior messages only when switching between real conversations.
+    // Carrying them into the draft (null) key after delete causes an empty-state flicker.
+    placeholderData: conversationId ? (previous) => previous : undefined,
     refetchOnWindowFocus: false,
     staleTime: 30_000,
   });
@@ -104,9 +106,25 @@ export function useDeleteConversation() {
 
   return useMutation({
     mutationFn: (conversationId: string) => deleteConversation(conversationId),
-    onSuccess: (_result, conversationId) => {
+    onMutate: async (conversationId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.conversations });
+      const previous = queryClient.getQueryData(queryKeys.conversations);
+      queryClient.setQueryData(queryKeys.conversations, (current: unknown) => {
+        if (!Array.isArray(current)) {
+          return current;
+        }
+        return current.filter((item: { id?: string }) => item.id !== conversationId);
+      });
+      queryClient.removeQueries({ queryKey: messageQueryKey(conversationId) });
+      return { previous };
+    },
+    onError: (_error, _conversationId, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(queryKeys.conversations, context.previous);
+      }
+    },
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.conversations });
-      void queryClient.removeQueries({ queryKey: messageQueryKey(conversationId) });
     },
   });
 }

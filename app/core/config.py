@@ -38,6 +38,16 @@ class Settings(BaseSettings):
     default_top_k: int = 4
     retrieval_wide_top_k: int = 20
     retrieval_rerank_enabled: bool = True
+    # Optional cross-encoder (BGE/TEI). Off by default — enable with an HTTP rerank
+    # service or local sentence-transformers (provider=local).
+    retrieval_cross_encoder_enabled: bool = False
+    retrieval_cross_encoder_provider: str = "http"
+    retrieval_cross_encoder_url: Optional[str] = None
+    retrieval_cross_encoder_model: str = "BAAI/bge-reranker-base"
+    retrieval_cross_encoder_api_key: Optional[str] = None
+    retrieval_cross_encoder_timeout: float = 15.0
+    retrieval_cross_encoder_weight: float = 0.6
+    retrieval_hybrid_enabled: bool = True
     retrieval_query_decomposition_enabled: bool = True
     retrieval_query_decomposition_max_queries: int = 3
     retrieval_query_decomposition_min_words: int = 4
@@ -109,7 +119,11 @@ class Settings(BaseSettings):
     # Reject oversized / disallowed ingest payloads (JSON /ingest).
     ingest_max_document_bytes: int = 512_000
     ingest_max_batch_bytes: int = 2_000_000
-    ingest_allowed_extensions: str = ".txt,.md"
+    ingest_allowed_extensions: str = ".txt,.md,.pdf"
+    # Raw upload ceiling for /ingest/files (binary bytes before text extraction —
+    # PDFs carry fonts/images, so this is intentionally much larger than
+    # ingest_max_document_bytes, which caps the *extracted text* that gets embedded).
+    ingest_max_upload_bytes: int = 10_000_000
 
     # Optional public legal URLs (OAuth consent + login footer).
     privacy_policy_url: Optional[str] = None

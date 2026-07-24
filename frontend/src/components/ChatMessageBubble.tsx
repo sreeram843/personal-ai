@@ -8,6 +8,7 @@ import {
   resolveMessageError,
 } from '../utils/chatErrors';
 import { CuraiLogo } from './CuraiLogo';
+import { ReasoningPanel } from './ReasoningPanel';
 import { SourcesPanel } from './SourcesPanel';
 import { resolveAssistantLogoState } from './curaiLogoState';
 import { AssistantMessageParts } from './liveData/LiveDataCards';
@@ -179,7 +180,7 @@ export function ChatMessageBubble({
               className={
                 isUser
                   ? 'message-user-bubble w-fit max-w-full'
-                  : 'message-float-card text-[var(--phosphor)]'
+                  : 'flex w-full flex-col gap-3 pt-0.5 text-[var(--phosphor)]'
               }
             >
               {editing ? (
@@ -233,6 +234,10 @@ export function ChatMessageBubble({
               {formatTokenCount(message.inputTokens)} tokens
             </span>
           )}
+
+          {!isUser && !isStreaming ? (
+            <ReasoningPanel reasoning={message.reasoning} workflow={message.workflow} />
+          ) : null}
 
           {!isUser && !isStreaming && message.sources && message.sources.length > 0 ? (
             <SourcesPanel sources={message.sources} />

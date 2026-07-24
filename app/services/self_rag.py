@@ -12,6 +12,7 @@ from app.core.config import Settings
 from app.schemas.chat import RetrievedChunk
 from app.services.document_retrieval import DocumentRetrievalResult, retrieve_user_documents
 from app.services.corpus_synthesis import pack_corpus_synthesis, should_use_corpus_synthesis
+from app.services.cross_encoder_rerank import score_with_cross_encoder
 from app.services.information_routing import is_corpus_overview_query
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.ollama import OllamaClient
@@ -204,6 +205,7 @@ def _pack_merged_sources(
     settings: Settings,
     pack_limit: int,
     score_threshold: Optional[float],
+    cross_encoder_scores: Optional[Sequence[float]] = None,
 ) -> List[RetrievedChunk]:
     candidates = list(sources)
     if not candidates:
@@ -223,6 +225,8 @@ def _pack_merged_sources(
             limit=min(pack_limit, len(candidates)),
             prefer_document_summaries=is_corpus_overview_query(query),
             summary_boost=settings.retrieval_summary_boost,
+            cross_encoder_scores=cross_encoder_scores,
+            cross_encoder_weight=settings.retrieval_cross_encoder_weight,
         )
     else:
         packed = sorted(candidates, key=lambda item: item.score, reverse=True)[:pack_limit]
@@ -314,12 +318,15 @@ async def retrieve_user_documents_with_self_rag(
             break
         current_query = follow_up
 
+    merged = list(merged_by_id.values())
+    ce_scores = await score_with_cross_encoder(query, merged, settings=settings)
     sources = _pack_merged_sources(
         query,
-        list(merged_by_id.values()),
+        merged,
         settings=settings,
         pack_limit=pack_limit,
         score_threshold=score_threshold,
+        cross_encoder_scores=ce_scores,
     )
     return DocumentRetrievalResult(
         sources=sources,

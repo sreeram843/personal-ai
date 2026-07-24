@@ -123,7 +123,7 @@ export function ConversationListItem({
               {item.title}
             </div>
           </div>
-          <div className="mt-[3px] text-[11px] text-[var(--phosphor-dim)]">
+          <div className="mt-[2px] text-[11px] text-[var(--phosphor-dim)]">
             {item.updatedAt
               ? new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
               : 'Today'}{' '}
