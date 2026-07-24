@@ -138,22 +138,82 @@ def get_agent_task_store() -> AgentTaskStore:
 
 @lru_cache
 def get_llm_gateway() -> LLMGateway:
+    """Build the LLM gateway with one adapter per enabled admin provider.
+
+    Each `llm_providers` row becomes its own OpenAI-compatible adapter keyed by
+    provider name, so stage routing can mix Groq / OpenAI / DeepSeek / etc.
+    Env `LLM_OPENAI_*` remains registered as `openai` when not overridden in DB.
+    """
     settings = get_settings()
     adapters = {
         "ollama": OllamaLLMAdapter(get_ollama_client()),
     }
-    if settings.llm_openai_base_url:
+    default_provider = settings.llm_default_provider
+    db_providers = []
+    try:
+        from app.db.session import get_session_factory
+        from app.services.settings_store import get_effective_routing, list_enabled_provider_configs
+
+        db = get_session_factory()()
+        try:
+            routing = get_effective_routing(db, settings)
+            default_provider = routing.default_provider
+            db_providers = list_enabled_provider_configs(db, settings)
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+    for provider in db_providers:
+        if not provider.base_url:
+            continue
+        adapters[provider.provider_name] = OpenAICompatibleLLMAdapter(
+            base_url=provider.base_url,
+            api_key=provider.api_key,
+            timeout=settings.llm_openai_timeout,
+        )
+
+    # Env bootstrap / fallback under the historical "openai" provider key.
+    if settings.llm_openai_base_url and "openai" not in adapters:
         adapters["openai"] = OpenAICompatibleLLMAdapter(
             base_url=settings.llm_openai_base_url,
             api_key=settings.llm_openai_api_key,
             timeout=settings.llm_openai_timeout,
         )
-    return LLMGateway(adapters=adapters, default_provider=settings.llm_default_provider)
+
+    if default_provider not in adapters:
+        if "openai" in adapters:
+            adapters[default_provider] = adapters["openai"]
+        elif db_providers:
+            first_name = db_providers[0].provider_name
+            if first_name in adapters:
+                adapters[default_provider] = adapters[first_name]
+
+    return LLMGateway(adapters=adapters, default_provider=default_provider)
 
 
 @lru_cache
 def get_workflow_model_profile() -> WorkflowModelProfile:
     settings = get_settings()
+    try:
+        from app.db.session import get_session_factory
+        from app.services.settings_store import get_effective_routing
+
+        db = get_session_factory()()
+        try:
+            routing = get_effective_routing(db, settings)
+            return WorkflowModelProfile(
+                planner=StageModelConfig(provider=routing.planner_provider, model=routing.planner_model),
+                synthesizer=StageModelConfig(
+                    provider=routing.synthesizer_provider, model=routing.synthesizer_model
+                ),
+                reviewer=StageModelConfig(provider=routing.reviewer_provider, model=routing.reviewer_model),
+                writer=StageModelConfig(provider=routing.writer_provider, model=routing.writer_model),
+            )
+        finally:
+            db.close()
+    except Exception:
+        pass
     return WorkflowModelProfile(
         planner=StageModelConfig(provider=settings.llm_planner_provider, model=settings.llm_planner_model),
         synthesizer=StageModelConfig(provider=settings.llm_synthesizer_provider, model=settings.llm_synthesizer_model),

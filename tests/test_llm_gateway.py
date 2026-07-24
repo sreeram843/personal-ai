@@ -11,7 +11,33 @@ from app.services.llm_gateway import (
     _coerce_openai_chat_options,
     _format_openai_provider_error,
     _normalize_openai_messages,
+    openai_compatible_chat_completions_url,
 )
+
+
+def test_openai_compatible_chat_completions_url_variants() -> None:
+    assert (
+        openai_compatible_chat_completions_url("https://api.groq.com/openai")
+        == "https://api.groq.com/openai/v1/chat/completions"
+    )
+    assert (
+        openai_compatible_chat_completions_url("https://api.deepseek.com")
+        == "https://api.deepseek.com/v1/chat/completions"
+    )
+    assert (
+        openai_compatible_chat_completions_url("https://api.openai.com/v1")
+        == "https://api.openai.com/v1/chat/completions"
+    )
+    assert (
+        openai_compatible_chat_completions_url("https://api.perplexity.ai")
+        == "https://api.perplexity.ai/chat/completions"
+    )
+    assert (
+        openai_compatible_chat_completions_url(
+            "https://generativelanguage.googleapis.com/v1beta/openai"
+        )
+        == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    )
 
 
 class _RecordingAdapter:

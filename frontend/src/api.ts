@@ -46,12 +46,15 @@ export interface AuthConfig {
   auth_disabled: boolean;
   google_client_id: string | null;
   google_auth_enabled: boolean;
+  signup_mode?: string;
 }
 
 export interface CurrentUser {
   id: string;
   email?: string | null;
   display_name?: string | null;
+  role?: string;
+  is_active?: boolean;
 }
 
 export interface TokenResponsePayload {
@@ -111,7 +114,7 @@ async function safeFetch(input: string, init: RequestInit): Promise<Response> {
   }
 }
 
-async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   const auth = authHeaders();
   Object.entries(auth).forEach(([key, value]) => {
