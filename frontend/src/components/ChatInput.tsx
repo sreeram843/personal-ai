@@ -9,7 +9,8 @@ import {
   useState,
 } from 'react';
 import type { ClipboardEvent, KeyboardEvent, ChangeEvent } from 'react';
-import { Mic, MicOff, Paperclip, Send, Square } from 'lucide-react';
+import { Bot, ChevronDown, MessageSquare, Mic, MicOff, Paperclip, Send, Sparkles, Square } from 'lucide-react';
+import type { AssistantSummary, ConversationMode } from '../types';
 import { extractPastedFiles } from '../utils/attachmentFiles';
 import { estimateTokens, formatCharCount } from '../utils/estimateTokens';
 import { playKeyClick, playSendChirp } from '../utils/terminalAudio';
@@ -29,9 +30,122 @@ interface Props {
   hideAttach?: boolean;
   hideVoice?: boolean;
   placeholder?: string;
+  mode?: ConversationMode;
+  onModeChange?: (mode: ConversationMode) => void;
+  assistants?: AssistantSummary[];
+  selectedAssistantId?: string;
+  onSelectAssistant?: (assistantId: string) => void;
+  assistantsLoading?: boolean;
 }
 
-const MIN_TA = 44;
+const MODE_ITEMS: Array<{ id: ConversationMode; label: string; icon: typeof MessageSquare }> = [
+  { id: 'chat', label: 'Chat', icon: MessageSquare },
+  { id: 'smart', label: 'Smart', icon: Sparkles },
+];
+
+function ModeToggle({
+  mode,
+  onModeChange,
+}: {
+  mode: ConversationMode;
+  onModeChange: (mode: ConversationMode) => void;
+}) {
+  return (
+    <div className="composer-mode-toggle inline-flex shrink-0 items-center gap-0.5" role="radiogroup" aria-label="Conversation mode">
+      {MODE_ITEMS.map((item) => {
+        const Icon = item.icon;
+        const isActive = mode === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="radio"
+            aria-checked={isActive}
+            data-active={isActive ? 'true' : 'false'}
+            onClick={() => onModeChange(item.id)}
+            className="composer-chip"
+            title={item.label}
+          >
+            <Icon className="h-3 w-3 shrink-0" aria-hidden />
+            {item.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ComposerAssistantPicker({
+  assistants,
+  selectedId,
+  onSelect,
+  loading,
+}: {
+  assistants: AssistantSummary[];
+  selectedId?: string;
+  onSelect: (assistantId: string) => void;
+  loading?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const selected = assistants.find((item) => item.id === selectedId) ?? assistants[0];
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="composer-chip"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        title="Assistant"
+      >
+        <Bot className="h-3 w-3 shrink-0" aria-hidden />
+        <span className="max-w-[110px] truncate">{loading ? 'Loading…' : selected?.name ?? 'CurAI'}</span>
+        <ChevronDown className={clsx('h-3 w-3 shrink-0 opacity-70 transition', open ? 'rotate-180' : '')} aria-hidden />
+      </button>
+      {open ? (
+        <div className="composer-dropdown" role="listbox">
+          {assistants.map((assistant) => (
+            <button
+              key={assistant.id}
+              type="button"
+              role="option"
+              aria-selected={assistant.id === selectedId}
+              disabled={!assistant.enabled}
+              data-active={assistant.id === selectedId ? 'true' : 'false'}
+              onClick={() => {
+                onSelect(assistant.id);
+                setOpen(false);
+              }}
+              className={clsx('panel-rail__dropdown-item', !assistant.enabled ? 'opacity-50' : '')}
+            >
+              <div className="text-sm font-medium">{assistant.name}</div>
+              {assistant.description ? (
+                <div className="mt-0.5 text-xs text-[var(--phosphor-dim)]">{assistant.description}</div>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+const MIN_TA = 24;
 const MAX_TA = 200;
 const HINT_CHAR_THRESHOLD = 500;
 
@@ -43,9 +157,15 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
     onStop,
     onAttach,
     onFilesPasted,
-    hideAttach,
-    hideVoice,
-    placeholder = 'Message…',
+    hideAttach = false,
+    hideVoice = false,
+    placeholder = 'Message...',
+    mode,
+    onModeChange,
+    assistants,
+    selectedAssistantId,
+    onSelectAssistant,
+    assistantsLoading = false,
   },
   ref,
 ) {
@@ -149,77 +269,107 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
   const showLengthHint = value.length >= HINT_CHAR_THRESHOLD;
   const estimatedTokenCount = estimateTokens(value);
   const hasContent = Boolean(value.trim());
+  const assistantOptions =
+    assistants && assistants.length
+      ? assistants
+      : [
+          {
+            id: 'default',
+            name: 'CurAI',
+            triggers: [],
+            allowed_tools: [],
+            enabled: true,
+            bundled: true,
+            pick_only: false,
+            is_default: true,
+          },
+        ];
 
   return (
     <div className="flex flex-col gap-1">
       <div
         className={clsx(
-          'input-composer flex items-center gap-1.5 rounded-3xl border border-[var(--ui-border)] bg-[var(--ui-panel)] px-3 py-2 shadow-lg sm:gap-2',
+          'input-composer flex flex-col rounded-[26px] border border-[var(--ui-border)] bg-[var(--ui-input)] px-2 pb-1.5 pt-2',
           hasContent && 'input-composer--has-content',
         )}
       >
-        <label htmlFor={inputId} className="sr-only">
-          Message input
-        </label>
-        <textarea
-          ref={textRef}
-          id={inputId}
-          rows={1}
-          className="composer-textarea min-h-[44px] min-w-0 max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-2 text-base leading-normal text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] placeholder:opacity-80"
-          placeholder={placeholder}
-          aria-label="Message input"
-          value={value}
-          onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-            if (event.target.value.length > value.length) {
-              playKeyClick();
-            }
-            setValue(event.target.value);
-          }}
-          onKeyDown={handleKeyDown}
-          onPaste={handlePaste}
-          disabled={disabled}
-        />
-        {!hideAttach && (
-          <button
-            type="button"
-            onClick={onAttach}
-            aria-label="Attach file"
-            className="touch-target grid h-10 w-10 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center md:h-9 md:w-9"
-            title="Attach"
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
-        )}
-        {!hideVoice && (
-          <button
-            type="button"
-            onClick={() => setIsRecording((state) => !state)}
+        <div className="flex items-end gap-2 px-2.5">
+          <label htmlFor={inputId} className="sr-only">
+            Message input
+          </label>
+          <textarea
+            ref={textRef}
+            id={inputId}
+            rows={1}
+            className="composer-textarea min-h-[24px] min-w-0 max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-0.5 text-[14px] leading-[1.45] text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] placeholder:opacity-80"
+            placeholder={placeholder}
+            aria-label="Message input"
+            value={value}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
+              if (event.target.value.length > value.length) {
+                playKeyClick();
+              }
+              setValue(event.target.value);
+            }}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             disabled={disabled}
-            aria-pressed={isRecording}
-            aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
-            className="touch-target grid h-10 w-10 shrink-0 place-content-center rounded-lg border border-[var(--ui-border)] text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 self-center md:h-9 md:w-9"
-            title={isRecording ? 'Stop recording' : 'Voice input'}
-          >
-            {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={isStreaming ? onStop : handleSend}
-          disabled={disabled || (!isStreaming && !hasContent)}
-          aria-label={isStreaming ? 'Stop generating' : 'Send message'}
-          className={clsx(
-            'composer-send-btn touch-target grid h-10 w-10 shrink-0 place-content-center self-center rounded-lg transition active:scale-[0.98] disabled:cursor-not-allowed md:h-9 md:w-9',
-            isStreaming
-              ? 'border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor)] shadow-sm hover:bg-[var(--ui-panel)]'
-              : hasContent
-                ? 'composer-send-btn--ready shadow-sm'
-                : 'border border-[var(--ui-border)] bg-transparent text-[var(--phosphor-dim)] opacity-70',
-          )}
-          title={isStreaming ? 'Stop' : 'Send'}
-        >
-          {isStreaming ? <Square className="h-4 w-4 fill-current" /> : <Send className="h-4 w-4" />}
-        </button>
+          />
+        </div>
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-visible">
+            {!hideAttach && (
+              <button
+                type="button"
+                onClick={onAttach}
+                aria-label="Attach file"
+                className="touch-target grid h-7 w-7 shrink-0 place-content-center rounded-full text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                title="Attach"
+              >
+                <Paperclip className="h-[15px] w-[15px]" />
+              </button>
+            )}
+            {mode && onModeChange && <ModeToggle mode={mode} onModeChange={onModeChange} />}
+            {onSelectAssistant && (
+              <ComposerAssistantPicker
+                assistants={assistantOptions}
+                selectedId={selectedAssistantId}
+                onSelect={onSelectAssistant}
+                loading={assistantsLoading}
+              />
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {!hideVoice && (
+              <button
+                type="button"
+                onClick={() => setIsRecording((state) => !state)}
+                disabled={disabled}
+                aria-pressed={isRecording}
+                aria-label={isRecording ? 'Stop voice input' : 'Start voice input'}
+                className="touch-target grid h-7 w-7 shrink-0 place-content-center rounded-full text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                title={isRecording ? 'Stop recording' : 'Voice input'}
+              >
+                {isRecording ? <MicOff className="h-[14px] w-[14px]" /> : <Mic className="h-[14px] w-[14px]" />}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={isStreaming ? onStop : handleSend}
+              disabled={disabled || (!isStreaming && !hasContent)}
+              aria-label={isStreaming ? 'Stop generating' : 'Send message'}
+              className={clsx(
+                'composer-send-btn touch-target grid h-[32px] w-[32px] shrink-0 place-content-center rounded-full transition active:scale-[0.98] disabled:cursor-not-allowed',
+                isStreaming
+                  ? 'border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor)] hover:bg-[var(--ui-panel)]'
+                  : 'composer-send-btn--ready',
+              )}
+              title={isStreaming ? 'Stop' : 'Send'}
+            >
+              {isStreaming ? <Square className="h-3.5 w-3.5 fill-current" /> : <Send className="h-[14px] w-[14px]" strokeWidth={2.2} />}
+            </button>
+          </div>
+        </div>
       </div>
       {showLengthHint && (
         <div className="px-3 text-right text-[11px] tabular-nums text-[var(--phosphor-dim)]">

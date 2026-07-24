@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{background:#e9e6e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .cur-scroll::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+
+<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center">
+<div style="transform:{{ frameScale }};transition:transform .2s ease">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ isDark }}" hint-size="402,874">
+
+  <div style="height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;transition:background .25s ease;background:{{ pageBg }}">
+
+    <!-- header -->
+    <div style="padding:58px 18px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid {{ borderColor }}">
+      <div onClick="{{ openDrawer }}" style="width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="{{ textPrimary }}" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+          <svg width="15" height="15" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradM" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs>
+          <g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="5" fill="#e0a446"><animateMotion dur="{{ ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+          <g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="5" fill="#e0a446"><animateMotion dur="{{ ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g>
+          <g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="5" fill="#e0a446"><animateMotion dur="{{ ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+          <path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradM)"></path></svg>
+        </div>
+        <span style="font-size:15.5px;font-weight:600;color:{{ textPrimary }}">CurAI</span>
+      </div>
+      <div onClick="{{ openSettingsHome }}" style="width:32px;height:32px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;color:#1a1408;cursor:pointer">SM</div>
+    </div>
+
+    <sc-if value="{{ viewNew }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;gap:18px;text-align:center">
+        <div style="width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+          <svg width="32" height="32" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradM2" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs>
+          <g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+          <g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g>
+          <g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+          <path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradM2)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#e0a446" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#e0a446" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#e0a446" opacity="0.55"></path></svg>
+        </div>
+        <div style="font-size:21px;font-weight:600;color:{{ textPrimary }}">Start a conversation</div>
+        <div style="font-size:13.5px;line-height:1.5;color:{{ textSecondary }}">Pick a starter or type your own prompt below.</div>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%;margin-top:6px">
+          <div style="{{ chipStyle }}">Summarize a document</div>
+          <div style="{{ chipStyle }}">Compare two things</div>
+          <div style="{{ chipStyle }}">Draft an email</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ viewChat }}" hint-placeholder-val="{{ false }}">
+      <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:16px">
+        <div style="{{ bubbleStyle }}">How are you different from ChatGPT?</div>
+        <div style="display:flex;gap:10px">
+          <div style="width:26px;height:26px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+            <svg width="16" height="16" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradM3" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs>
+            <g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+            <g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g>
+            <g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+            <path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradM3)"></path></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Differences from ChatGPT</div>
+            <div style="font-size:13px;line-height:1.55;color:{{ textSecondary }}">Built for clear, concise, well-structured answers over long free-form replies.</div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="padding:12px 16px calc(env(safe-area-inset-bottom) + 22px);border-top:1px solid {{ borderColor }}">
+      <div style="{{ composerStyle }}">
+        <span style="flex:1;font-size:14px;color:{{ textTertiary }}">Message...</span>
+        <div onClick="{{ send }}" style="width:32px;height:32px;border-radius:9px;background:#e0a446;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- drawer overlay -->
+    <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeDrawer }}" style="position:absolute;inset:0;background:rgba(0,0,0,.45);z-index:40"></div>
+      <div style="position:absolute;top:0;bottom:0;left:0;width:82%;z-index:41;display:flex;flex-direction:column;padding:58px 16px 20px;transition:background .25s ease;background:{{ sidebarBg }};box-shadow:6px 0 24px rgba(0,0,0,.2)">
+        <button onClick="{{ newConvo }}" style="display:flex;align-items:center;gap:9px;padding:11px 14px;background:#e0a446;border:none;border-radius:9px;color:#1a1408;font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:20px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.5"><path d="M12 5v14M5 12h14"></path></svg>
+          New conversation
+        </button>
+        <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;margin:0 4px 10px;color:{{ textTertiary }}">RECENT</div>
+        <div style="display:flex;flex-direction:column;gap:3px;overflow-y:auto" class="cur-scroll">
+          <div onClick="{{ selectC1 }}" style="{{ rowC1Style }}">
+            <div style="font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ textPrimary }}">How are you different from ChatGPT?</div>
+            <div style="font-size:11px;margin-top:3px;color:{{ textTertiary }}">Jun 28 · 4 messages</div>
+          </div>
+          <div onClick="{{ selectC2 }}" style="{{ rowC2Style }}">
+            <div style="font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ textPrimary }}">Design a scalable appointment system</div>
+            <div style="font-size:11px;margin-top:3px;color:{{ textTertiary }}">Jun 28 · 2 messages</div>
+          </div>
+          <div onClick="{{ selectC3 }}" style="{{ rowC3Style }}">
+            <div style="font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ textPrimary }}">Production API latency root cause</div>
+            <div style="font-size:11px;margin-top:3px;color:{{ textTertiary }}">Jun 28 · 2 messages</div>
+          </div>
+        </div>
+        <div style="flex:1"></div>
+        <div onClick="{{ openSettingsHome }}" style="display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:9px;cursor:pointer;border-top:1px solid {{ borderColor }};padding-top:16px">
+          <div style="width:28px;height:28px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1a1408">SM</div>
+          <div style="font-size:13px;font-weight:600;color:{{ textPrimary }}">Sriram Mentey</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- settings: list -->
+    <sc-if value="{{ settingsHome }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;transition:background .25s ease;background:{{ pageBg }}">
+        <div style="padding:58px 16px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid {{ borderColor }}">
+          <div onClick="{{ closeSettings }}" style="cursor:pointer;color:{{ textPrimary }};font-size:20px;line-height:1">‹</div>
+          <div style="font-size:17px;font-weight:600;color:{{ textPrimary }}">Settings</div>
+        </div>
+        <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:8px 16px">
+          <div onClick="{{ openTabProfile }}" style="{{ settingsRowStyle }}">Profile</div>
+          <div onClick="{{ openTabAppearance }}" style="{{ settingsRowStyle }}">Appearance</div>
+          <div onClick="{{ openTabPermissions }}" style="{{ settingsRowStyle }}">Permissions</div>
+          <div onClick="{{ openTabMcp }}" style="{{ settingsRowStyle }}">MCP</div>
+          <div onClick="{{ openTabDoctor }}" style="{{ settingsRowStyleLast }}">Doctor</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- settings: detail -->
+    <sc-if value="{{ settingsDetail }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;z-index:51;display:flex;flex-direction:column;transition:background .25s ease;background:{{ pageBg }}">
+        <div style="padding:58px 16px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid {{ borderColor }}">
+          <div onClick="{{ backToSettingsHome }}" style="cursor:pointer;color:{{ textPrimary }};font-size:20px;line-height:1">‹</div>
+          <div style="font-size:17px;font-weight:600;color:{{ textPrimary }}">{{ activeTabLabel }}</div>
+        </div>
+        <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:18px 16px">
+          <sc-if value="{{ tabProfile }}" hint-placeholder-val="{{ false }}">
+            <div style="border-radius:12px;padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:16px;transition:background .25s ease;background:{{ tileBg }}">
+              <div style="width:40px;height:40px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1408">SM</div>
+              <div><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Sriram Mentey</div><div style="font-size:12px;color:{{ textSecondary }}">menteysriram43@gmail.com</div></div>
+            </div>
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;margin-bottom:6px;color:{{ textTertiary }}">SIGN-IN METHOD</div>
+            <div style="font-size:14px;color:{{ textPrimary }}">Google</div>
+          </sc-if>
+          <sc-if value="{{ tabAppearance }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ pickDark }}" style="{{ apDarkStyle }}"><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Dark</div><div style="font-size:12px;margin-top:3px;color:{{ textSecondary }}">Dim panel with amber accents.</div></div>
+            <div onClick="{{ pickLight }}" style="{{ apLightStyle }}"><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Light</div><div style="font-size:12px;margin-top:3px;color:{{ textSecondary }}">Bright canvas, same amber accent.</div></div>
+          </sc-if>
+          <sc-if value="{{ tabPermissions }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ pickAuto }}" style="{{ permAutoStyle }}"><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Auto</div><div style="font-size:12px;margin-top:3px;color:{{ textSecondary }}">Run read tools automatically.</div></div>
+            <div onClick="{{ pickAsk }}" style="{{ permAskStyle }}"><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Ask</div><div style="font-size:12px;margin-top:3px;color:{{ textSecondary }}">Pause on external/write tools.</div></div>
+            <div onClick="{{ pickPlan }}" style="{{ permPlanStyle }}"><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Plan</div><div style="font-size:12px;margin-top:3px;color:{{ textSecondary }}">Describe tool calls without executing.</div></div>
+          </sc-if>
+          <sc-if value="{{ tabMcp }}" hint-placeholder-val="{{ false }}">
+            <div style="border:1px dashed {{ borderColor }};border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">GitHub</div>
+              <div style="font-size:12px;font-family:ui-monospace,monospace;word-break:break-all;color:{{ textSecondary }}">https://api.githubcopilot.com/mcp/readonly</div>
+              <div style="align-self:flex-start;padding:8px 14px;background:#e0a446;border-radius:8px;font-size:12.5px;font-weight:600;color:#1a1408">Add server</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ tabDoctor }}" hint-placeholder-val="{{ false }}">
+            <div style="background:rgba(224,164,70,.14);border:1px solid rgba(224,164,70,.35);border-radius:10px;padding:12px 14px;color:#c98a2e;font-size:13px;font-weight:600">Status: degraded — no MCP servers configured</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+
+</x-import>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = {
+    theme: 'dark', view: 'new', selectedConvo: null, thinking: false,
+    drawerOpen: false, settingsScreen: null, tab: 'profile', permission: 'auto', scale: 1
+  };
+
+  set(patch) { this.setState(s => ({ ...s, ...patch })); }
+
+  componentDidMount() {
+    this.onResize = () => {
+      const s = Math.min(1, (window.innerWidth - 24) / 402, (window.innerHeight - 24) / 874);
+      this.set({ scale: s });
+    };
+    this.onResize();
+    window.addEventListener('resize', this.onResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  sendMessage() {
+    if (this.state.thinking) return;
+    this.set({ thinking: true, drawerOpen: false });
+    setTimeout(() => this.set({ thinking: false, view: 'chat', selectedConvo: 'c1' }), 1400);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const dark = {
+      pageBg: '#18140f', sidebarBg: '#1d1712', borderColor: 'rgba(255,255,255,.08)',
+      textPrimary: '#f6f1e8', textSecondary: 'rgba(255,255,255,.55)', textTertiary: 'rgba(255,255,255,.36)',
+      tileBg: '#241b12', rowActiveBg: '#2a2018', inputBg: '#221a12',
+      chipBg: 'transparent', chipBorder: 'rgba(255,255,255,.14)', chipText: '#e9e2d4',
+      bubbleBg: '#2a2018', bubbleText: '#f3ede4', rowBg: '#201911'
+    };
+    const light = {
+      pageBg: '#faf8f4', sidebarBg: '#f3efe7', borderColor: 'rgba(0,0,0,.08)',
+      textPrimary: '#1c1710', textSecondary: 'rgba(36,31,22,.62)', textTertiary: 'rgba(36,31,22,.44)',
+      tileBg: '#fdf1de', rowActiveBg: '#f5e6c8', inputBg: '#fff',
+      chipBg: '#fff', chipBorder: 'rgba(0,0,0,.1)', chipText: '#241f16',
+      bubbleBg: '#e0a446', bubbleText: '#1a1408', rowBg: '#fff'
+    };
+    const T = s.theme === 'dark' ? dark : light;
+    const out = { ...T };
+    out.isDark = s.theme === 'dark';
+    out.frameScale = 'scale(' + s.scale + ')';
+
+    out.viewNew = s.view === 'new';
+    out.viewChat = s.view === 'chat';
+    out.newConvo = () => this.set({ view: 'new', selectedConvo: null, drawerOpen: false });
+    out.send = () => this.sendMessage();
+
+    out.drawerOpen = s.drawerOpen;
+    out.openDrawer = () => this.set({ drawerOpen: true });
+    out.closeDrawer = () => this.set({ drawerOpen: false });
+
+    ['c1', 'c2', 'c3'].forEach(c => {
+      out['select' + c.toUpperCase()] = () => this.set({ view: 'chat', selectedConvo: c, drawerOpen: false });
+      out['row' + c.toUpperCase() + 'Style'] = 'padding:10px 10px;border-radius:8px;cursor:pointer;background:' + (s.selectedConvo === c ? T.rowActiveBg : 'transparent');
+    });
+
+    const spin = s.thinking ? { r1: '0.55s', r2: '0.7s', r3: '0.6s' } : { r1: '9s', r2: '12s', r3: '15s' };
+    out.ring1Dur = spin.r1; out.ring2Dur = spin.r2; out.ring3Dur = spin.r3;
+
+    out.chipStyle = 'padding:11px 14px;border-radius:12px;font-size:13.5px;text-align:left;border:1px solid ' + T.chipBorder + ';background:' + T.chipBg + ';color:' + T.chipText;
+    out.bubbleStyle = 'align-self:flex-end;max-width:80%;border-radius:14px 14px 4px 14px;padding:12px 15px;font-size:14px;line-height:1.5;background:' + T.bubbleBg + ';color:' + T.bubbleText;
+    out.composerStyle = 'display:flex;align-items:center;gap:9px;border-radius:12px;padding:9px 9px 9px 15px;border:1px solid ' + T.borderColor + ';background:' + T.inputBg;
+
+    out.settingsHome = s.settingsScreen === 'home';
+    out.settingsDetail = s.settingsScreen === 'detail';
+    out.openSettingsHome = () => this.set({ settingsScreen: 'home', drawerOpen: false });
+    out.closeSettings = () => this.set({ settingsScreen: null });
+    out.backToSettingsHome = () => this.set({ settingsScreen: 'home' });
+
+    out.settingsRowStyle = 'padding:14px 6px;font-size:15px;cursor:pointer;border-bottom:1px solid ' + T.borderColor + ';color:' + T.textPrimary;
+    out.settingsRowStyleLast = 'padding:14px 6px;font-size:15px;cursor:pointer;color:' + T.textPrimary;
+
+    const labels = { profile: 'Profile', appearance: 'Appearance', permissions: 'Permissions', mcp: 'MCP', doctor: 'Doctor' };
+    out.activeTabLabel = labels[s.tab] || '';
+    ['profile', 'appearance', 'permissions', 'mcp', 'doctor'].forEach(tab => {
+      const cap = tab.charAt(0).toUpperCase() + tab.slice(1);
+      out['tab' + cap] = s.tab === tab;
+      out['openTab' + cap] = () => this.set({ tab: tab, settingsScreen: 'detail' });
+    });
+
+    const pickBase = 'padding:14px 15px;border-radius:12px;cursor:pointer;margin-bottom:10px;';
+    const idle = 'border:1.5px solid ' + T.borderColor + ';background:' + T.rowBg;
+    const active = 'border:1.5px solid #e0a446;background:rgba(224,164,70,.12)';
+    out.apDarkStyle = pickBase + (s.theme === 'dark' ? active : idle);
+    out.apLightStyle = pickBase + (s.theme === 'light' ? active : idle);
+    out.pickDark = () => this.set({ theme: 'dark' });
+    out.pickLight = () => this.set({ theme: 'light' });
+
+    out.permAutoStyle = pickBase + (s.permission === 'auto' ? active : idle);
+    out.permAskStyle = pickBase + (s.permission === 'ask' ? active : idle);
+    out.permPlanStyle = pickBase + (s.permission === 'plan' ? active : idle);
+    out.pickAuto = () => this.set({ permission: 'auto' });
+    out.pickAsk = () => this.set({ permission: 'ask' });
+    out.pickPlan = () => this.set({ permission: 'plan' });
+
+    return out;
+  }
+}
+
+</script>
+</body>
+</html>

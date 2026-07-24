@@ -41,11 +41,11 @@ export function ReasoningPanel({ message, isStreaming = false }: Props) {
     <details
       open={open}
       onToggle={(event) => setOpen((event.target as HTMLDetailsElement).open)}
-      className="mt-2 w-full rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)]/60 text-sm text-[var(--phosphor-dim)]"
+      className="mt-2 w-full overflow-hidden rounded-[10px] border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] text-sm text-[var(--phosphor-dim)]"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-[var(--phosphor)] marker:content-none">
+      <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-[13px] text-[var(--text-primary)] marker:content-none">
         <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-3.5 w-3.5 shrink-0 text-[var(--phosphor-dim)] transition-transform ${open ? 'rotate-180' : '-rotate-90'}`}
           aria-hidden
         />
         <span>{isStreaming ? 'Working…' : 'Reasoning & workflow trace'}</span>
@@ -56,7 +56,7 @@ export function ReasoningPanel({ message, isStreaming = false }: Props) {
         )}
       </summary>
 
-      <div className="space-y-3 border-t border-[var(--ui-border)] px-3 py-2.5">
+      <div className="flex flex-col gap-2.5 border-t border-[var(--ui-border)] px-3.5 py-3">
         {isStreaming && activeStep && (
           <p className="text-xs leading-relaxed text-[var(--phosphor-dim)]">
             {activeStep.title}
@@ -66,19 +66,19 @@ export function ReasoningPanel({ message, isStreaming = false }: Props) {
 
         {hasWorkflow && message.workflow && (
           <section>
-            <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-[var(--phosphor-dim)]">
+            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--phosphor-dim)]">
               Workflow steps
             </h4>
             <ol className="space-y-1.5">
               {message.workflow.steps.map((step) => (
-                <li key={step.id} className="rounded-md bg-[var(--ui-bg)]/50 px-2.5 py-1.5">
+                <li key={step.id} className="rounded-lg bg-[var(--ui-bg)] px-2.5 py-2 text-[13px] text-[var(--text-primary)]">
                   <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <span className="font-medium text-[var(--phosphor)]">{step.title}</span>
-                    <span className="text-xs capitalize text-[var(--phosphor-dim)]">
+                    <span className="font-medium">{step.title}</span>
+                    <span className="text-[11.5px] capitalize text-[var(--phosphor-dim)]">
                       {step.agent} · {statusLabel(step.status)}
                     </span>
                   </div>
-                  {step.summary && <p className="mt-0.5 text-xs leading-relaxed">{step.summary}</p>}
+                  {step.summary && <p className="mt-0.5 text-xs leading-relaxed text-[var(--phosphor-dim)]">{step.summary}</p>}
                 </li>
               ))}
             </ol>
@@ -87,10 +87,10 @@ export function ReasoningPanel({ message, isStreaming = false }: Props) {
 
         {hasReasoning && (
           <section>
-            <h4 className="mb-1.5 text-xs font-medium uppercase tracking-wide text-[var(--phosphor-dim)]">
+            <h4 className="mb-1.5 mt-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--phosphor-dim)]">
               Model reasoning
             </h4>
-            <pre className="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-[var(--phosphor-dim)]">
+            <pre className="whitespace-pre-wrap break-words font-sans text-[12.5px] leading-[1.6] text-[var(--ui-text-secondary)]">
               {message.reasoning}
             </pre>
           </section>

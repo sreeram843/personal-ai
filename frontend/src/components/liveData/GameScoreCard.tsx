@@ -32,8 +32,8 @@ export function GameScoreCard({ data, subscriptionKey }: Props) {
       title={display.league}
       badge={
         display.isLive ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-2 py-0.5 text-[11px] font-medium text-red-200">
-            <span className="live-dot h-1.5 w-1.5 rounded-full bg-red-400" aria-hidden />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(239,68,68,0.15)] px-2 py-0.5 text-[11px] font-medium text-[#f87171]">
+            <span className="live-dot h-1.5 w-1.5 rounded-full bg-[#f87171]" aria-hidden />
             Live
           </span>
         ) : (

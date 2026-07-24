@@ -84,7 +84,7 @@ export function VirtualizedMessageList({
 
   if (messages.length <= VIRTUALIZE_THRESHOLD || !scrollParent) {
     return (
-      <div className="flex w-full flex-col gap-2">
+      <div className="flex w-full flex-col gap-[22px]">
         {messages.map((message, index) => (
           <div key={message.id} className="message-enter">
             {renderBubble(message, index, messages, isLoading, editingUserMessageId, handlers)}

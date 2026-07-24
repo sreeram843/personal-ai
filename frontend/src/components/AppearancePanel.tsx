@@ -12,16 +12,16 @@ const THEME_OPTIONS: Array<{
   icon: typeof Sun;
 }> = [
   {
-    value: 'light',
-    label: 'Light',
-    hint: 'Bright canvas with charcoal text — best for daytime use.',
-    icon: Sun,
-  },
-  {
     value: 'dark',
     label: 'Dark',
-    hint: 'Dim panel with phosphor accents — easier on the eyes at night.',
+    hint: 'Dim panel with amber accents — easier at night.',
     icon: Moon,
+  },
+  {
+    value: 'light',
+    label: 'Light',
+    hint: 'Bright canvas with the same amber accent.',
+    icon: Sun,
   },
 ];
 
