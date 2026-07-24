@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{background:#e9e6e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .cur-scroll::-webkit-scrollbar{width:8px}
+  .cur-scroll::-webkit-scrollbar-thumb{background:rgba(128,128,128,.25);border-radius:4px}
+</style>
+</helmet>
+
+<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center">
+<div style="transform:{{ frameScale }};transition:transform .2s ease">
+<div style="width:1440px;height:880px;display:flex;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;transition:background .25s ease;background:{{ pageBg }};font-family:inherit">
+
+  <!-- sidebar -->
+  <div style="width:230px;flex:none;display:flex;flex-direction:column;padding:20px 14px;transition:background .25s ease;background:{{ sidebarBg }};border-right:1px solid {{ borderColor }}">
+    <div style="display:flex;align-items:center;gap:9px;padding:0 6px 22px">
+      <div style="width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center">
+        <svg width="26" height="26" viewBox="0 0 128 128">
+          <defs><radialGradient id="bulbGradAdm" cx="50%" cy="36%" r="58%" fx="50%" fy="34%"><stop offset="0%" stop-color="#FFF9C4"></stop><stop offset="32%" stop-color="#FFE566"></stop><stop offset="68%" stop-color="#F5B82E"></stop><stop offset="100%" stop-color="#E8A020"></stop></radialGradient></defs>
+          <g transform="translate(64 62) scale(0.84) translate(-64 -62)"><path d="M64 32 C49 32 41 42 41 55 C41 63 44 69 49 74 L50 80 C50 84 54 86 64 86 C74 86 78 84 78 80 L79 74 C84 69 87 63 87 55 C87 42 79 32 64 32 Z" fill="url(#bulbGradAdm)"></path></g>
+          <ellipse cx="64" cy="64" rx="18" ry="46" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.85"></ellipse>
+          <ellipse cx="64" cy="64" rx="18" ry="46" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.85" transform="rotate(-60 64 64)"></ellipse>
+          <ellipse cx="64" cy="64" rx="18" ry="46" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.85" transform="rotate(60 64 64)"></ellipse>
+        </svg>
+      </div>
+      <span style="font-size:15px;font-weight:700;color:{{ textPrimary }}">CurAI</span>
+      <span style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.06em;color:#e0a446;background:rgba(224,164,70,.14);padding:2px 7px;border-radius:6px">ADMIN</span>
+    </div>
+
+    <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;padding:8px 8px 6px;color:{{ textTertiary }}">PLATFORM</div>
+    <div onClick="{{ navUsers }}" style="{{ navUsersStyle }}">Users</div>
+    <div onClick="{{ navInvites }}" style="{{ navInvitesStyle }}">Invites</div>
+    <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;padding:14px 8px 6px;color:{{ textTertiary }}">MODEL ROUTING</div>
+    <div onClick="{{ navProviders }}" style="{{ navProvidersStyle }}">Providers</div>
+    <div onClick="{{ navRouting }}" style="{{ navRoutingStyle }}">Routing</div>
+    <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;padding:14px 8px 6px;color:{{ textTertiary }}">INSIGHTS</div>
+    <div onClick="{{ navUsage }}" style="{{ navUsageStyle }}">Usage</div>
+    <div onClick="{{ navAccess }}" style="{{ navAccessStyle }}">Access</div>
+
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-top:1px solid {{ borderColor }};padding-top:16px">
+      <div style="width:28px;height:28px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#1a1408">SM</div>
+      <div><div style="font-size:12.5px;font-weight:600;color:{{ textPrimary }}">Sriram Mentey</div><div style="font-size:10.5px;color:{{ textTertiary }}">admin</div></div>
+    </div>
+  </div>
+
+  <!-- main -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div style="padding:18px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid {{ borderColor }}">
+      <div style="font-size:19px;font-weight:700;color:{{ textPrimary }}">{{ sectionTitle }}</div>
+      <div onClick="{{ toggleTheme }}" style="font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;border:1px solid {{ borderColor }};color:{{ textTertiary }}">{{ themeLabel }}</div>
+    </div>
+
+    <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:24px 32px">
+
+      <!-- USERS -->
+      <sc-if value="{{ isUsers }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ panelStyle }};padding:0;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1.6fr 0.7fr 0.6fr 0.8fr 0.9fr;gap:10px;padding:10px 18px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ textTertiary }};border-bottom:1px solid {{ borderColor }}">
+            <div>User</div><div>Role</div><div>Active</div><div>Conversations</div><div>Tokens</div>
+          </div>
+          <div onClick="{{ toggleUser1 }}" style="{{ userRowStyle }}">
+            <div><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Sriram Mentey</div><div style="font-size:11.5px;color:{{ textTertiary }}">menteysriram43@gmail.com</div></div>
+            <div style="font-size:13px;color:{{ textPrimary }}">admin</div>
+            <div>
+              <sc-if value="{{ user1Active }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:600;color:#6fcf97;background:rgba(111,207,151,.14);padding:2px 8px;border-radius:9999px">Active</span></sc-if>
+              <sc-if value="{{ user1Inactive }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#f87171;background:rgba(248,113,113,.14);padding:2px 8px;border-radius:9999px">Disabled</span></sc-if>
+            </div>
+            <div style="font-size:13px;color:{{ textPrimary }}">18</div>
+            <div style="font-size:13px;color:{{ textPrimary }}">412k</div>
+          </div>
+          <div onClick="{{ toggleUser2 }}" style="{{ userRowStyle }}">
+            <div><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Dana Ruiz</div><div style="font-size:11.5px;color:{{ textTertiary }}">dana@company.com</div></div>
+            <div style="font-size:13px;color:{{ textPrimary }}">support</div>
+            <div>
+              <sc-if value="{{ user2Active }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:600;color:#6fcf97;background:rgba(111,207,151,.14);padding:2px 8px;border-radius:9999px">Active</span></sc-if>
+              <sc-if value="{{ user2Inactive }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#f87171;background:rgba(248,113,113,.14);padding:2px 8px;border-radius:9999px">Disabled</span></sc-if>
+            </div>
+            <div style="font-size:13px;color:{{ textPrimary }}">6</div>
+            <div style="font-size:13px;color:{{ textPrimary }}">88k</div>
+          </div>
+          <div onClick="{{ toggleUser3 }}" style="{{ userRowStyle }}">
+            <div><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Marcus Webb</div><div style="font-size:11.5px;color:{{ textTertiary }}">marcus@company.com</div></div>
+            <div style="font-size:13px;color:{{ textPrimary }}">user</div>
+            <div>
+              <sc-if value="{{ user3Active }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#6fcf97;background:rgba(111,207,151,.14);padding:2px 8px;border-radius:9999px">Active</span></sc-if>
+              <sc-if value="{{ user3Inactive }}" hint-placeholder-val="{{ true }}"><span style="font-size:11px;font-weight:600;color:#f87171;background:rgba(248,113,113,.14);padding:2px 8px;border-radius:9999px">Disabled</span></sc-if>
+            </div>
+            <div style="font-size:13px;color:{{ textPrimary }}">31</div>
+            <div style="font-size:13px;color:{{ textPrimary }}">1.2M</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- INVITES -->
+      <sc-if value="{{ isInvites }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ panelStyle }};margin-bottom:16px;display:flex;gap:10px;align-items:center">
+          <div style="flex:1;font-size:13.5px;color:{{ textTertiary }};border:1px solid {{ borderColor }};border-radius:8px;padding:9px 12px;background:{{ pageBg }}">teammate@company.com</div>
+          <div style="padding:9px 16px;border-radius:8px;background:#e0a446;color:#1a1408;font-size:13px;font-weight:600;cursor:pointer">+ Send invite</div>
+        </div>
+        <div style="{{ panelStyle }};padding:0;overflow:hidden">
+          <div style="display:grid;grid-template-columns:1.4fr 0.7fr 0.8fr 0.8fr;gap:10px;padding:10px 18px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ textTertiary }};border-bottom:1px solid {{ borderColor }}">
+            <div>Email</div><div>Role</div><div>Expires</div><div>Status</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.4fr 0.7fr 0.8fr 0.8fr;gap:10px;padding:12px 18px;border-bottom:1px solid {{ borderColor }};font-size:13px;color:{{ textPrimary }}">
+            <div>priya@company.com</div><div>user</div><div>Aug 2</div><div style="color:#6fcf97">Accepted</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.4fr 0.7fr 0.8fr 0.8fr;gap:10px;padding:12px 18px;font-size:13px;color:{{ textPrimary }}">
+            <div>oliver@company.com</div><div>support</div><div>Aug 5</div><div style="color:{{ textTertiary }}">Pending</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- PROVIDERS -->
+      <sc-if value="{{ isProviders }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">OpenAI</div><div style="font-size:12px;color:{{ textTertiary }};font-family:ui-monospace,monospace">api.openai.com · key ····4a2f</div></div>
+            <div onClick="{{ toggleProv1 }}" style="{{ prov1ToggleStyle }}"><div style="{{ prov1KnobStyle }}"></div></div>
+          </div>
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Groq Cloud</div><div style="font-size:12px;color:{{ textTertiary }};font-family:ui-monospace,monospace">api.groq.com · key ····91cd</div></div>
+            <div onClick="{{ toggleProv2 }}" style="{{ prov2ToggleStyle }}"><div style="{{ prov2KnobStyle }}"></div></div>
+          </div>
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">Ollama (local)</div><div style="font-size:12px;color:{{ textTertiary }};font-family:ui-monospace,monospace">http://ollama:11434</div></div>
+            <div onClick="{{ toggleProv3 }}" style="{{ prov3ToggleStyle }}"><div style="{{ prov3KnobStyle }}"></div></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ROUTING -->
+      <sc-if value="{{ isRouting }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Default</div><div style="font-size:12.5px;color:{{ textTertiary }};font-family:ui-monospace,monospace">openai / gpt-4o</div></div>
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Planner</div><div style="font-size:12.5px;color:{{ textTertiary }};font-family:ui-monospace,monospace">openai / gpt-4o-mini</div></div>
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Synthesizer</div><div style="font-size:12.5px;color:{{ textTertiary }};font-family:ui-monospace,monospace">groq / llama-4-scout-17b</div></div>
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Reviewer</div><div style="font-size:12.5px;color:{{ textTertiary }};font-family:ui-monospace,monospace">openai / gpt-4o</div></div>
+          <div style="{{ panelStyle }};display:flex;align-items:center;justify-content:space-between"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Writer</div><div style="font-size:12.5px;color:{{ textTertiary }};font-family:ui-monospace,monospace">ollama / llama-3.1-8b</div></div>
+        </div>
+      </sc-if>
+
+      <!-- USAGE -->
+      <sc-if value="{{ isUsage }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:14px;margin-bottom:16px">
+          <div style="{{ panelStyle }};flex:1"><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ textTertiary }}">Prompt tokens</div><div style="font-size:26px;font-weight:700;margin-top:6px;color:{{ textPrimary }}">1.9M</div></div>
+          <div style="{{ panelStyle }};flex:1"><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ textTertiary }}">Completion tokens</div><div style="font-size:26px;font-weight:700;margin-top:6px;color:{{ textPrimary }}">720k</div></div>
+          <div style="{{ panelStyle }};flex:1"><div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:{{ textTertiary }}">Total tokens</div><div style="font-size:26px;font-weight:700;margin-top:6px;color:#e0a446">2.6M</div></div>
+        </div>
+        <div style="{{ panelStyle }}">
+          <div style="font-size:12.5px;font-weight:600;color:{{ textPrimary }};margin-bottom:14px">Daily usage — last 14 days</div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:120px">
+            <div style="flex:1;height:40%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:55%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:35%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:70%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:62%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:80%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:48%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:90%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:66%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:74%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:58%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:100%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:82%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+            <div style="flex:1;height:68%;border-radius:4px 4px 0 0;background:#e0a446"></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ACCESS -->
+      <sc-if value="{{ isAccess }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ panelStyle }}">
+          <div style="font-size:14px;font-weight:600;color:{{ textPrimary }};margin-bottom:4px">Sign-up mode</div>
+          <div style="font-size:13px;color:{{ textSecondary }};margin-bottom:16px">Choose who can create a new account.</div>
+          <div onClick="{{ pickOpen }}" style="{{ signupOpenStyle }}"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Open</div><div style="font-size:12px;margin-top:2px;color:{{ textSecondary }}">Anyone can sign up with Google.</div></div>
+          <div onClick="{{ pickInvite }}" style="{{ signupInviteStyle }}"><div style="font-size:13.5px;font-weight:600;color:{{ textPrimary }}">Invite-only</div><div style="font-size:12px;margin-top:2px;color:{{ textSecondary }}">Sign-up requires a pending invite.</div></div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = {
+    theme: 'dark', section: 'users', scale: 1,
+    user1Active: true, user2Active: true, user3Active: false,
+    prov1On: true, prov2On: true, prov3On: false,
+    signupMode: 'invite'
+  };
+
+  set(patch) { this.setState(s => ({ ...s, ...patch })); }
+
+  componentDidMount() {
+    this.onResize = () => {
+      const s = Math.min(1, (window.innerWidth - 24) / 1440, (window.innerHeight - 24) / 880);
+      this.set({ scale: s });
+    };
+    this.onResize();
+    window.addEventListener('resize', this.onResize);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this.onResize); }
+
+  renderVals() {
+    const s = this.state;
+    const dark = {
+      pageBg: '#18140f', sidebarBg: '#1d1712', borderColor: 'rgba(255,255,255,.08)',
+      textPrimary: '#f6f1e8', textSecondary: 'rgba(255,255,255,.55)', textTertiary: 'rgba(255,255,255,.4)',
+      tileBg: '#241b12', navActiveBg: '#241b12'
+    };
+    const light = {
+      pageBg: '#faf8f4', sidebarBg: '#f3efe7', borderColor: 'rgba(0,0,0,.08)',
+      textPrimary: '#1c1710', textSecondary: 'rgba(36,31,22,.62)', textTertiary: 'rgba(36,31,22,.44)',
+      tileBg: '#fdf1de', navActiveBg: '#fdf1de'
+    };
+    const T = s.theme === 'dark' ? dark : light;
+    const out = { ...T };
+    out.frameScale = 'scale(' + s.scale + ')';
+    out.themeLabel = s.theme === 'dark' ? 'Light mode' : 'Dark mode';
+    out.toggleTheme = () => this.set({ theme: s.theme === 'dark' ? 'light' : 'dark' });
+
+    out.panelStyle = 'border-radius:14px;padding:16px 18px;border:1px solid ' + T.borderColor + ';background:' + T.tileBg + ';box-shadow:0 4px 16px rgba(0,0,0,.08)';
+    out.userRowStyle = 'display:grid;grid-template-columns:1.6fr 0.7fr 0.6fr 0.8fr 0.9fr;gap:10px;padding:12px 18px;border-bottom:1px solid ' + T.borderColor + ';cursor:pointer;align-items:center';
+
+    const sections = ['users', 'invites', 'providers', 'routing', 'usage', 'access'];
+    const titles = { users: 'Users', invites: 'Invites', providers: 'Providers', routing: 'Model routing', usage: 'Usage', access: 'Access' };
+    out.sectionTitle = titles[s.section];
+    sections.forEach(sec => {
+      out['is' + sec.charAt(0).toUpperCase() + sec.slice(1)] = s.section === sec;
+      const cap = sec.charAt(0).toUpperCase() + sec.slice(1);
+      out['nav' + cap] = () => this.set({ section: sec });
+      out['nav' + cap + 'Style'] = 'padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px;font-weight:500;margin-bottom:1px;' + (s.section === sec ? ('background:' + T.navActiveBg + ';color:' + T.textPrimary) : ('color:' + T.textSecondary));
+    });
+
+    out.user1Active = s.user1Active; out.user1Inactive = !s.user1Active;
+    out.user2Active = s.user2Active; out.user2Inactive = !s.user2Active;
+    out.user3Active = s.user3Active; out.user3Inactive = !s.user3Active;
+    out.toggleUser1 = () => this.set({ user1Active: !s.user1Active });
+    out.toggleUser2 = () => this.set({ user2Active: !s.user2Active });
+    out.toggleUser3 = () => this.set({ user3Active: !s.user3Active });
+
+    const toggleTrack = (on) => 'width:40px;height:22px;border-radius:9999px;cursor:pointer;padding:2px;box-sizing:border-box;background:' + (on ? '#e0a446' : 'rgba(120,120,120,.3)');
+    const toggleKnob = (on) => 'width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s ease;transform:translateX(' + (on ? '18px' : '0') + ')';
+    out.prov1ToggleStyle = toggleTrack(s.prov1On); out.prov1KnobStyle = toggleKnob(s.prov1On); out.toggleProv1 = () => this.set({ prov1On: !s.prov1On });
+    out.prov2ToggleStyle = toggleTrack(s.prov2On); out.prov2KnobStyle = toggleKnob(s.prov2On); out.toggleProv2 = () => this.set({ prov2On: !s.prov2On });
+    out.prov3ToggleStyle = toggleTrack(s.prov3On); out.prov3KnobStyle = toggleKnob(s.prov3On); out.toggleProv3 = () => this.set({ prov3On: !s.prov3On });
+
+    const pickBase = 'padding:13px 14px;border-radius:10px;cursor:pointer;margin-bottom:8px;';
+    const active = 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)';
+    const idle = 'border:1.5px solid ' + T.borderColor + ';background:' + T.pageBg;
+    out.signupOpenStyle = pickBase + (s.signupMode === 'open' ? active : idle);
+    out.signupInviteStyle = pickBase + (s.signupMode === 'invite' ? active : idle);
+    out.pickOpen = () => this.set({ signupMode: 'open' });
+    out.pickInvite = () => this.set({ signupMode: 'invite' });
+
+    return out;
+  }
+}
+
+</script>
+</body>
+</html>

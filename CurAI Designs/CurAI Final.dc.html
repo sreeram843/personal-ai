@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{background:#e9e6e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .cur-scroll::-webkit-scrollbar{width:8px}
+  .cur-scroll::-webkit-scrollbar-thumb{background:rgba(128,128,128,.25);border-radius:4px}
+  @keyframes cur-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center">
+<div style="width:1400px;height:860px;flex:none;display:flex;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;transition:background .25s ease,transform .2s ease;background:{{ pageBg }};font-family:inherit;transform:{{ cardTransform }}">
+
+  <!-- sidebar -->
+  <div style="width:270px;flex:none;border-right:1px solid {{ borderColor }};display:flex;flex-direction:column;padding:20px 16px;transition:background .25s ease;background:{{ sidebarBg }}">
+    <div style="display:flex;align-items:center;gap:10px;padding:0 4px 20px">
+      <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+        <svg width="19" height="19" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradS" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs>
+        <g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+        <g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g>
+        <g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+        <path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradS)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#e0a446" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#e0a446" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#e0a446" opacity="0.55"></path></svg>
+      </div>
+      <span style="font-size:16.5px;font-weight:600;letter-spacing:.2px;transition:color .25s ease;color:{{ textPrimary }}">CurAI</span>
+    </div>
+    <button onClick="{{ newConvo }}" style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:#e0a446;border:none;border-radius:8px;color:#1a1408;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:22px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.5"><path d="M12 5v14M5 12h14"></path></svg>
+      New conversation
+    </button>
+    <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;margin:0 4px 10px;transition:color .25s ease;color:{{ textTertiary }}">RECENT</div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div onClick="{{ selectC1 }}" style="{{ rowC1Style }}">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ textPrimary }}">How are you different from ChatGPT?</div>
+        <div style="font-size:11px;margin-top:3px;color:{{ textTertiary }}">Jun 28 · 4 messages</div>
+      </div>
+      <div onClick="{{ selectC2 }}" style="{{ rowC2Style }}">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ textPrimary }}">Design a scalable appointment system</div>
+        <div style="font-size:11px;margin-top:3px;color:{{ textTertiary }}">Jun 28 · 2 messages</div>
+      </div>
+      <div onClick="{{ selectC3 }}" style="{{ rowC3Style }}">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ textPrimary }}">Production API latency root cause</div>
+        <div style="font-size:11px;margin-top:3px;color:{{ textTertiary }}">Jun 28 · 2 messages</div>
+      </div>
+    </div>
+    <div style="flex:1"></div>
+    <div onClick="{{ openSettings }}" style="display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;cursor:pointer;margin-top:8px;padding-top:16px;border-top:1px solid {{ borderColor }}">
+      <div style="width:30px;height:30px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#1a1408">SM</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:{{ textPrimary }}">Sriram Mentey</div>
+        <div style="font-size:11px;color:{{ textTertiary }}">Settings</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- main -->
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0;position:relative">
+    <div style="padding:18px 32px;display:flex;align-items:center;gap:8px;border-bottom:1px solid {{ borderColor }}">
+      <span style="font-size:13px;color:{{ textSecondary }}">Assistant: CurAI</span>
+    </div>
+
+    <sc-if value="{{ viewNew }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:20px">
+        <div style="width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+          <svg width="38" height="38" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradE" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs>
+          <g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+          <g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g>
+          <g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+          <path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradE)"></path><rect x="43.5" y="56.5" width="13" height="3.6" rx="1" fill="#e0a446" opacity="0.9"></rect><rect x="44.5" y="61" width="11" height="2.8" rx="1" fill="#e0a446" opacity="0.7"></rect><path d="M45 65.5h10l-1.8 3.5h-6.4z" fill="#e0a446" opacity="0.55"></path></svg>
+        </div>
+        <div style="font-size:26px;font-weight:600;text-align:center;color:{{ textPrimary }}">Start a direct model conversation</div>
+        <div style="font-size:14.5px;text-align:center;max-width:440px;color:{{ textSecondary }}">Pick a starter below or type your own prompt for fast, direct responses.</div>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <div style="{{ chipStyle }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>Summarize a document</div>
+          <div style="{{ chipStyle }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>Compare two things</div>
+          <div style="{{ chipStyle }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M22 7l-10 6L2 7"></path></svg>Draft an email</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ viewChat }}" hint-placeholder-val="{{ false }}">
+      <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:28px 40px;display:flex;flex-direction:column;gap:22px">
+        <div style="{{ bubbleStyle }}">How are you different from ChatGPT?</div>
+        <div style="align-self:flex-end;font-size:12px;color:{{ textTertiary }}">6.8k tokens</div>
+        <div style="display:flex;gap:14px;max-width:78%">
+          <div style="width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+            <svg width="19" height="19" viewBox="0 0 100 100"><defs><radialGradient id="bulbGradC" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#fff6d8"></stop><stop offset="55%" stop-color="#ffcf4d"></stop><stop offset="100%" stop-color="#e0a446"></stop></radialGradient></defs>
+            <g transform="rotate(0 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring1Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+            <g transform="rotate(60 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring2Dur }}" repeatCount="indefinite" path="M94,50 A44,17 0 1,0 6,50 A44,17 0 1,0 94,50"></animateMotion></circle></g>
+            <g transform="rotate(120 50 50)"><ellipse cx="50" cy="50" rx="44" ry="17" fill="none" stroke="#e0a446" stroke-width="3" opacity="0.8"></ellipse><circle cx="0" cy="0" r="4" fill="#e0a446"><animateMotion dur="{{ ring3Dur }}" repeatCount="indefinite" path="M6,50 A44,17 0 1,1 94,50 A44,17 0 1,1 6,50"></animateMotion></circle></g>
+            <path d="M50 22a15 15 0 0 1 8.5 27.5c-1.8 1.8-2.8 4.3-2.8 7h-11.4c0-2.7-1-5.2-2.8-7A15 15 0 0 1 50 22z" fill="url(#bulbGradC)"></path></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="{{ floatCardStyle }}">
+            <div style="font-size:16px;font-weight:600;color:{{ textPrimary }}">Differences from ChatGPT</div>
+            <div style="font-size:14.5px;line-height:1.65;color:{{ textSecondary }}">I'm designed for clear, concise, well-structured answers. Here's how that plays out in practice.</div>
+            <div style="font-size:13.5px;font-weight:600;color:#e0a446;margin-top:4px">Response style</div>
+            <div style="font-size:14px;line-height:1.6;padding-left:16px;border-left:2px solid rgba(224,164,70,.35);color:{{ textSecondary }}">Short paragraphs, headings and bullets over long conversational blocks — built for scanning fast.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;padding-left:2px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><path d="M23 4v6h-6M1 20v-6h6"></path><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"></path></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
+            <span style="font-size:12px;color:{{ textTertiary }}">4.7s</span>
+            <span style="font-size:12px;color:{{ textTertiary }}">827 tokens</span>
+          </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <div style="padding:0 32px 24px;position:relative;z-index:2">
+      <div style="{{ composerStyle }}">
+        <span style="flex:1;font-size:14px;color:{{ textTertiary }}">Message...</span>
+        <div onClick="{{ send }}" style="width:34px;height:34px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- settings modal -->
+    <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:{{ modalOverlay }}">
+        <div style="width:920px;height:600px;border-radius:12px;display:flex;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);border:1px solid {{ borderColor }};transition:background .25s ease;background:{{ modalBg }}">
+          <div style="width:220px;flex:none;padding:24px 14px;display:flex;flex-direction:column;gap:2px;transition:background .25s ease;background:{{ navSidebarBg }}">
+            <div style="font-size:17px;font-weight:600;padding:0 10px 18px;color:{{ textPrimary }}">Settings</div>
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;padding:10px 10px 6px;color:{{ textTertiary }}">ACCOUNT</div>
+            <div onClick="{{ setTabProfile }}" style="{{ navProfileStyle }}">Profile</div>
+            <div onClick="{{ setTabAppearance }}" style="{{ navAppearanceStyle }}">Appearance</div>
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;padding:14px 10px 6px;color:{{ textTertiary }}">AGENT</div>
+            <div onClick="{{ setTabPermissions }}" style="{{ navPermissionsStyle }}">Permissions</div>
+            <div onClick="{{ setTabMcp }}" style="{{ navMcpStyle }}">MCP</div>
+            <div onClick="{{ setTabDoctor }}" style="{{ navDoctorStyle }}">Doctor</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;position:relative">
+            <div onClick="{{ closeSettings }}" style="position:absolute;top:20px;right:24px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:{{ textSecondary }}">✕</div>
+            <div class="cur-scroll" style="padding:28px 32px;overflow-y:auto;flex:1">
+              <sc-if value="{{ tabProfile }}" hint-placeholder-val="{{ true }}">
+                <div style="font-size:19px;font-weight:600;margin-bottom:6px;color:{{ textPrimary }}">Profile</div>
+                <div style="font-size:13px;margin-bottom:20px;color:{{ textSecondary }}">Your account details and sign-in identity.</div>
+                <div style="border-radius:10px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:20px;transition:background .25s ease;background:{{ tileBg }}">
+                  <div style="width:42px;height:42px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;font-weight:700;color:#1a1408">SM</div>
+                  <div><div style="font-size:14.5px;font-weight:600;color:{{ textPrimary }}">Sriram Mentey</div><div style="font-size:12.5px;color:{{ textSecondary }}">menteysriram43@gmail.com</div></div>
+                </div>
+                <div style="font-size:10.5px;font-weight:600;letter-spacing:1px;margin-bottom:6px;color:{{ textTertiary }}">SIGN-IN METHOD</div>
+                <div style="font-size:14px;margin-bottom:18px;color:{{ textPrimary }}">Google</div>
+                <div style="font-size:12.5px;color:{{ textTertiary }}">Account details come from your sign-in provider.</div>
+              </sc-if>
+              <sc-if value="{{ tabAppearance }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:19px;font-weight:600;margin-bottom:6px;color:{{ textPrimary }}">Appearance</div>
+                <div style="font-size:13px;margin-bottom:20px;color:{{ textSecondary }}">Choose light or dark mode for the interface.</div>
+                <div onClick="{{ pickDark }}" style="{{ apDarkStyle }}"><div style="font-size:14.5px;font-weight:600;color:{{ textPrimary }}">Dark</div><div style="font-size:12.5px;margin-top:3px;color:{{ textSecondary }}">Dim panel with amber accents — easier at night.</div></div>
+                <div onClick="{{ pickLight }}" style="{{ apLightStyle }}"><div style="font-size:14.5px;font-weight:600;color:{{ textPrimary }}">Light</div><div style="font-size:12.5px;margin-top:3px;color:{{ textSecondary }}">Bright canvas with the same amber accent.</div></div>
+              </sc-if>
+              <sc-if value="{{ tabPermissions }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:19px;font-weight:600;margin-bottom:6px;color:{{ textPrimary }}">Permissions</div>
+                <div style="font-size:13px;margin-bottom:20px;color:{{ textSecondary }}">Choose when tools run automatically.</div>
+                <div onClick="{{ pickAuto }}" style="{{ permAutoStyle }}"><div style="font-size:14.5px;font-weight:600;color:{{ textPrimary }}">Auto</div><div style="font-size:12.5px;margin-top:3px;color:{{ textSecondary }}">Run read tools automatically; audit write/MCP tools.</div></div>
+                <div onClick="{{ pickAsk }}" style="{{ permAskStyle }}"><div style="font-size:14.5px;font-weight:600;color:{{ textPrimary }}">Ask</div><div style="font-size:12.5px;margin-top:3px;color:{{ textSecondary }}">Pause on external/write tools until you approve.</div></div>
+                <div onClick="{{ pickPlan }}" style="{{ permPlanStyle }}"><div style="font-size:14.5px;font-weight:600;color:{{ textPrimary }}">Plan</div><div style="font-size:12.5px;margin-top:3px;color:{{ textSecondary }}">Describe tool calls without executing them.</div></div>
+              </sc-if>
+              <sc-if value="{{ tabMcp }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:19px;font-weight:600;margin-bottom:6px;color:{{ textPrimary }}">MCP</div>
+                <div style="font-size:13px;margin-bottom:20px;color:{{ textSecondary }}">Connect Model Context Protocol servers.</div>
+                <div style="border:1px dashed {{ borderColor }};border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:10px">
+                  <div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">GitHub</div>
+                  <div style="font-size:13px;font-family:ui-monospace,monospace;color:{{ textSecondary }}">https://api.githubcopilot.com/mcp/readonly</div>
+                  <div style="align-self:flex-start;padding:9px 16px;background:#e0a446;border-radius:8px;font-size:13px;font-weight:600;color:#1a1408">Add server</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ tabDoctor }}" hint-placeholder-val="{{ false }}">
+                <div style="font-size:19px;font-weight:600;margin-bottom:6px;color:{{ textPrimary }}">Doctor</div>
+                <div style="font-size:13px;margin-bottom:20px;color:{{ textSecondary }}">Run health checks on runtime components.</div>
+                <div style="background:rgba(224,164,70,.14);border:1px solid rgba(224,164,70,.35);border-radius:8px;padding:12px 16px;color:#c98a2e;font-size:13.5px;font-weight:600;margin-bottom:14px">Status: degraded — MCP enabled but no servers configured</div>
+                <div style="border-radius:8px;padding:14px 16px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.7;color:{{ textSecondary }};background:{{ tileBg }}">postgres: ok · redis: ok · llm: ok (openai)</div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = { theme: 'dark', view: 'new', selectedConvo: null, settingsOpen: false, tab: 'profile', permission: 'auto', thinking: false, scale: 1 };
+
+  set(patch) { this.setState(s => ({ ...s, ...patch })); }
+
+  componentDidMount() {
+    this.onResize = () => {
+      const s = Math.min(1, (window.innerWidth - 24) / 1400, (window.innerHeight - 24) / 860);
+      this.set({ scale: s });
+    };
+    this.onResize();
+    window.addEventListener('resize', this.onResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.onResize);
+  }
+
+  sendMessage() {
+    if (this.state.thinking) return;
+    this.set({ thinking: true });
+    setTimeout(() => this.set({ thinking: false, view: 'chat', selectedConvo: 'c1' }), 1400);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const dark = {
+      pageBg: '#18140f', sidebarBg: '#1d1712', borderColor: 'rgba(255,255,255,.07)',
+      textPrimary: '#f6f1e8', textSecondary: 'rgba(255,255,255,.5)', textTertiary: 'rgba(255,255,255,.34)',
+      tileBg: '#241b12', rowActiveBg: '#2a2018', inputBg: '#221a12', modalBg: '#1d1712',
+      modalOverlay: 'rgba(10,8,5,.72)', navSidebarBg: '#201911', navActiveBg: '#241b12',
+      pickIdleBg: '#201911', pickIdleBorder: 'rgba(255,255,255,.1)',
+      chipBg: 'transparent', chipBorder: 'rgba(255,255,255,.12)', chipText: '#e9e2d4',
+      bubbleBg: '#2a2018', bubbleText: '#f3ede4'
+    };
+    const light = {
+      pageBg: '#faf8f4', sidebarBg: '#f3efe7', borderColor: 'rgba(0,0,0,.07)',
+      textPrimary: '#1c1710', textSecondary: 'rgba(36,31,22,.6)', textTertiary: 'rgba(36,31,22,.42)',
+      tileBg: '#fdf1de', rowActiveBg: '#f5e6c8', inputBg: '#fff', modalBg: '#fff',
+      modalOverlay: 'rgba(30,26,18,.4)', navSidebarBg: '#f7f5f0', navActiveBg: '#fdf1de',
+      pickIdleBg: '#fff', pickIdleBorder: 'rgba(0,0,0,.08)',
+      chipBg: '#fff', chipBorder: 'rgba(0,0,0,.08)', chipText: '#241f16',
+      bubbleBg: '#e0a446', bubbleText: '#1a1408'
+    };
+    const T = s.theme === 'dark' ? dark : light;
+    const out = { ...T };
+    out.cardTransform = 'scale(' + s.scale + ')';
+
+    out.borderColor = T.borderColor;
+    out.rowStyleBase = 'padding:10px 10px;border-radius:8px;cursor:pointer;';
+    ['c1', 'c2', 'c3'].forEach(c => {
+      out['select' + c.toUpperCase()] = () => this.set({ view: 'chat', selectedConvo: c });
+      out['row' + c.toUpperCase() + 'Style'] = out.rowStyleBase + 'background:' + (s.selectedConvo === c ? T.rowActiveBg : 'transparent');
+    });
+
+    out.viewNew = s.view === 'new';
+    out.viewChat = s.view === 'chat';
+    out.settingsOpen = s.settingsOpen;
+    out.newConvo = () => this.set({ view: 'new', selectedConvo: null });
+    out.openSettings = () => this.set({ settingsOpen: true, tab: 'profile' });
+    out.closeSettings = () => this.set({ settingsOpen: false });
+    out.send = () => this.sendMessage();
+
+    const spin = s.thinking ? { r1: '0.55s', r2: '0.7s', r3: '0.6s' } : { r1: '9s', r2: '12s', r3: '15s' };
+    out.ring1Dur = spin.r1; out.ring2Dur = spin.r2; out.ring3Dur = spin.r3;
+
+    out.chipStyle = 'padding:9px 16px;border-radius:9999px;font-size:13px;display:flex;align-items:center;gap:7px;border:1px solid ' + T.chipBorder + ';background:' + T.chipBg + ';color:' + T.chipText + ';box-shadow:0 2px 8px rgba(0,0,0,.08)';
+    out.bubbleStyle = 'align-self:flex-end;max-width:66%;border-radius:14px 14px 4px 14px;padding:14px 18px;font-size:14.5px;line-height:1.5;background:' + T.bubbleBg + ';color:' + T.bubbleText;
+    out.composerStyle = 'display:flex;align-items:center;gap:10px;border-radius:9999px;padding:10px 10px 10px 22px;max-width:640px;margin:0 auto;border:1px solid ' + T.borderColor + ';background:' + T.inputBg + ';box-shadow:0 10px 30px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1)';
+    out.floatCardStyle = 'display:flex;flex-direction:column;gap:12px;border-radius:16px;padding:16px 18px;border:1px solid ' + T.borderColor + ';background:' + T.tileBg + ';box-shadow:0 4px 16px rgba(0,0,0,.08)';
+
+    const navBase = 'padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13.5px;font-weight:500;margin-bottom:1px;';
+    ['profile', 'appearance', 'permissions', 'mcp', 'doctor'].forEach(tab => {
+      const cap = tab.charAt(0).toUpperCase() + tab.slice(1);
+      out['tab' + cap] = s.tab === tab;
+      out['setTab' + cap] = () => this.set({ tab: tab });
+      out['nav' + cap + 'Style'] = navBase + (s.tab === tab ? ('background:' + T.navActiveBg + ';color:' + T.textPrimary) : ('color:' + T.textSecondary));
+    });
+
+    const pickBase = 'padding:14px 16px;border-radius:10px;cursor:pointer;margin-bottom:10px;';
+    out.apDarkStyle = pickBase + (s.theme === 'dark' ? 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)' : ('border:1.5px solid ' + T.pickIdleBorder + ';background:' + T.pickIdleBg));
+    out.apLightStyle = pickBase + (s.theme === 'light' ? 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)' : ('border:1.5px solid ' + T.pickIdleBorder + ';background:' + T.pickIdleBg));
+    out.pickDark = () => this.set({ theme: 'dark' });
+    out.pickLight = () => this.set({ theme: 'light' });
+
+    out.permAutoStyle = pickBase + (s.permission === 'auto' ? 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)' : ('border:1.5px solid ' + T.pickIdleBorder + ';background:' + T.pickIdleBg));
+    out.permAskStyle = pickBase + (s.permission === 'ask' ? 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)' : ('border:1.5px solid ' + T.pickIdleBorder + ';background:' + T.pickIdleBg));
+    out.permPlanStyle = pickBase + (s.permission === 'plan' ? 'border:1.5px solid #e0a446;background:rgba(224,164,70,.1)' : ('border:1.5px solid ' + T.pickIdleBorder + ';background:' + T.pickIdleBg));
+    out.pickAuto = () => this.set({ permission: 'auto' });
+    out.pickAsk = () => this.set({ permission: 'ask' });
+    out.pickPlan = () => this.set({ permission: 'plan' });
+
+    return out;
+  }
+}
+
+</script>
+</body>
+</html>

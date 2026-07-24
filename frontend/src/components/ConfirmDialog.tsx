@@ -58,17 +58,17 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="confirm-dialog settings-dialog w-full max-w-md p-5 sm:p-6"
+        className="confirm-dialog settings-dialog w-full max-w-md p-6"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="type-eyebrow mb-2">Confirm</div>
+        <div className="type-eyebrow mb-1.5">Confirm</div>
         <h2
           id={titleId}
-          className="font-display text-lg font-semibold tracking-tight text-[var(--phosphor-bright)]"
+          className="font-display text-lg font-bold tracking-tight text-[var(--phosphor-bright)]"
         >
           {title}
         </h2>
-        <p id={descriptionId} className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">
+        <p id={descriptionId} className="mt-2 text-[13.5px] leading-[1.55] text-[var(--ui-text-secondary)]">
           {message}
         </p>
         <div className="confirm-dialog__actions mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

@@ -116,15 +116,18 @@ export function ConversationListItem({
             )}
             <div
               className={clsx(
-                'conversation-title-fade panel-rail__item-label min-w-0',
-                isActive ? 'font-semibold text-[var(--phosphor-bright)]' : 'font-medium',
+                'conversation-title-fade panel-rail__item-label min-w-0 text-[13px]',
+                isActive ? 'font-medium text-[var(--phosphor-bright)]' : 'font-medium text-[var(--phosphor-bright)]',
               )}
             >
               {item.title}
             </div>
           </div>
-          <div className="type-meta mt-0.5">
-            {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'Today'} · {item.messageCount} messages
+          <div className="mt-[3px] text-[11px] text-[var(--phosphor-dim)]">
+            {item.updatedAt
+              ? new Date(item.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+              : 'Today'}{' '}
+            · {item.messageCount} messages
           </div>
         </button>
       )}
@@ -178,7 +181,7 @@ export function ConversationListItem({
                   setMenuOpen(false);
                   onDelete(item.id, item.title);
                 }}
-                className="panel-rail__menu-item text-red-300 hover:bg-red-500/10"
+                className="panel-rail__menu-item text-[var(--ui-danger)] hover:bg-[rgba(239,68,68,0.1)]"
               >
                 <Trash2 className="h-4 w-4 shrink-0" />
                 Delete

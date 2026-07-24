@@ -133,14 +133,14 @@ export function LoginPage({ authConfig, onAuthenticated }: Props) {
             )}
           </div>
         ) : (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          <div className="rounded-xl border border-[color-mix(in_srgb,var(--ui-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ui-accent)_10%,transparent)] px-4 py-3 text-sm text-[var(--phosphor)]">
             Authentication is enabled but Google Sign-In is not configured. Set{' '}
             <code className="rounded bg-black/20 px-1 py-0.5 text-xs">GOOGLE_CLIENT_ID</code> on the server.
           </div>
         )}
 
         {error && (
-          <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          <div className="mt-4 rounded-xl border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] px-4 py-3 text-sm text-[#f87171]">
             {error}
           </div>
         )}

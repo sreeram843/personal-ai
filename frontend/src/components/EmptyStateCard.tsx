@@ -33,55 +33,47 @@ export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
         ];
 
   return (
-    <div className="empty-state-card elevated-panel rounded-xl p-4 text-left sm:p-5">
-      <div className="empty-state-card__glow" aria-hidden />
-      <div className="relative z-[1]">
-        <div className="flex items-center gap-3">
-          <div className="empty-state-icon grid h-11 w-11 shrink-0 place-content-center rounded-xl bg-[var(--ui-bg-elevated)] ring-1 ring-[var(--ui-border)]">
-            <CuraiLogo state="idle" size={32} />
-          </div>
-          <div>
-            <div className="type-eyebrow">New conversation</div>
-            <div className="font-display mt-1 text-xl font-semibold leading-snug tracking-tight text-[var(--phosphor-bright)] sm:text-2xl">
-              {mode === 'smart' ? 'Start a smart-routed conversation' : 'Start a direct model conversation'}
-            </div>
-          </div>
-        </div>
-        <div className="mt-2 text-base leading-relaxed text-[var(--phosphor)]">
-          {mode === 'smart'
-            ? 'Pick a starter below or type your own prompt. Smart mode routes to chat, retrieval, or workflow as needed.'
-            : 'Pick a starter below or type your own prompt for fast, direct responses.'}
-        </div>
+    <div className="empty-state-card mx-auto flex min-h-[58vh] max-w-[560px] flex-col items-center justify-center gap-5 px-4 text-center">
+      <div className="empty-state-icon grid h-[60px] w-[60px] shrink-0 place-content-center rounded-2xl bg-[var(--ui-bg-elevated)]">
+        <CuraiLogo state="idle" size={38} />
+      </div>
+      <div className="font-display text-[26px] font-semibold leading-snug tracking-tight text-[var(--phosphor-bright)]">
+        {mode === 'smart' ? 'Start a smart-routed conversation' : 'Start a direct model conversation'}
+      </div>
+      <div className="max-w-[440px] text-[14.5px] leading-relaxed text-[var(--phosphor-dim)]">
+        {mode === 'smart'
+          ? 'Pick a starter below or type your own prompt. Smart mode routes to chat, retrieval, or workflow as needed.'
+          : 'Pick a starter below or type your own prompt for fast, direct responses.'}
+      </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {chips.map(({ label, prompt, icon: Icon }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => onSelectPrompt(prompt)}
-              className="starter-chip inline-flex items-center gap-1.5 rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-1.5 text-sm text-[var(--phosphor)] transition hover:border-[var(--ui-accent)] hover:text-[var(--phosphor-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]"
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0 text-[var(--ui-accent)]" aria-hidden />
+      <div className="flex flex-wrap items-center justify-center gap-2.5">
+        {chips.map(({ label, prompt, icon: Icon }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onSelectPrompt(prompt)}
+            className="starter-chip inline-flex items-center gap-[7px] rounded-full border border-[var(--ui-chip-border)] px-4 py-[9px] text-[13px] text-[var(--ui-chip-text)] transition hover:border-[var(--ui-accent)] hover:text-[var(--phosphor-bright)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]"
+          >
+            <Icon className="h-[13px] w-[13px] shrink-0 text-[var(--ui-accent)]" aria-hidden />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-1 grid w-full gap-2 sm:grid-cols-2">
+        {hints.map(({ label, prompt }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onSelectPrompt(prompt)}
+            className="starter-hint rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-2.5 text-left text-sm leading-relaxed text-[var(--phosphor-dim)] transition hover:border-[var(--ui-accent)] hover:text-[var(--phosphor)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]"
+          >
+            <span className="type-eyebrow mb-0.5 block !text-[var(--ui-accent)] !tracking-[0.16em]">
               {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {hints.map(({ label, prompt }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => onSelectPrompt(prompt)}
-              className="starter-hint rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-2.5 text-left text-sm leading-relaxed text-[var(--phosphor-dim)] transition hover:border-[var(--ui-accent)] hover:text-[var(--phosphor)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]"
-            >
-              <span className="type-eyebrow mb-0.5 block !text-[var(--ui-accent)] !tracking-[0.16em]">
-                {label}
-              </span>
-              {prompt}
-            </button>
-          ))}
-        </div>
+            </span>
+            {prompt}
+          </button>
+        ))}
       </div>
     </div>
   );
