@@ -137,6 +137,68 @@ def test_admin_signup_mode_and_usage(db_session, auth_settings: Settings) -> Non
         client.close()
 
 
+def test_admin_routing_rejects_unknown_provider(db_session, auth_settings: Settings) -> None:
+    client, _admin, _settings = _admin_client(db_session, auth_settings)
+    try:
+        response = client.put(
+            "/admin/routing",
+            json={
+                "default_provider": "missing_vendor",
+                "default_model": "x",
+                "planner_provider": "ollama",
+                "planner_model": "x",
+                "synthesizer_provider": "ollama",
+                "synthesizer_model": "x",
+                "reviewer_provider": "ollama",
+                "reviewer_model": "x",
+                "writer_provider": "ollama",
+                "writer_model": "x",
+            },
+        )
+        assert response.status_code == 400
+        assert "missing_vendor" in response.json()["detail"]
+    finally:
+        client.close()
+
+
+def test_admin_routing_accepts_enabled_provider(db_session, auth_settings: Settings) -> None:
+    client, _admin, settings = _admin_client(db_session, auth_settings)
+    try:
+        created = client.post(
+            "/admin/providers",
+            json={
+                "name": "groq",
+                "display_name": "Groq",
+                "base_url": "https://api.groq.com/openai",
+                "api_key": "gsk_test_key_9999",
+                "enabled": True,
+            },
+        )
+        assert created.status_code == 201, created.text
+        response = client.put(
+            "/admin/routing",
+            json={
+                "default_provider": "groq",
+                "default_model": "llama-3.1-8b-instant",
+                "planner_provider": "groq",
+                "planner_model": "llama-3.1-8b-instant",
+                "synthesizer_provider": "openai",
+                "synthesizer_model": "gpt-4o-mini",
+                "reviewer_provider": "groq",
+                "reviewer_model": "llama-3.1-8b-instant",
+                "writer_provider": "ollama",
+                "writer_model": "llama3:8b",
+            },
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["default_provider"] == "groq"
+        assert body["synthesizer_provider"] == "openai"
+        assert body["writer_provider"] == "ollama"
+    finally:
+        client.close()
+
+
 def test_support_cannot_manage_providers(db_session, auth_settings: Settings) -> None:
     settings = auth_settings.model_copy(
         update={"auth_disabled": False, "settings_secret_key": "test-settings-secret"},

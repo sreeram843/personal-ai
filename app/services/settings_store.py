@@ -84,29 +84,43 @@ def set_signup_mode(db: Session, mode: str) -> str:
     return normalized
 
 
+def _provider_to_config(provider: LlmProvider, cfg: Settings) -> EffectiveOpenAIConfig:
+    api_key = None
+    if provider.encrypted_api_key:
+        api_key = decrypt_secret(provider.encrypted_api_key, cfg)
+    return EffectiveOpenAIConfig(
+        base_url=provider.base_url,
+        api_key=api_key,
+        provider_name=provider.name,
+    )
+
+
+def list_enabled_provider_configs(db: Session, settings: Optional[Settings] = None) -> list[EffectiveOpenAIConfig]:
+    """Return decrypted configs for every enabled OpenAI-compatible admin provider."""
+    cfg = settings or get_settings()
+
+    def load() -> list[EffectiveOpenAIConfig]:
+        rows = list(
+            db.scalars(
+                select(LlmProvider).where(LlmProvider.enabled.is_(True)).order_by(LlmProvider.created_at.asc())
+            ).all()
+        )
+        return [_provider_to_config(row, cfg) for row in rows]
+
+    return list(_cached("enabled_providers", load))
+
+
 def get_effective_openai_config(db: Session, settings: Optional[Settings] = None) -> EffectiveOpenAIConfig:
     cfg = settings or get_settings()
 
     def load() -> EffectiveOpenAIConfig:
         routing = get_effective_routing(db, cfg)
-        provider = db.scalar(
-            select(LlmProvider)
-            .where(LlmProvider.name == routing.default_provider)
-            .where(LlmProvider.enabled.is_(True))
-        )
-        if provider is None:
-            provider = db.scalar(
-                select(LlmProvider).where(LlmProvider.enabled.is_(True)).order_by(LlmProvider.created_at.asc())
-            )
-        if provider is not None:
-            api_key = None
-            if provider.encrypted_api_key:
-                api_key = decrypt_secret(provider.encrypted_api_key, cfg)
-            return EffectiveOpenAIConfig(
-                base_url=provider.base_url,
-                api_key=api_key,
-                provider_name=provider.name,
-            )
+        providers = list_enabled_provider_configs(db, cfg)
+        by_name = {item.provider_name: item for item in providers}
+        if routing.default_provider in by_name:
+            return by_name[routing.default_provider]
+        if providers:
+            return providers[0]
         return EffectiveOpenAIConfig(
             base_url=cfg.llm_openai_base_url,
             api_key=cfg.llm_openai_api_key,
@@ -158,5 +172,6 @@ __all__ = [
     "get_effective_openai_config",
     "get_effective_routing",
     "get_signup_mode",
+    "list_enabled_provider_configs",
     "set_signup_mode",
 ]

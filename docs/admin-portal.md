@@ -59,6 +59,24 @@ Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
 - `GET/PATCH /admin/users`
 - `GET/POST/DELETE /admin/invites`
 - `GET/POST/PATCH /admin/providers` (admin only)
-- `GET/PUT /admin/routing` (admin only)
+- `GET/PUT /admin/routing` (admin only) — each workflow stage can target a different enabled provider; the gateway registers one OpenAI-compatible adapter per provider at runtime
 - `GET/PUT /admin/signup-mode` (admin only)
 - `GET /admin/usage/summary`, `GET /admin/usage/by-user`
+
+## Runtime model routing
+
+1. Add providers under **Providers** (OpenAI-compatible `base_url` + API key). Presets in the admin UI:
+
+   | Provider | `base_url` | Example model ids |
+   |----------|------------|-------------------|
+   | Groq | `https://api.groq.com/openai` | `llama-3.1-8b-instant`, `llama-3.3-70b-versatile` |
+   | Perplexity (Sonar chat) | `https://api.perplexity.ai` | `sonar`, `sonar-pro`, `sonar-reasoning-pro` |
+   | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash`, `gemini-2.5-pro` |
+   | OpenAI | `https://api.openai.com` | `gpt-4o-mini`, `gpt-4o` |
+   | DeepSeek | `https://api.deepseek.com` | `deepseek-chat`, `deepseek-reasoner` |
+
+   Env `PERPLEXITY_API_KEY` is still used for **web search**. Add Perplexity again under Providers only if you want Sonar as a chat/routing model.
+2. On **Routing**, assign provider + model id per stage (default / planner / synthesizer / reviewer / writer).
+3. Saving clears the in-process settings cache and rebuilds the LLM gateway — **no redeploy**. Next chat uses the new keys/models.
+4. Env `LLM_OPENAI_*` still registers as provider `openai` when that name is not defined in the DB.
+5. Native Anthropic Claude is not supported yet (needs a dedicated adapter or OpenAI-compat proxy).

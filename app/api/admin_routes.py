@@ -278,13 +278,45 @@ def get_routing(user: AdminUser, db: Session = Depends(get_db), settings: Settin
     return RoutingResponse(**routing.__dict__)
 
 
+_BUILTIN_PROVIDERS = frozenset({"ollama", "openai"})
+
+
+def _assert_routing_providers(body: RoutingUpdate, db: Session) -> None:
+    enabled = {
+        name
+        for name in db.scalars(select(LlmProvider.name).where(LlmProvider.enabled.is_(True))).all()
+    }
+    allowed = enabled | _BUILTIN_PROVIDERS
+    fields = (
+        ("default_provider", body.default_provider),
+        ("planner_provider", body.planner_provider),
+        ("synthesizer_provider", body.synthesizer_provider),
+        ("reviewer_provider", body.reviewer_provider),
+        ("writer_provider", body.writer_provider),
+    )
+    for field, value in fields:
+        name = value.strip().lower()
+        if name not in allowed:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Unknown provider '{value}' for {field}. "
+                    "Add and enable it under Providers first (or use ollama/openai)."
+                ),
+            )
+
+
 @router.put("/routing", response_model=RoutingResponse)
 def put_routing(body: RoutingUpdate, user: AdminUser, db: Session = Depends(get_db)) -> RoutingResponse:
+    _assert_routing_providers(body, db)
     row = db.scalar(select(LlmRouting).order_by(LlmRouting.id.asc()).limit(1))
     if row is None:
         row = LlmRouting()
         db.add(row)
-    for field, value in body.model_dump().items():
+    payload = body.model_dump()
+    for field, value in payload.items():
+        if field.endswith("_provider"):
+            value = str(value).strip().lower()
         setattr(row, field, value)
     db.commit()
     db.refresh(row)

@@ -107,6 +107,26 @@ def _format_openai_provider_error(exc: httpx.HTTPError) -> str:
     return f"OpenAI-compatible provider request failed: {exc}"
 
 
+def openai_compatible_chat_completions_url(base_url: str) -> str:
+    """Build the chat-completions URL for an OpenAI-compatible provider root.
+
+    Providers disagree on whether `/v1` is part of the base or the path:
+    - Groq / DeepSeek / Fireworks: `{root}/v1/chat/completions`
+    - Gemini OpenAI compat: `{.../v1beta/openai}/chat/completions`
+    - OpenAI SDK style (`.../v1`): `{root}/chat/completions`
+    - Perplexity Sonar: `{api.perplexity.ai}/chat/completions`
+    """
+    root = base_url.rstrip("/")
+    lower = root.lower()
+    if lower.endswith("/v1beta/openai") or "/v1beta/openai/" in lower:
+        return f"{root}/chat/completions"
+    if lower.endswith("/v1"):
+        return f"{root}/chat/completions"
+    if "api.perplexity.ai" in lower:
+        return f"{root}/chat/completions"
+    return f"{root}/v1/chat/completions"
+
+
 class OpenAICompatibleLLMAdapter:
     """Adapter for OpenAI-compatible chat completion endpoints.
 
@@ -139,7 +159,7 @@ class OpenAICompatibleLLMAdapter:
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.post(
-                    f"{self._base_url}/v1/chat/completions",
+                    openai_compatible_chat_completions_url(self._base_url),
                     json=payload,
                     headers=headers,
                 )
@@ -241,4 +261,5 @@ __all__ = [
     "OpenAICompatibleLLMAdapter",
     "StageModelConfig",
     "WorkflowModelProfile",
+    "openai_compatible_chat_completions_url",
 ]
