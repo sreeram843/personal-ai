@@ -2,29 +2,28 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ChatMessage } from '../types';
 
 const DEFAULT_PHRASES = [
-  'Thinking…',
-  'Gathering context…',
-  'Searching sources…',
-  'Comparing options…',
-  'Drafting answer…',
+  'Thinking through the request and gathering context…',
+  'Comparing options and drafting a clear answer…',
+  'Checking details before responding…',
   'Almost there…',
 ] as const;
 
 const WEB_PHRASES = [
-  'Searching the web…',
-  'Reading sources…',
-  'Cross-checking facts…',
-  'Synthesizing findings…',
+  'Searching the web and reading sources…',
+  'Cross-checking facts across results…',
+  'Synthesizing findings into an answer…',
 ] as const;
 
 const WORKFLOW_PHRASES = [
-  'Planning workflow…',
-  'Running agents…',
-  'Coordinating steps…',
-  'Reviewing results…',
+  'Planning workflow steps and agent handoffs…',
+  'Running agents and correlating intermediate results…',
+  'Reviewing outputs before the final answer…',
 ] as const;
 
 function pickPhrasePool(message: ChatMessage): readonly string[] {
+  if (message.showLiveSkeleton) {
+    return ['Loading live data and verifying sources…', 'Fetching the latest figures…'] as const;
+  }
   const steps = message.workflow?.steps ?? [];
   if (steps.some((step) => step.status === 'in_progress' || step.status === 'planned')) {
     return WORKFLOW_PHRASES;
@@ -42,7 +41,12 @@ function activeWorkflowLabel(message: ChatMessage): string | null {
   if (!active) {
     return null;
   }
-  return active.title?.trim() || active.summary?.trim() || null;
+  const title = active.title?.trim();
+  const summary = active.summary?.trim();
+  if (title && summary) {
+    return `${title} — ${summary}`;
+  }
+  return title || summary || null;
 }
 
 export function useThinkingPhrase(message: ChatMessage, isStreaming: boolean): string {

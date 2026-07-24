@@ -416,10 +416,6 @@ html.dark ::selection {
   animation: thinking-text-fade 2.8s ease-in-out infinite;
 }
 
-.thinking-status-dot {
-  animation: thinking-dot-pulse 1.4s ease-in-out infinite;
-}
-
 @keyframes thinking-text-fade {
   0%,
   100% {
@@ -427,18 +423,6 @@ html.dark ::selection {
   }
   50% {
     opacity: 1;
-  }
-}
-
-@keyframes thinking-dot-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-    transform: scale(0.85);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 

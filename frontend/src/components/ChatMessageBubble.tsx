@@ -8,7 +8,6 @@ import {
   resolveMessageError,
 } from '../utils/chatErrors';
 import { CuraiLogo } from './CuraiLogo';
-import { ReasoningPanel } from './ReasoningPanel';
 import { SourcesPanel } from './SourcesPanel';
 import { resolveAssistantLogoState } from './curaiLogoState';
 import { AssistantMessageParts } from './liveData/LiveDataCards';
@@ -172,15 +171,9 @@ export function ChatMessageBubble({
 
         <div className={`min-w-0 flex-1 ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
           {isThinking ? (
-            <div
-              className="thinking-status-chip inline-flex max-w-full items-center gap-2 self-start rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3.5 py-2"
-              aria-live="polite"
-            >
-              <span className="thinking-status-dot h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ui-accent)]" aria-hidden />
-              <p className="thinking-status-text truncate text-xs leading-relaxed text-[var(--phosphor-dim)]">
-                {thinkingPhrase}
-              </p>
-            </div>
+            <p className="thinking-status-text max-w-full pt-1 text-[13.5px] italic leading-relaxed text-[var(--phosphor-dim)]" aria-live="polite">
+              {thinkingPhrase}
+            </p>
           ) : (
             <div
               className={
@@ -242,7 +235,6 @@ export function ChatMessageBubble({
             </span>
           )}
 
-          {!isUser && <ReasoningPanel message={message} isStreaming={Boolean(isStreaming)} />}
           {!isUser && !isStreaming && message.sources && message.sources.length > 0 ? (
             <SourcesPanel sources={message.sources} />
           ) : null}
