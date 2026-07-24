@@ -77,6 +77,7 @@ Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
 
    Env `PERPLEXITY_API_KEY` is still used for **web search**. Add Perplexity again under Providers only if you want Sonar as a chat/routing model.
 2. On **Routing**, assign provider + model id per stage (default / planner / synthesizer / reviewer / writer).
+   Avoid retired Groq ids (`meta-llama/llama-4-scout-17b-16e-instruct`, `qwen/qwen3-32b` — shut down 2026-07-17); prefer `llama-3.1-8b-instant` / `llama-3.3-70b-versatile`.
 3. Saving clears the in-process settings cache and rebuilds the LLM gateway — **no redeploy**. Next chat uses the new keys/models.
 4. Env `LLM_OPENAI_*` still registers as provider `openai` when that name is not defined in the DB.
 5. Native Anthropic Claude is not supported yet (needs a dedicated adapter or OpenAI-compat proxy).

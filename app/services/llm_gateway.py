@@ -139,22 +139,39 @@ def openai_compatible_chat_completions_url(base_url: str) -> str:
     return f"{root}/v1/chat/completions"
 
 
-# DeepSeek retired deepseek-chat / deepseek-reasoner in favor of v4 model ids.
+# Provider-specific retired/renamed model ids.
 _PROVIDER_MODEL_ALIASES: Dict[str, Dict[str, str]] = {
     "deepseek": {
         "deepseek-chat": "deepseek-v4-flash",
         "deepseek-reasoner": "deepseek-v4-pro",
         "deepseek-coder": "deepseek-v4-flash",
-    }
+    },
+    # Groq shut these down 2026-07-17; Admin routing often still stores them.
+    "groq": {
+        "meta-llama/llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
+        "llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
+        "qwen/qwen3-32b": "llama-3.3-70b-versatile",
+    },
+}
+
+# Also remap by model id alone — Admin may register Groq under name "openai"
+# or another OpenAI-compatible label while still sending Groq model ids.
+_GLOBAL_MODEL_ALIASES: Dict[str, str] = {
+    "meta-llama/llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
+    "llama-4-scout-17b-16e-instruct": "llama-3.3-70b-versatile",
+    "qwen/qwen3-32b": "llama-3.3-70b-versatile",
 }
 
 
 def normalize_provider_model(provider: str, model: str) -> str:
     """Map deprecated provider model ids to current API names."""
-    aliases = _PROVIDER_MODEL_ALIASES.get((provider or "").strip().lower())
-    if not aliases:
+    needle = (model or "").strip()
+    if not needle:
         return model
-    return aliases.get((model or "").strip(), model)
+    aliases = _PROVIDER_MODEL_ALIASES.get((provider or "").strip().lower())
+    if aliases and needle in aliases:
+        return aliases[needle]
+    return _GLOBAL_MODEL_ALIASES.get(needle, model)
 
 
 class OpenAICompatibleLLMAdapter:
