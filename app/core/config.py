@@ -106,6 +106,14 @@ class Settings(BaseSettings):
     worker_queue_backend: str = "arq"
     ingest_async_min_documents: int = 5
     ingest_async_min_bytes: int = 32768
+    # Reject oversized / disallowed ingest payloads (JSON /ingest).
+    ingest_max_document_bytes: int = 512_000
+    ingest_max_batch_bytes: int = 2_000_000
+    ingest_allowed_extensions: str = ".txt,.md"
+
+    # Optional public legal URLs (OAuth consent + login footer).
+    privacy_policy_url: Optional[str] = None
+    terms_of_service_url: Optional[str] = None
 
     workflow_memory_path: str = "memory/workflow_sessions.json"
     workflow_memory_max_entries: int = 24

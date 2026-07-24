@@ -18,6 +18,7 @@ Central map for Personal AI / CurAI docs. **Recorded benchmark data** lives in [
 | Doc | Purpose |
 |-----|---------|
 | [ops-runbook.md](./ops-runbook.md) | Health checks, prod VM, OAuth, troubleshooting |
+| [prod-gcp-vm.md](./prod-gcp-vm.md) | Fresh GCP VM → HTTPS CurAI (DNS, firewall, Caddy, OAuth) |
 | [admin-portal.md](./admin-portal.md) | Platform admin (`admin.cura-i.com`): providers, users, usage |
 | [deployment-checklist.md](./deployment-checklist.md) | Pre-release checklist |
 | [cloud-deploy-aws.md](./cloud-deploy-aws.md) | EKS / Helm |

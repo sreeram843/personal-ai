@@ -58,6 +58,7 @@ from app.services.ingest_service import (
     ingest_documents_for_user,
     should_enqueue_ingest,
 )
+from app.services.ingest_validation import validate_ingest_documents
 from app.services.object_storage import ObjectStorage
 from app.services.chat_messages import get_last_user_message
 from app.services.orchestrated_runner import (
@@ -490,6 +491,8 @@ async def ingest_documents(
 
     if not payload.documents:
         raise HTTPException(status_code=400, detail="No documents provided")
+
+    validate_ingest_documents(settings, payload.documents)
 
     if should_enqueue_ingest(settings, payload.documents):
         job = job_store.create_job(kind=BackgroundJobKind.INGEST, user_id=str(user.id))

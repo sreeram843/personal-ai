@@ -115,6 +115,7 @@ interface Props {
   onSetTheme: (theme: 'light' | 'dark') => void;
   toolPermissionMode: ToolPermissionMode;
   onToolPermissionModeChange: (mode: ToolPermissionMode) => void;
+  onAccountDeleted?: () => void;
 }
 
 export function SettingsPanel({
@@ -126,6 +127,7 @@ export function SettingsPanel({
   onSetTheme,
   toolPermissionMode,
   onToolPermissionModeChange,
+  onAccountDeleted,
 }: Props) {
   const [tab, setTab] = useState<TabId>('profile');
   const [error, setError] = useState<string | null>(null);
@@ -266,7 +268,9 @@ export function SettingsPanel({
                 </div>
               ) : null}
 
-              {tab === 'profile' && <ProfilePanel user={user} authConfig={authConfig} />}
+              {tab === 'profile' && (
+                <ProfilePanel user={user} authConfig={authConfig} onAccountDeleted={onAccountDeleted} />
+              )}
 
               {tab === 'appearance' && <AppearancePanel theme={theme} onSetTheme={onSetTheme} />}
 

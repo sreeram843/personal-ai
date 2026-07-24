@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings, get_settings
 from app.core.deps import get_ollama_client, get_vector_store
 from app.main import create_app
-from app.services.task_queue import InlineTaskQueue, reset_task_queue
+from app.services.task_queue import InlineTaskQueue, get_task_queue, reset_task_queue
 from tests.conftest import apply_db_auth_overrides
 
 
@@ -50,15 +50,10 @@ def test_ingest_stays_sync_when_workers_disabled(db_session) -> None:
     assert recording_store.upsert_calls == 1
 
 
-@pytest.mark.skip(
-    reason=(
-        "CI: get_task_queue() calls get_settings() outside FastAPI DI, so enable_background_workers "
-        "override is ignored and /ingest returns 503. Re-enable after fixing task queue test wiring."
-    )
-)
 def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch) -> None:
-    # TODO(#inline-worker-ingest): use app.dependency_overrides[get_task_queue] or make
-    # get_task_queue() rebuild when settings change. See skipped reason above.
+    """Large ingest batches enqueue when workers are enabled (inline queue for tests)."""
+    from sqlalchemy.orm import sessionmaker
+
     reset_task_queue()
     recording_store = _RecordingVectorStore()
     inline_queue = InlineTaskQueue(
@@ -69,10 +64,8 @@ def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch)
             }
         }
     )
-    monkeypatch.setattr("app.services.task_queue.build_task_queue", lambda *_args, **_kwargs: inline_queue)
-    monkeypatch.setattr("app.api.routes.get_task_queue", lambda: inline_queue)
-    app = create_app()
-    settings = Settings(
+    # Worker task reads Settings via get_settings() (not FastAPI DI).
+    worker_settings = Settings(
         auth_disabled=True,
         jwt_secret="test-secret-key",
         jwt_expire_minutes=60,
@@ -84,8 +77,16 @@ def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch)
         ingest_async_min_documents=1,
         redis_url=None,
     )
+    monkeypatch.setattr("app.workers.tasks.get_settings", lambda: worker_settings)
+    monkeypatch.setattr("app.services.task_queue.get_settings", lambda: worker_settings)
+    # Inline worker opens its own Session — bind it to the same in-memory DB as the request.
+    worker_session_factory = sessionmaker(bind=db_session.get_bind())
+    monkeypatch.setattr("app.workers.tasks.get_session_factory", lambda: worker_session_factory)
+
+    app = create_app()
     apply_db_auth_overrides(app, db_session)
-    app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_settings] = lambda: worker_settings
+    app.dependency_overrides[get_task_queue] = lambda: inline_queue
     app.dependency_overrides[get_ollama_client] = lambda: _StubOllama()
     app.dependency_overrides[get_vector_store] = lambda: recording_store
 
@@ -95,7 +96,7 @@ def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch)
         json={"documents": [{"text": "Queued notes", "metadata": {"path": "queued.txt"}}]},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     body = response.json()
     assert body["status"] == "queued"
     assert body["job_id"]
@@ -107,4 +108,5 @@ def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch)
 
     assert job_response.status_code == 200
     assert job_response.json()["status"] == "completed"
-    assert job_response.json()["result"]["count"] == 1
+    # Sentence-window chunk + per-document summary index point.
+    assert job_response.json()["result"]["count"] == 2

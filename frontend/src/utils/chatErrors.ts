@@ -171,7 +171,7 @@ export function errorDescription(kind: ChatErrorKind, detail: string): string {
     case 'timeout':
       return 'The request took too long. Try again or shorten your prompt.';
     case 'rate_limit':
-      return 'Too many requests right now. Wait a moment and try again.';
+      return 'The model provider rate-limited this request (often Groq free-tier TPM/RPM). Wait a few seconds and retry, or use a higher-tier model in Admin → Providers.';
     case 'refused':
       return detail || 'The model declined this request. Try editing your message.';
     default:

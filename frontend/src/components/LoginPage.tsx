@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AuthConfig } from '../api';
 import { exchangeGoogleToken } from '../api';
+import { consumeSessionNotice } from '../auth';
 import { shouldUseNativeGoogleSignIn, signInWithGoogle } from '../auth/googleSignIn';
 import { queryKeys } from '../query/keys';
+import { friendlyLoginError } from '../utils/loginErrors';
 import { CuraiLogo } from './CuraiLogo';
 
 interface Props {
@@ -17,6 +19,7 @@ interface Props {
 export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Props) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [sessionNotice] = useState<string | null>(() => consumeSessionNotice());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleButtonWidth, setGoogleButtonWidth] = useState(280);
@@ -58,7 +61,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
       onAuthenticated?.();
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Sign-in failed';
-      setError(message);
+      setError(friendlyLoginError(message));
     } finally {
       setIsSubmitting(false);
     }
@@ -78,7 +81,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
       await handleGoogleSuccess(idToken);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Sign-in failed';
-      setError(message);
+      setError(friendlyLoginError(message));
       setIsSubmitting(false);
     }
   };
@@ -103,6 +106,12 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
               : 'Sign in to access your conversations, documents, and smart-routed chat history.'}
           </p>
         </div>
+
+        {sessionNotice && !error && (
+          <div className="mb-4 rounded-xl border border-[color-mix(in_srgb,var(--ui-accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--ui-accent)_12%,transparent)] px-4 py-3 text-sm text-[var(--phosphor-bright)]">
+            {sessionNotice}
+          </div>
+        )}
 
         {authConfig.google_auth_enabled ? (
           <div className="flex w-full flex-col items-center gap-3">
@@ -162,6 +171,32 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
           {isAdmin
             ? 'Only emails listed in ADMIN_EMAILS (or invited as staff) can open this portal.'
             : 'Your conversations are private and tied to your account.'}
+          {(authConfig.privacy_policy_url || authConfig.terms_of_service_url) && (
+            <>
+              {' '}
+              {authConfig.privacy_policy_url && (
+                <a
+                  className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+                  href={authConfig.privacy_policy_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Privacy
+                </a>
+              )}
+              {authConfig.privacy_policy_url && authConfig.terms_of_service_url && ' · '}
+              {authConfig.terms_of_service_url && (
+                <a
+                  className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+                  href={authConfig.terms_of_service_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Terms
+                </a>
+              )}
+            </>
+          )}
         </p>
       </div>
     </div>

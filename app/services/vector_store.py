@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 from uuid import UUID, uuid4
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, FieldCondition, Filter, MatchValue, PointStruct, VectorParams
+from qdrant_client.models import Distance, FieldCondition, Filter, FilterSelector, MatchValue, PointStruct, VectorParams
 
 
 USER_ID_PAYLOAD_KEY = "user_id"
@@ -118,6 +118,15 @@ class VectorStore:
                     match=MatchValue(value=user_id),
                 )
             ]
+        )
+
+    def delete_for_user(self, user_id: str) -> None:
+        """Delete all vector points belonging to one user."""
+        if not self._client.collection_exists(self._collection):
+            return
+        self._client.delete(
+            collection_name=self._collection,
+            points_selector=FilterSelector(filter=self._user_filter(user_id)),
         )
 
     def search(

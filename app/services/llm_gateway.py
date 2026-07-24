@@ -99,11 +99,17 @@ def _normalize_openai_messages(messages: Sequence[Dict[str, str]]) -> List[Dict[
 
 def _format_openai_provider_error(exc: httpx.HTTPError) -> str:
     if isinstance(exc, httpx.HTTPStatusError) and exc.response is not None:
+        status = exc.response.status_code
         try:
             error_body = exc.response.json()
         except ValueError:
             error_body = exc.response.text
-        return f"OpenAI-compatible provider request failed ({exc.response.status_code}): {error_body}"
+        if status == 429:
+            return (
+                f"OpenAI-compatible provider request failed (429): rate limit reached. "
+                f"Wait a moment and try again, or switch to a higher-tier model/provider. Details: {error_body}"
+            )
+        return f"OpenAI-compatible provider request failed ({status}): {error_body}"
     if isinstance(exc, httpx.ReadTimeout):
         return (
             "OpenAI-compatible provider request timed out waiting for a response. "
