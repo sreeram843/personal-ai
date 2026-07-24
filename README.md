@@ -1,6 +1,6 @@
 # Personal AI
 
-Monorepo for a **multi-user**, retrieval-augmented assistant with live data, tool calling, and optional multi-agent workflows. Backend is FastAPI + PostgreSQL + Qdrant + Ollama (or cloud LLMs). Frontend is a Vite + React + Tailwind chat UI with **Chat** vs **Smart** modes, server-synced history, and light/dark themes.
+Monorepo for a **multi-user**, retrieval-augmented assistant with live data, tool calling, and optional multi-agent workflows. Backend is FastAPI + PostgreSQL + Qdrant + Ollama (or cloud LLMs). Frontend is a Vite + React + Tailwind chat UI with **Chat** and **Smart** modes, server-synced history, and light/dark themes.
 
 ## What it does today
 
@@ -11,9 +11,9 @@ Monorepo for a **multi-user**, retrieval-augmented assistant with live data, too
 | Live data (FX, stocks, weather, news) | ✅ Deterministic short-circuit before LLM |
 | Fast single-call chat | ✅ Greetings / trivial prompts (`ENABLE_FAST_CHAT`) |
 | Tool-calling agent (web + live tools) | ✅ Native agent via `ToolRegistry` (`ENABLE_TOOL_AGENT`) |
-| Smart routing (`chat` / `rag` / `workflow`) | ✅ `/smart_chat` |
-| Multi-agent workflow + SSE trace | ✅ `/workflow_chat`, `/smart_chat/stream` |
-| Cloud LLM (Groq, Together, etc.) | ✅ `cloud-chat` Compose profile |
+| Unified chat with auto-routing (`chat` / `rag` / `workflow`) | ✅ `POST /chat` |
+| Multi-agent workflow + SSE trace | ✅ `/workflow_chat`, `/chat/stream` |
+| Cloud LLM (Groq, DeepSeek, Together, etc.) | ✅ `cloud-chat` Compose profile |
 | Background workers (ingest) | ✅ Optional `workers` profile |
 | Runtime MCP connectors in chat UI | ✅ MCP servers + tool permissions (Agent settings) |
 | User skills + agent tasks + diagnostics | ✅ Bundled skills, `/agent/*` APIs, Doctor tab |
@@ -103,7 +103,7 @@ Tailscale (`100.67.46.46`) remains a fallback if Ethernet is unavailable — upd
 
 ```bash
 cp .env.cloud.example .env.cloud
-# Enable one provider block (e.g. Groq) and set LLM_CLOUD_API_KEY
+# Enable one provider block (e.g. Groq, DeepSeek) and set LLM_CLOUD_API_KEY
 make up-cloud
 make db-migrate
 ```
@@ -118,15 +118,22 @@ docker compose exec app env | grep -E "LLM_DEFAULT_PROVIDER|LLM_OPENAI_BASE_URL|
 
 ## How chat works
 
-### Direct chat (`POST /chat`)
+### Chat modes
 
-After optional **live-data short-circuit** (FX, weather, stocks, news), `/chat` picks one path:
+**Chat** (`POST /chat/stream`) — direct fast path. **Smart** (`POST /smart_chat/stream`) — automatic routing:
+
+1. **Live-data short-circuit** — FX, weather, stocks, news, nearby places, etc.
+2. **Route selection (Smart only)** — `chat`, `rag` (your documents), or `workflow` (multi-agent plan + trace)
+3. **Chat execution** — within `chat`, pick fast / tool agent / orchestrated pipeline
 
 ```mermaid
 flowchart TD
     Q[User message] --> Live{Live intent?}
     Live -->|yes| LD[Adapter response]
-    Live -->|no| Strat{Strategy}
+    Live -->|no| Route{Route}
+    Route -->|documents| RAG[RAG + orchestration]
+    Route -->|complex| WF[Workflow agents]
+    Route -->|default| Strat{Strategy}
     Strat -->|trivial| Fast[Single LLM call]
     Strat -->|default| Tools[Tool-calling agent]
     Strat -->|tools off| Orch[Multi-agent pipeline]
@@ -137,18 +144,19 @@ flowchart TD
 | **Fast** | `hi`, `thanks`, short chitchat | 1 |
 | **Tools** | Default when `ENABLE_TOOL_AGENT=true` | 1–4 (model picks tools) |
 | **Orchestrated** | `ENABLE_TOOL_AGENT=false` | 4+ (researcher → synthesizer → reviewer → writer) |
+| **RAG** | Queries about your uploaded documents | 2+ |
+| **Workflow** | Multi-step research, comparisons, live + web tasks | 4+ |
 
-Built-in tools (registered in `ToolRegistry`, exposed to the agent): `fx_rate`, `market_price`, `weather`, `weather_forecast`, `news`, `web_search`. List them with `GET /tools?role=chat_agent`.
+Built-in tools (registered in `ToolRegistry`, exposed to the agent): `fx_rate`, `market_price`, `weather`, `weather_forecast`, `news`, `web_search`, `find_nearby_places`. List them with `GET /tools?role=chat_agent`.
 
-### Smart mode (`POST /smart_chat`)
+## Chat modes (`POST /chat` vs `POST /smart_chat`)
 
-Auto-routes each message:
+The web UI exposes **Chat** and **Smart** in the sidebar.
 
-- **chat** — uses the paths above (fast / tools / orchestrated)
-- **rag** — retrieval from your documents + orchestration
-- **workflow** — dynamic multi-agent plan with optional trace
+- **Chat** → `POST /chat/stream` — direct fast path (`execute_chat_mode`); live-data short-circuit still applies.
+- **Smart** → `POST /smart_chat/stream` — `_select_smart_mode` routes to `chat`, `rag`, or `workflow`.
 
-Use Smart mode when you want grounding, deeper analysis, or a visible workflow trace. Use direct Chat for faster, ChatGPT-style replies.
+`POST /smart_chat` and `/smart_chat/stream` are the smart-routing entrypoints (not deprecated aliases).
 
 ## Authentication
 
@@ -170,10 +178,11 @@ Conversation and message APIs are scoped per user. RAG ingest and search filter 
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /chat` | Direct chat (fast / tool agent / orchestrated) |
+| `POST /chat` | Direct chat (fast path; no smart auto-routing) |
+| `POST /chat/stream` | SSE stream for direct chat |
+| `POST /smart_chat` | Smart chat with auto-routing (live data, chat / rag / workflow) |
+| `POST /smart_chat/stream` | SSE stream for smart chat |
 | `POST /rag_chat` | RAG-grounded chat with citations |
-| `POST /smart_chat` | Intent routing: chat / rag / workflow |
-| `POST /smart_chat/stream` | SSE stream for smart mode |
 | `POST /workflow_chat` | Explicit workflow with trace |
 | `POST /workflow_chat/stream` | SSE workflow stream |
 | `POST /workflow_chat/background` | Enqueue long workflow to worker |
@@ -359,6 +368,7 @@ Benchmark results (smoke + stress, local + prod): [docs/model-stress-testing.md]
 - **Ollama 404 on `/api/embed`**: Pull `nomic-embed-text` (`make pull-models-cloud` or `./scripts/deploy_prod.sh`).
 - **Playwright visual failures on CI**: CI runs on Linux; commit both `*-darwin.png` (local) and `*-linux.png` baselines. Regenerate Linux snapshots with `npm run test:visual:update:linux` from `frontend/`.
 - **Groq 429 rate limits**: Use tiered models in `.env.cloud` (8B for planner/reviewer, larger model for writer only) or space out requests; Smart workflow mode issues more LLM calls than direct Chat.
+- **DeepSeek ReadTimeout in workflow mode**: Raise `LLM_CLOUD_TIMEOUT` to `180` (or higher); `deepseek-v4-pro` on the writer stage with RAG context can exceed 30–60s.
 - **Tool agent errors**: Chat tool routing uses the native ToolRegistry executor (OpenAI-compatible API or Ollama `/api/chat` with tools). Use a model with tool-calling support; for local Ollama, prefer `llama3.1` or newer.
 - **Speech input unavailable**: Web Speech API is browser-dependent (Chrome works best).
 

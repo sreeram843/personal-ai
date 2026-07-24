@@ -10,8 +10,8 @@ Central map for Personal AI / CurAI docs. **Recorded benchmark data** lives in [
 | [compose-profiles.md](./compose-profiles.md) | Docker profiles: local, cloud, remote, gpu-vllm |
 | [../docker-setup.md](../docker-setup.md) | Container topology pointer |
 | [../frontend/CAPACITOR.md](../frontend/CAPACITOR.md) | iOS/Android native shell |
-| [ui-reference.md](./ui-reference.md) | Chat UI layout, account menu, latency display |
-| [portfolio-embed.md](./portfolio-embed.md) | 5-question demo iframe for portfolio sites |
+| [ui-reference.md](./ui-reference.md) | Unified chat UI, settings, latency, live-data cards |
+| [cli/README.md](../cli/README.md) | Installable `curai` terminal coding agent |
 
 ## Operations & deploy
 

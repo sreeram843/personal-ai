@@ -16,6 +16,7 @@ export type ContentBlockType =
   | 'odds'
   | 'election'
   | 'news'
+  | 'nearby_places'
   | 'text';
 
 export interface ContentBlock {
@@ -186,6 +187,23 @@ export interface StubProviderCardData {
   status?: string;
   message?: string;
   kind?: string;
+  asOf?: string;
+  source?: string;
+  live?: boolean;
+}
+
+export interface NearbyPlaceItem {
+  name?: string;
+  type?: string;
+  distanceKm?: number | null;
+}
+
+export interface NearbyPlacesCardData {
+  location?: string;
+  category?: string;
+  categoryLabel?: string;
+  radiusKm?: number;
+  places?: NearbyPlaceItem[];
   asOf?: string;
   source?: string;
   live?: boolean;

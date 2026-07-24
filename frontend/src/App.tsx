@@ -71,11 +71,11 @@ interface AppProps {
 export default function App({ authConfig, user }: AppProps) {
   const queryClient = useQueryClient();
   const [theme, setTheme] = useTheme();
-  const [mode, setMode] = useLocalStorage<ConversationMode>('personal-ai-mode', 'smart');
   const [toolPermissionMode, setToolPermissionMode] = useLocalStorage<ToolPermissionMode>(
     'personal-ai-tool-permission-mode',
     'auto',
   );
+  const [mode, setMode] = useLocalStorage<ConversationMode>('personal-ai-mode', 'smart');
   const [selectedAssistantId, setSelectedAssistantId] = useLocalStorage<string>(
     'personal-ai-selected-assistant',
     'default',
@@ -100,6 +100,11 @@ export default function App({ authConfig, user }: AppProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const authReady = true;
+  useEffect(() => {
+    if (mode !== 'chat' && mode !== 'smart') {
+      setMode('smart');
+    }
+  }, [mode, setMode]);
   useEffect(() => {
     if (!authReady) {
       return;
@@ -169,12 +174,6 @@ export default function App({ authConfig, user }: AppProps) {
   useEffect(() => {
     document.documentElement.removeAttribute('data-phosphor');
   }, []);
-
-  useEffect(() => {
-    if (mode !== 'chat' && mode !== 'smart') {
-      setMode('smart');
-    }
-  }, [mode, setMode]);
 
   const showToast = (message: string) => {
     setToast(message);

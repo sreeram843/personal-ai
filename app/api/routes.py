@@ -44,7 +44,8 @@ from app.services.run_store import RunStore
 from app.services.vector_store import VectorStore
 from app.services.workflow_memory import WorkflowMemoryStore
 from app.services.information_routing import (
-    is_external_web_lookup_query,
+    is_corpus_overview_query,
+    is_document_grounded_query,
     is_quick_social_utterance,
     should_route_smart_toward_workflow,
 )
@@ -118,7 +119,11 @@ async def _live_data_short_circuit(
     live_data: LiveDataManager,
 ) -> ChatResponse | None:
     last_user_message = _get_last_user_message(payload)
-    adapter_result = await live_data.resolve(last_user_message.content)
+    history = [{"role": msg.role, "content": msg.content} for msg in payload.messages[:-1]]
+    adapter_result = await live_data.resolve(
+        last_user_message.content,
+        chat_history=history,
+    )
     if adapter_result:
         rendered, ts = live_data.render(adapter_result)
         blocks = LiveDataManager.to_blocks(adapter_result)
@@ -171,6 +176,7 @@ def _build_orchestrated_service(
 
 
 def _select_smart_mode(payload: ChatRequest) -> Literal["chat", "rag", "workflow"]:
+    """Auto-route a user prompt to chat, document RAG, or multi-agent workflow."""
     query = _get_last_user_message(payload).content.strip()
     lowered = query.lower()
     words = query.split()
@@ -178,7 +184,7 @@ def _select_smart_mode(payload: ChatRequest) -> Literal["chat", "rag", "workflow
     if is_quick_social_utterance(query):
         return "chat"
 
-    if is_external_web_lookup_query(query):
+    if is_document_grounded_query(query) or is_corpus_overview_query(query):
         return "rag"
 
     complex_reasoning_terms = (
@@ -206,7 +212,7 @@ def _select_smart_mode(payload: ChatRequest) -> Literal["chat", "rag", "workflow
     if any(term in lowered for term in complex_reasoning_terms):
         return "workflow"
 
-    return "rag"
+    return "chat"
 
 
 async def _run_orchestrated_mode(
@@ -534,7 +540,7 @@ async def chat(
     live_data: LiveDataManager = Depends(get_live_data_manager),
     workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
 ) -> ChatResponse:
-    """Answer a chat request through the shared orchestrated backend path."""
+    """Direct chat — fast path without smart auto-routing to RAG/workflow."""
 
     async def handler(request: ChatRequest, _conversation: Conversation) -> ChatResponse:
         shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
@@ -574,32 +580,26 @@ async def chat_stream(
     live_data: LiveDataManager = Depends(get_live_data_manager),
     workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
 ) -> StreamingResponse:
-    """Streaming chat with live block events during tool runs."""
+    """Streaming direct chat — fast path without smart auto-routing."""
 
     async def stream_factory(request: ChatRequest) -> AsyncIterator[str]:
-        try:
-            shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
-            if shortcut:
-                yield _encode_sse({"type": "final", "response": shortcut.model_dump()})
-                return
-            async for event in execute_chat_mode_stream(
-                payload=request,
-                user_id=str(user.id),
-                ollama=ollama,
-                llm_gateway=llm_gateway,
-                model_profile=model_profile,
-                vector_store=vector_store,
-                web_search=web_search,
-                workflow_memory=workflow_memory,
-                tool_registry=get_tool_registry(),
-            ):
-                if event.get("type") == "final":
-                    response = ChatResponse.model_validate(event["response"])
-                    event = {"type": "final", "response": response.model_copy(update={"message": _format_chat_response(response.message)}).model_dump()}
-                yield _encode_sse(event)
-        except Exception as exc:
-            logger.exception("Chat stream failed")
-            yield _encode_sse({"type": "error", "message": str(exc)})
+        shortcut = await _live_data_short_circuit(payload=request, live_data=live_data)
+        if shortcut:
+            yield _encode_sse({"type": "final", "response": shortcut.model_dump()})
+            return
+
+        async for event in _stream_orchestrated_mode(
+            mode="chat",
+            payload=request,
+            user_id=str(user.id),
+            ollama=ollama,
+            llm_gateway=llm_gateway,
+            model_profile=model_profile,
+            vector_store=vector_store,
+            web_search=web_search,
+            workflow_memory=workflow_memory,
+        ):
+            yield event
 
     return StreamingResponse(
         wrap_chat_stream_with_persistence(
@@ -610,6 +610,7 @@ async def chat_stream(
             stream_factory=stream_factory,
         ),
         media_type="text/event-stream",
+        headers={"X-Chat-Route": "chat"},
     )
 
 
@@ -811,7 +812,11 @@ async def smart_chat(
             return shortcut
 
         selected_mode = _select_smart_mode(request)
-        run = run_store.create_run(mode=selected_mode, conversation_id=request.conversation_id, user_id=str(user.id))
+        run = run_store.create_run(
+            mode=selected_mode,
+            conversation_id=request.conversation_id,
+            user_id=str(user.id),
+        )
         run_store.update_run_status(run.run_id, RunStatus.IN_PROGRESS)
         try:
             response = await _run_orchestrated_mode(
@@ -893,7 +898,7 @@ async def smart_chat_stream(
             stream_factory=stream_factory,
         ),
         media_type="text/event-stream",
-        headers={"X-Smart-Mode": selected_mode},
+        headers={"X-Chat-Route": selected_mode},
     )
 
 

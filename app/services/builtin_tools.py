@@ -205,6 +205,20 @@ def register_builtin_tools(
         ),
         (
             ToolSpec(
+                tool_id="find_nearby_places",
+                name="Nearby Places",
+                description=(
+                    "Find restaurants, coffee shops, bars, hotels, or things to do near a city or neighborhood. "
+                    "If the user says 'near me' without a location, ask which city or area to search."
+                ),
+                risk_class=ToolRiskClass.NETWORK,
+                capabilities={ToolCapability.NETWORK_REQUEST},
+                allowed_roles={CHAT_AGENT_ROLE, "researcher", "coordinator"},
+            ),
+            _live_executor(hub.get_nearby_places),
+        ),
+        (
+            ToolSpec(
                 tool_id="get_game_score",
                 name="Game Score",
                 description=(

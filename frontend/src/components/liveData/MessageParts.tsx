@@ -7,6 +7,7 @@ import type {
   FxCardData,
   GameScoreCardData,
   MessagePart,
+  NearbyPlacesCardData,
   NewsCardData,
   ServiceStatusCardData,
   StockCardData,
@@ -23,6 +24,7 @@ import { FxCard } from './FxCard';
 import { GameScoreCard } from './GameScoreCard';
 import { GasPriceCard } from './GasPriceCard';
 import { NewsCard } from './NewsCard';
+import { NearbyPlacesCard } from './NearbyPlacesCard';
 import { OddsCard } from './OddsCard';
 import { PackageCard } from './PackageCard';
 import { ServiceStatusCard } from './ServiceStatusCard';
@@ -51,6 +53,7 @@ const CARD_REGISTRY: Partial<Record<ContentBlockType, ComponentType<CardComponen
   ),
   fx: ({ data }) => <FxCard data={data as unknown as FxCardData} />,
   news: ({ data }) => <NewsCard data={data as unknown as NewsCardData} />,
+  nearby_places: ({ data }) => <NearbyPlacesCard data={data as unknown as NearbyPlacesCardData} />,
   air_quality: ({ data }) => <AirQualityCard data={data as unknown as AirQualityCardData} />,
   service_status: ({ data }) => <ServiceStatusCard data={data as unknown as ServiceStatusCardData} />,
   flight: ({ data }) => <FlightCard data={data as unknown as FlightCardData} />,

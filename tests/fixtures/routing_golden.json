@@ -13,7 +13,7 @@
   },
   {
     "query": "Rewrite this email to be friendlier",
-    "expected_mode": "rag",
+    "expected_mode": "chat",
     "expect_web_research": false,
     "expect_workflow": false
   },
@@ -37,7 +37,7 @@
   },
   {
     "query": "Explain how cosine similarity works in embeddings",
-    "expected_mode": "rag",
+    "expected_mode": "chat",
     "expect_web_research": false,
     "expect_workflow": false
   }

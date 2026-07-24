@@ -1,4 +1,4 @@
-import { FileText, GitCompare, Mail, Sparkles, Zap } from 'lucide-react';
+import { FileText, GitCompare, Mail, MapPin, Sparkles, Zap } from 'lucide-react';
 import type { ConversationMode } from '../types';
 import { CuraiLogo } from './CuraiLogo';
 
@@ -15,6 +15,7 @@ const CHAT_CHIPS = [
 
 const SMART_CHIPS = [
   { label: 'Search my docs', prompt: 'Search my uploaded documents and answer:', icon: FileText },
+  { label: 'Places near me', prompt: 'Find good restaurants near me', icon: MapPin },
   { label: 'Deep analysis', prompt: 'Analyze this topic in depth, citing sources where possible:', icon: Sparkles },
   { label: 'Morning briefing', prompt: 'Give me a morning briefing with weather, news, and anything urgent.', icon: Zap },
 ] as const;
@@ -25,6 +26,7 @@ export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
     mode === 'smart'
       ? [
           { label: 'Grounded answers', prompt: 'What do my documents say about our Q3 roadmap?' },
+          { label: 'Live data', prompt: 'What is the weather in Austin today?' },
           { label: 'Workflow trace', prompt: 'Plan and execute a multi-step research workflow on:' },
         ]
       : [

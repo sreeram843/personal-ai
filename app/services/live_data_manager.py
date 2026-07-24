@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import logging
 import time
-from typing import Optional, Tuple
+from typing import Optional, Sequence, Tuple
 
 from prometheus_client import Counter, Histogram
 
@@ -13,6 +13,8 @@ from app.schemas.content_block import ContentBlock
 from app.schemas.live_intent import LiveDataProvenance, LiveIntent
 from app.services.adapter_cache import AdapterCache
 from app.services.live_intent_router import is_structured_live_intent, route_live_intent
+from app.services.local_places import fetch_nearby_places, location_prompt_text
+from app.services.llm_gateway import StageModelConfig
 from app.services.sports_data import SportsDataService
 from app.services.web_search import WEATHER_CODE_LABELS, WebSearchService
 
@@ -102,6 +104,7 @@ class LiveDataManager:
             "weather_forecast": self._settings.live_cache_ttl_weather_forecast_seconds,
             "news": self._settings.live_cache_ttl_news_seconds,
             "game_score": self._settings.live_cache_ttl_sports_seconds,
+            "nearby_places": self._settings.live_cache_ttl_nearby_places_seconds,
         }
         return mapping.get(domain, self._settings.adapter_cache_default_ttl_seconds)
 
@@ -275,6 +278,23 @@ class LiveDataManager:
                 )
             ]
 
+        if result.domain == "nearby_places":
+            return [
+                ContentBlock(
+                    type="nearby_places",
+                    data={
+                        "location": data.get("location", ""),
+                        "category": data.get("category", "general"),
+                        "categoryLabel": data.get("categoryLabel", "nearby places"),
+                        "radiusKm": data.get("radiusKm"),
+                        "places": data.get("places", []),
+                        "asOf": result.fetched_at_utc,
+                        "source": result.source,
+                        "live": False,
+                    },
+                )
+            ]
+
         return []
 
     @staticmethod
@@ -316,6 +336,11 @@ class LiveDataManager:
                 fmt = data.get("match_format") or "Cricket"
                 return f"Score update: **{away} {away_line}** vs **{home} {home_line}** ({fmt})."
             return f"Score update: **{away}** at **{home}**."
+        if result.domain == "nearby_places":
+            location = data.get("location") or "that area"
+            label = data.get("categoryLabel") or "nearby places"
+            count = len(data.get("places") or [])
+            return f"Here are **{count} {label}** near **{location}**."
         return "Here's the latest live data."
 
     def is_live_intent_query(self, query: str) -> bool:
@@ -347,9 +372,14 @@ class LiveDataManager:
             error_message="No adapter produced verifiable live data",
         )
 
-    async def resolve(self, query: str) -> Optional[AdapterResult]:
+    async def resolve(
+        self,
+        query: str,
+        *,
+        chat_history: Sequence[dict[str, str]] | None = None,
+    ) -> Optional[AdapterResult]:
         """Resolve query using structured intent routing, then domain adapters."""
-        intent = route_live_intent(query)
+        intent = route_live_intent(query, chat_history=chat_history)
         if not is_structured_live_intent(intent):
             return None
 
@@ -362,10 +392,17 @@ class LiveDataManager:
             "weather_forecast": self._resolve_weather_forecast_intent,
             "news": self._resolve_news_intent,
             "game_score": self._resolve_game_score_intent,
+            "nearby_places": self._resolve_nearby_places_intent,
         }
         handler = handlers.get(intent.domain)
         if handler is None:
             return None
+        if intent.domain == "nearby_places":
+            return await self._resolve_nearby_places_intent(
+                intent,
+                query=query,
+                chat_history=chat_history,
+            )
         return await handler(intent)
 
     async def _get_cache(self, key: str, domain: str) -> Optional[AdapterResult]:
@@ -708,6 +745,95 @@ class LiveDataManager:
         await self._set_cache(cache_key, result)
         return result
 
+    async def _resolve_nearby_places_intent(
+        self,
+        intent: LiveIntent,
+        *,
+        query: str,
+        chat_history: Sequence[dict[str, str]] | None = None,
+    ) -> AdapterResult:
+        from app.core.deps import get_llm_gateway
+        from app.services.nearby_places_clarification import assess_nearby_places_readiness
+
+        assessment = await assess_nearby_places_readiness(
+            query,
+            intent,
+            chat_history=chat_history,
+            settings=self._settings,
+            llm_gateway=get_llm_gateway(),
+            planner=StageModelConfig(
+                provider=self._settings.llm_planner_provider,
+                model=self._settings.llm_planner_model,
+            ),
+        )
+
+        if not assessment.ready_to_search:
+            error_code = (
+                "LOCATION_REQUIRED"
+                if bool(intent.slots.get("needs_location"))
+                else "CLARIFICATION_REQUIRED"
+            )
+            return AdapterResult(
+                domain="nearby_places",
+                status="partial",
+                verified=False,
+                source="Personal AI",
+                fetched_at_utc=self._now_utc(),
+                ttl_seconds=10,
+                error_code=error_code,
+                error_message=assessment.question or location_prompt_text(category=assessment.category),
+                data={
+                    "category": assessment.category,
+                    "needs_location": error_code == "LOCATION_REQUIRED",
+                },
+                confidence=intent.confidence,
+            )
+
+        location = assessment.location.strip()
+        category = assessment.category
+        domain = "nearby_places"
+        cache_key = f"adapter:{domain}:{location.lower()}:{category}"
+        cached = await self._get_cache(cache_key, domain)
+        if cached:
+            return cached
+
+        started = time.perf_counter()
+        payload = await fetch_nearby_places(location, category=category)
+        latency = time.perf_counter() - started
+        ttl = self._domain_ttl(domain)
+
+        if not payload or not payload.get("places"):
+            result = AdapterResult(
+                domain=domain,
+                status="error",
+                verified=False,
+                source="OpenStreetMap",
+                fetched_at_utc=self._now_utc(),
+                ttl_seconds=min(ttl, 30),
+                error_code="LIVE_DATA_NOT_VERIFIED",
+                error_message=f"Couldn't find {category.replace('_', ' ')} near '{location}'. Try a nearby city name.",
+                data={"location": location, "category": category},
+                confidence=intent.confidence,
+            )
+            ADAPTER_REQUESTS_TOTAL.labels(domain=domain, status=result.status, source=result.source, cache_hit="false").inc()
+            ADAPTER_LATENCY_SECONDS.labels(domain=domain, source=result.source).observe(latency)
+            return result
+
+        result = AdapterResult(
+            domain=domain,
+            status="ok",
+            verified=True,
+            source="OpenStreetMap",
+            fetched_at_utc=self._now_utc(),
+            ttl_seconds=ttl,
+            data=payload,
+            confidence=intent.confidence,
+        )
+        ADAPTER_REQUESTS_TOTAL.labels(domain=domain, status=result.status, source=result.source, cache_hit="false").inc()
+        ADAPTER_LATENCY_SECONDS.labels(domain=domain, source=result.source).observe(latency)
+        await self._set_cache(cache_key, result)
+        return result
+
 
     def render(self, result: AdapterResult) -> Tuple[str, str]:
         """Render normalized adapter result into readable chat text + fetched timestamp."""
@@ -715,6 +841,8 @@ class LiveDataManager:
         source = result.source or "unknown"
 
         if result.status != "ok" or not result.verified:
+            if result.error_code in {"LOCATION_REQUIRED", "CLARIFICATION_REQUIRED"}:
+                return result.error_message or location_prompt_text(category="general"), ts
             detail = result.error_message or "The provider did not return verified data."
             msg = (
                 f"I couldn't fetch verified live {result.domain.replace('_', ' ')} data.\n\n"
