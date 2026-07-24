@@ -9,7 +9,9 @@ from app.core.auth import (
     get_or_create_user_by_google,
 )
 from app.core.config import Settings, get_settings
+from app.core.deps import get_object_storage, get_vector_store
 from app.core.security import create_access_token
+from app.db.models import User
 from app.db.session import get_db
 from app.schemas.auth import (
     AuthConfigResponse,
@@ -18,8 +20,11 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+from app.services.account_lifecycle import delete_user_account, export_user_data
 from app.services.google_auth import GoogleAuthError, verify_google_id_token
+from app.services.object_storage import ObjectStorage
 from app.services.settings_store import get_signup_mode
+from app.services.vector_store import VectorStore
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -36,6 +41,8 @@ def read_auth_config(
         google_client_id=google_client_id,
         google_auth_enabled=not settings.auth_disabled and google_client_id is not None,
         signup_mode=get_signup_mode(db, settings),
+        privacy_policy_url=(settings.privacy_policy_url or "").strip() or None,
+        terms_of_service_url=(settings.terms_of_service_url or "").strip() or None,
     )
 
 
@@ -115,3 +122,37 @@ def google_sign_in(
 def read_current_user(user: CurrentUser) -> UserResponse:
     """Return the authenticated user (requires Bearer token when AUTH_DISABLED=false)."""
     return UserResponse.from_db(user)
+
+
+@router.get("/me/export")
+def export_current_user_data(
+    user: CurrentUser,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Download a JSON export of the signed-in user's conversations."""
+    return export_user_data(db, user)
+
+
+@router.delete("/me")
+def delete_current_user_account(
+    user: CurrentUser,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+    vector_store: VectorStore = Depends(get_vector_store),
+    object_storage: ObjectStorage = Depends(get_object_storage),
+) -> dict:
+    """Permanently delete the signed-in account and user-scoped data."""
+    if settings.auth_disabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Account deletion is disabled while AUTH_DISABLED=true",
+        )
+    db_user = db.get(User, user.id)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return delete_user_account(
+        db=db,
+        user=db_user,
+        vector_store=vector_store,
+        object_storage=object_storage,
+    )

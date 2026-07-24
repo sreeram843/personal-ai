@@ -695,6 +695,7 @@ export default function App({ authConfig, user }: AppProps) {
         onSetTheme={setTheme}
         toolPermissionMode={toolPermissionMode}
         onToolPermissionModeChange={setToolPermissionMode}
+        onAccountDeleted={handleLogout}
       />
       <main id="chat-main" aria-busy={isLoading || isBootstrapping} className="classic-atmosphere relative flex min-h-0 flex-1 flex-col overflow-hidden border-t border-[var(--ui-border)] bg-[var(--ui-bg)] md:h-full md:border-t-0">
         <ChatHeader

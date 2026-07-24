@@ -2,11 +2,14 @@
 
 ## Configuration
 
-- [ ] `.env` is populated for the target environment.
-- [ ] `CORS_ORIGINS` only includes required origins.
-- [ ] `GRAFANA_ADMIN_PASSWORD` is overridden from the default.
+- [ ] `.env` / `.env.cloud` is populated for the target environment.
+- [ ] `JWT_SECRET` is a long random value (not the repo default).
+- [ ] `SETTINGS_SECRET_KEY` is set for encrypted Admin provider secrets.
+- [ ] `CORS_ORIGINS` only includes required origins (prod: HTTPS app/admin hosts; no `*` / no raw IP).
+- [ ] `GRAFANA_ADMIN_PASSWORD` is overridden from the default `admin`.
 - [ ] Optional framework flags are set intentionally.
 - [ ] Ollama and Qdrant endpoints are correct for the target environment.
+- [ ] `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` set if publishing Google OAuth publicly.
 
 ## Security
 
@@ -47,8 +50,10 @@
 
 ## Production-specific
 
-- [ ] `https://app.cura-i.com/health` returns 200.
+- [ ] Follow [prod-gcp-vm.md](./prod-gcp-vm.md) for first-time VM setup.
+- [ ] `https://app.cura-i.com/health` returns 200 (`./scripts/verify_prod.sh`).
 - [ ] Google OAuth origins match public URL (`./scripts/verify_prod_auth.sh`).
+- [ ] OAuth consent screen is **In production** (or Test users listed).
 - [ ] Sequential prod stress passes (`AUTH_EMAIL=stress-test@example.com make model-stress-prod`).
 - [ ] `latency_ms` persisted in message metadata after backend deploy.
 

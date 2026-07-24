@@ -2,6 +2,7 @@ import { authHeaders, expireAuthSession, getAuthToken, setAuthToken } from './au
 import { isCapacitorNative } from './platform/capacitor';
 import { resolveApiBaseUrl } from './platform/resolveApiBaseUrl';
 import { createChatRequestError } from './utils/chatErrors';
+import { assertUploadAllowed } from './utils/attachmentFiles';
 import type { ContentBlock } from './types/liveData';
 import type {
   ChatErrorKind,
@@ -47,6 +48,8 @@ export interface AuthConfig {
   google_client_id: string | null;
   google_auth_enabled: boolean;
   signup_mode?: string;
+  privacy_policy_url?: string | null;
+  terms_of_service_url?: string | null;
 }
 
 export interface CurrentUser {
@@ -155,6 +158,18 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
 export async function fetchCurrentUser(): Promise<CurrentUser> {
   const response = await apiFetch('/auth/me');
   return (await response.json()) as CurrentUser;
+}
+
+export async function exportAccountData(): Promise<Record<string, unknown>> {
+  const response = await apiFetch('/auth/me/export');
+  return (await response.json()) as Record<string, unknown>;
+}
+
+export async function deleteAccount(): Promise<void> {
+  const response = await apiFetch('/auth/me', { method: 'DELETE' });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
 }
 
 export async function exchangeGoogleToken(idToken: string): Promise<TokenResponsePayload> {
@@ -506,6 +521,9 @@ async function readFileAsText(file: File): Promise<string> {
 }
 
 export async function uploadDocuments(files: File[]): Promise<void> {
+  for (const file of files) {
+    assertUploadAllowed(file);
+  }
   const documents = await Promise.all(
     files.map(async (file) => ({
       text: await readFileAsText(file),

@@ -107,12 +107,12 @@ else
   curl -fsS http://127.0.0.1:8000/ready
 fi
 
-printf '\n[%s] Auth / OAuth configuration\n' "$(date '+%H:%M:%S')"
-chmod +x scripts/verify_prod_auth.sh
+printf '\n[%s] Post-deploy smoke checks\n' "$(date '+%H:%M:%S')"
+chmod +x scripts/verify_prod.sh scripts/verify_prod_auth.sh
 if [ -n "${CADDY_APP_DOMAIN:-}" ]; then
-  APP_URL="https://${CADDY_APP_DOMAIN}" ./scripts/verify_prod_auth.sh || true
+  APP_URL="https://${CADDY_APP_DOMAIN}" ./scripts/verify_prod.sh
 else
-  APP_URL=http://127.0.0.1:8000 ./scripts/verify_prod_auth.sh || true
+  APP_URL=http://127.0.0.1:8000 ./scripts/verify_prod.sh
 fi
 
 printf '\n[%s] Deploy complete\n' "$(date '+%H:%M:%S')"

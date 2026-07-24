@@ -41,6 +41,8 @@ class AuthConfigResponse(BaseModel):
     google_client_id: Optional[str] = None
     google_auth_enabled: bool = False
     signup_mode: str = "invite"
+    privacy_policy_url: Optional[str] = None
+    terms_of_service_url: Optional[str] = None
 
 
 class GoogleAuthRequest(BaseModel):

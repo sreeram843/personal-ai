@@ -6,6 +6,7 @@ import { exchangeGoogleToken } from '../api';
 import { consumeSessionNotice } from '../auth';
 import { shouldUseNativeGoogleSignIn, signInWithGoogle } from '../auth/googleSignIn';
 import { queryKeys } from '../query/keys';
+import { friendlyLoginError } from '../utils/loginErrors';
 import { CuraiLogo } from './CuraiLogo';
 
 interface Props {
@@ -60,7 +61,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
       onAuthenticated?.();
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Sign-in failed';
-      setError(message);
+      setError(friendlyLoginError(message));
     } finally {
       setIsSubmitting(false);
     }
@@ -80,7 +81,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
       await handleGoogleSuccess(idToken);
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Sign-in failed';
-      setError(message);
+      setError(friendlyLoginError(message));
       setIsSubmitting(false);
     }
   };
@@ -170,6 +171,32 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
           {isAdmin
             ? 'Only emails listed in ADMIN_EMAILS (or invited as staff) can open this portal.'
             : 'Your conversations are private and tied to your account.'}
+          {(authConfig.privacy_policy_url || authConfig.terms_of_service_url) && (
+            <>
+              {' '}
+              {authConfig.privacy_policy_url && (
+                <a
+                  className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+                  href={authConfig.privacy_policy_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Privacy
+                </a>
+              )}
+              {authConfig.privacy_policy_url && authConfig.terms_of_service_url && ' · '}
+              {authConfig.terms_of_service_url && (
+                <a
+                  className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+                  href={authConfig.terms_of_service_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Terms
+                </a>
+              )}
+            </>
+          )}
         </p>
       </div>
     </div>

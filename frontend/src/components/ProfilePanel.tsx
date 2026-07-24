@@ -1,9 +1,13 @@
+import { useState } from 'react';
 import type { AuthConfig, CurrentUser } from '../api';
+import { deleteAccount, exportAccountData } from '../api';
 import { userInitials, userLabel } from '../utils/userDisplay';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Props {
   user: CurrentUser;
   authConfig: AuthConfig;
+  onAccountDeleted?: () => void;
 }
 
 function signInMethodLabel(authConfig: AuthConfig): string {
@@ -16,9 +20,44 @@ function signInMethodLabel(authConfig: AuthConfig): string {
   return 'Email';
 }
 
-export function ProfilePanel({ user, authConfig }: Props) {
+export function ProfilePanel({ user, authConfig, onAccountDeleted }: Props) {
   const name = userLabel(user);
   const email = user.email?.trim() || 'No email on file';
+  const [busy, setBusy] = useState<'export' | 'delete' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleExport = async () => {
+    setBusy('export');
+    setError(null);
+    try {
+      const payload = await exportAccountData();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `curai-export-${user.id.slice(0, 8)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handleDelete = async () => {
+    setBusy('delete');
+    setError(null);
+    try {
+      await deleteAccount();
+      setConfirmDelete(false);
+      onAccountDeleted?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      setBusy(null);
+    }
+  };
 
   return (
     <section className="space-y-5">
@@ -53,9 +92,56 @@ export function ProfilePanel({ user, authConfig }: Props) {
         </div>
       </dl>
 
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            void handleExport();
+          }}
+          disabled={busy !== null}
+          className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-2 text-sm text-[var(--phosphor)] transition hover:border-[var(--ui-accent)] disabled:opacity-60"
+        >
+          {busy === 'export' ? 'Exporting…' : 'Export conversations'}
+        </button>
+        {!authConfig.auth_disabled && (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            disabled={busy !== null}
+            className="rounded-lg border border-[rgba(239,68,68,0.35)] px-3 py-2 text-sm text-[#f87171] transition hover:bg-[rgba(239,68,68,0.1)] disabled:opacity-60"
+          >
+            Delete account
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <p className="rounded-lg border border-[rgba(239,68,68,0.35)] bg-[rgba(239,68,68,0.1)] px-3 py-2 text-sm text-[#f87171]">
+          {error}
+        </p>
+      )}
+
       <p className="text-xs leading-relaxed text-[var(--phosphor-dim)]">
         Account details come from your sign-in provider. Conversations and uploads are private to this account.
+        Export downloads JSON. Delete permanently removes your conversations, documents, and vectors.
       </p>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete account?"
+        message="This permanently deletes your CurAI account, conversations, and uploaded documents. This cannot be undone."
+        confirmLabel={busy === 'delete' ? 'Deleting…' : 'Delete account'}
+        tone="danger"
+        loading={busy === 'delete'}
+        onCancel={() => {
+          if (busy !== 'delete') {
+            setConfirmDelete(false);
+          }
+        }}
+        onConfirm={() => {
+          void handleDelete();
+        }}
+      />
     </section>
   );
 }

@@ -52,6 +52,8 @@ def test_ingest_stays_sync_when_workers_disabled(db_session) -> None:
 
 def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch) -> None:
     """Large ingest batches enqueue when workers are enabled (inline queue for tests)."""
+    from sqlalchemy.orm import sessionmaker
+
     reset_task_queue()
     recording_store = _RecordingVectorStore()
     inline_queue = InlineTaskQueue(
@@ -77,6 +79,9 @@ def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch)
     )
     monkeypatch.setattr("app.workers.tasks.get_settings", lambda: worker_settings)
     monkeypatch.setattr("app.services.task_queue.get_settings", lambda: worker_settings)
+    # Inline worker opens its own Session — bind it to the same in-memory DB as the request.
+    worker_session_factory = sessionmaker(bind=db_session.get_bind())
+    monkeypatch.setattr("app.workers.tasks.get_session_factory", lambda: worker_session_factory)
 
     app = create_app()
     apply_db_auth_overrides(app, db_session)
@@ -91,7 +96,7 @@ def test_ingest_enqueues_large_batch_with_inline_worker(db_session, monkeypatch)
         json={"documents": [{"text": "Queued notes", "metadata": {"path": "queued.txt"}}]},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     body = response.json()
     assert body["status"] == "queued"
     assert body["job_id"]

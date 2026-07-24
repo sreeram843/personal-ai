@@ -39,17 +39,20 @@ curl -s http://localhost:3100/ready
 
 Public URL: **https://app.cura-i.com**
 
+**Full setup guide:** [prod-gcp-vm.md](./prod-gcp-vm.md) (DNS, firewall, OAuth Console, Caddy, verify).
+
 Grafana (HTTPS subdomain): **https://grafana.app.cura-i.com** — see [monitoring-subdomain.md](./monitoring-subdomain.md).
 
 Deploy path is usually `/opt/personal-ai` with `.env.cloud` on the server.
 
 ```bash
 cd /opt/personal-ai
+./scripts/setup_caddy.sh   # validates CADDY_* env + prints compose command
 ./scripts/deploy_prod.sh
 # or: make deploy-prod
 ```
 
-This runs `compose up --build`, pulls `nomic-embed-text` into Ollama, migrates the DB, and hits `/health` + `/ready`.
+This runs `compose up --build`, pulls `nomic-embed-text` into Ollama, migrates the DB, then `./scripts/verify_prod.sh` (`/health`, `/ready`, HTTPS, auth config).
 
 **Compose profiles:** `app` depends on `ollama`, which is only defined with `--profile cloud-chat`. Plain `docker compose logs app` fails with “undefined service ollama”. Use container names or the full compose invocation:
 

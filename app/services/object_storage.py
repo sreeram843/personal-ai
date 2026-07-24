@@ -41,6 +41,22 @@ class LocalObjectStorage:
     def get_uri(self, storage_key: str) -> str:
         return f"file://{self._base / storage_key}"
 
+    def delete_user_prefix(self, user_id: str) -> int:
+        user_dir = self._base / user_id
+        if not user_dir.exists():
+            return 0
+        removed = 0
+        for path in user_dir.rglob("*"):
+            if path.is_file():
+                path.unlink(missing_ok=True)
+                removed += 1
+        for path in sorted(user_dir.rglob("*"), reverse=True):
+            if path.is_dir():
+                path.rmdir()
+        if user_dir.exists():
+            user_dir.rmdir()
+        return removed
+
 
 class S3ObjectStorage:
     def __init__(
@@ -83,6 +99,25 @@ class S3ObjectStorage:
 
     def get_uri(self, storage_key: str) -> str:
         return f"s3://{self._bucket}/{storage_key}"
+
+    def delete_user_prefix(self, user_id: str) -> int:
+        # Best-effort cleanup; operators can also purge via bucket lifecycle.
+        prefix = f"{self._prefix}/{user_id}/".lstrip("/")
+        removed = 0
+        try:
+            paginator = self._client.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
+                objects = page.get("Contents") or []
+                if not objects:
+                    continue
+                self._client.delete_objects(
+                    Bucket=self._bucket,
+                    Delete={"Objects": [{"Key": obj["Key"]} for obj in objects]},
+                )
+                removed += len(objects)
+        except Exception:
+            logger.exception("Failed deleting S3 objects for user %s", user_id)
+        return removed
 
 
 def build_object_storage(settings: Settings) -> ObjectStorage:
