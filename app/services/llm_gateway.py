@@ -150,28 +150,26 @@ _PROVIDER_MODEL_ALIASES: Dict[str, Dict[str, str]] = {
         "llama-3.1-8b-instant": "deepseek-v4-flash",
         "meta-llama/llama-4-scout-17b-16e-instruct": "deepseek-v4-flash",
     },
-    # Groq: scout/qwen3-32b shut down 2026-07-17. Map to currently allowlisted
-    # llama ids (many Groq projects have not enabled openai/gpt-oss-* yet).
-    # Llama 3.1/3.3 themselves shut down 2026-08-16 — enable gpt-oss in the
-    # Groq project allowlist before then.
+    # Groq: scout/qwen3-32b shut down 2026-07-17. Prefer current gpt-oss ids when
+    # the project allowlist includes them; llama 3.1/3.3 shut down 2026-08-16.
     "groq": {
-        "meta-llama/llama-4-scout-17b-16e-instruct": "llama-3.1-8b-instant",
-        "llama-4-scout-17b-16e-instruct": "llama-3.1-8b-instant",
-        "qwen/qwen3-32b": "llama-3.3-70b-versatile",
-        "openai/gpt-oss-20b": "llama-3.1-8b-instant",
-        "openai/gpt-oss-120b": "llama-3.3-70b-versatile",
-        "gpt-oss-20b": "llama-3.1-8b-instant",
-        "gpt-oss-120b": "llama-3.3-70b-versatile",
+        "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "qwen/qwen3-32b": "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+        "gpt-oss-20b": "openai/gpt-oss-20b",
+        "gpt-oss-120b": "openai/gpt-oss-120b",
     },
     # Cold-start env often labels the Groq endpoint as provider "openai".
     "openai": {
-        "meta-llama/llama-4-scout-17b-16e-instruct": "llama-3.1-8b-instant",
-        "llama-4-scout-17b-16e-instruct": "llama-3.1-8b-instant",
-        "qwen/qwen3-32b": "llama-3.3-70b-versatile",
-        "openai/gpt-oss-20b": "llama-3.1-8b-instant",
-        "openai/gpt-oss-120b": "llama-3.3-70b-versatile",
-        "gpt-oss-20b": "llama-3.1-8b-instant",
-        "gpt-oss-120b": "llama-3.3-70b-versatile",
+        "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "qwen/qwen3-32b": "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+        "gpt-oss-20b": "openai/gpt-oss-20b",
+        "gpt-oss-120b": "openai/gpt-oss-120b",
     },
 }
 
