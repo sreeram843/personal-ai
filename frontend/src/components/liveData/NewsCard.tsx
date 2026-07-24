@@ -11,7 +11,7 @@ export function NewsCard({ data }: Props) {
   const headlines = (data.headlines ?? []).slice(0, 5);
 
   return (
-    <LiveDataCardChrome title={`Latest on ${topic}`} footer={formatFreshness(data.asOf, data.source)}>
+    <LiveDataCardChrome title={`Latest on ${topic}`} footer={formatFreshness(data.asOf, data.source, data.confidence)}>
       <ul className="space-y-2 text-sm text-[var(--phosphor)]">
         {headlines.map((item, index) => (
           <li key={`${item.title ?? 'item'}-${index}`}>

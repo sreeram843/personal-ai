@@ -1,11 +1,13 @@
-"""Retrieve-wide, pack-narrow: hybrid rerank + MMR diversity selection."""
+"""Retrieve-wide, pack-narrow: hybrid rerank + optional cross-encoder + MMR diversity."""
 
 from __future__ import annotations
 
 import re
-from typing import List, Sequence, Set
+from typing import List, Optional, Sequence, Set
 
+from app.schemas.chat import RetrievedChunk
 from app.services.document_summary import DOCUMENT_SUMMARY_CHUNK_TYPE
+from app.services.cross_encoder_rerank import blend_cross_encoder_scores
 
 _TOKEN_RE = re.compile(r"[a-z0-9]{2,}", re.IGNORECASE)
 
@@ -141,15 +143,18 @@ def rerank_and_pack(
     diversity_lambda: float = 0.55,
     prefer_document_summaries: bool = False,
     summary_boost: float = 0.12,
+    cross_encoder_scores: Optional[Sequence[float]] = None,
+    cross_encoder_weight: float = 0.6,
 ) -> List[RetrievedChunk]:
     """
-    Rerank vector hits with hybrid scores, then pack with MMR for diversity.
+    Rerank vector hits with hybrid scores (optionally blended with a cross-encoder),
+    then pack with MMR for diversity.
 
     Returns at most `limit` chunks. Original vector scores are preserved on each chunk.
     """
     if limit <= 0 or not candidates:
         return []
-    if len(candidates) <= limit and not prefer_document_summaries:
+    if len(candidates) <= limit and not prefer_document_summaries and cross_encoder_scores is None:
         return list(candidates)
 
     summary_candidates = [
@@ -163,6 +168,12 @@ def rerank_and_pack(
         if (candidate.metadata or {}).get("chunk_type") != DOCUMENT_SUMMARY_CHUNK_TYPE
     ]
 
+    # Map candidate id → cross-encoder score when provided (aligned to `candidates` order).
+    ce_by_id: dict[str, float] = {}
+    if cross_encoder_scores is not None and len(cross_encoder_scores) == len(candidates):
+        for candidate, score in zip(candidates, cross_encoder_scores):
+            ce_by_id[candidate.id] = float(score)
+
     if prefer_document_summaries and summary_candidates and chunk_candidates:
         summary_slots = min(len(summary_candidates), max(1, limit // 2))
         summary_packed = _rerank_candidates(
@@ -174,6 +185,8 @@ def rerank_and_pack(
             diversity_lambda=diversity_lambda,
             prefer_document_summaries=True,
             summary_boost=summary_boost,
+            cross_encoder_by_id=ce_by_id,
+            cross_encoder_weight=cross_encoder_weight,
         )
         remaining = limit - len(summary_packed)
         chunk_packed = (
@@ -186,6 +199,8 @@ def rerank_and_pack(
                 diversity_lambda=diversity_lambda,
                 prefer_document_summaries=False,
                 summary_boost=summary_boost,
+                cross_encoder_by_id=ce_by_id,
+                cross_encoder_weight=cross_encoder_weight,
             )
             if remaining > 0
             else []
@@ -201,6 +216,8 @@ def rerank_and_pack(
         diversity_lambda=diversity_lambda,
         prefer_document_summaries=prefer_document_summaries,
         summary_boost=summary_boost,
+        cross_encoder_by_id=ce_by_id,
+        cross_encoder_weight=cross_encoder_weight,
     )
 
 
@@ -214,28 +231,39 @@ def _rerank_candidates(
     diversity_lambda: float,
     prefer_document_summaries: bool,
     summary_boost: float,
+    cross_encoder_by_id: Optional[dict[str, float]] = None,
+    cross_encoder_weight: float = 0.6,
 ) -> List[RetrievedChunk]:
     if limit <= 0 or not candidates:
         return []
-    if len(candidates) <= limit:
+    if len(candidates) <= limit and not cross_encoder_by_id:
         return list(candidates)
 
     normalized_vectors = _normalize_scores([candidate.score for candidate in candidates])
-    scored = [
-        (
-            hybrid_rerank_score(
-                query=query,
-                chunk=candidate,
-                normalized_vector_score=normalized_vectors[index],
-                vector_weight=vector_weight,
-                lexical_weight=lexical_weight,
-                prefer_document_summaries=prefer_document_summaries,
-                summary_boost=summary_boost,
-            ),
-            candidate,
+    hybrid_scores = [
+        hybrid_rerank_score(
+            query=query,
+            chunk=candidate,
+            normalized_vector_score=normalized_vectors[index],
+            vector_weight=vector_weight,
+            lexical_weight=lexical_weight,
+            prefer_document_summaries=prefer_document_summaries,
+            summary_boost=summary_boost,
         )
         for index, candidate in enumerate(candidates)
     ]
+
+    if cross_encoder_by_id:
+        ce_scores = [cross_encoder_by_id.get(candidate.id, 0.0) for candidate in candidates]
+        relevance_scores = blend_cross_encoder_scores(
+            hybrid_scores=hybrid_scores,
+            cross_encoder_scores=ce_scores,
+            cross_encoder_weight=cross_encoder_weight,
+        )
+    else:
+        relevance_scores = hybrid_scores
+
+    scored = list(zip(relevance_scores, candidates))
     scored.sort(key=lambda item: item[0], reverse=True)
 
     selected: List[RetrievedChunk] = []

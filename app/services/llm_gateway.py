@@ -139,6 +139,60 @@ def openai_compatible_chat_completions_url(base_url: str) -> str:
     return f"{root}/v1/chat/completions"
 
 
+# Provider-specific retired/renamed model ids.
+_PROVIDER_MODEL_ALIASES: Dict[str, Dict[str, str]] = {
+    "deepseek": {
+        "deepseek-chat": "deepseek-v4-flash",
+        "deepseek-reasoner": "deepseek-v4-pro",
+        "deepseek-coder": "deepseek-v4-flash",
+        # Common misconfig: Groq model ids pointed at DeepSeek.
+        "llama-3.3-70b-versatile": "deepseek-v4-flash",
+        "llama-3.1-8b-instant": "deepseek-v4-flash",
+        "meta-llama/llama-4-scout-17b-16e-instruct": "deepseek-v4-flash",
+    },
+    # Groq: scout/qwen3-32b shut down 2026-07-17. Prefer current gpt-oss ids when
+    # the project allowlist includes them; llama 3.1/3.3 shut down 2026-08-16.
+    "groq": {
+        "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "qwen/qwen3-32b": "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+        "gpt-oss-20b": "openai/gpt-oss-20b",
+        "gpt-oss-120b": "openai/gpt-oss-120b",
+    },
+    # Cold-start env often labels the Groq endpoint as provider "openai".
+    "openai": {
+        "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+        "qwen/qwen3-32b": "openai/gpt-oss-120b",
+        "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
+        "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+        "gpt-oss-20b": "openai/gpt-oss-20b",
+        "gpt-oss-120b": "openai/gpt-oss-120b",
+    },
+}
+
+# Remap by model id alone for Groq-only retired ids when the Admin provider
+# label is ambiguous (e.g. cold-start provider named "openai" backed by Groq).
+_GLOBAL_MODEL_ALIASES: Dict[str, str] = {
+    "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+    "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
+    "qwen/qwen3-32b": "openai/gpt-oss-20b",
+}
+
+
+def normalize_provider_model(provider: str, model: str) -> str:
+    """Map deprecated provider model ids to current API names."""
+    needle = (model or "").strip()
+    if not needle:
+        return model
+    aliases = _PROVIDER_MODEL_ALIASES.get((provider or "").strip().lower())
+    if aliases and needle in aliases:
+        return aliases[needle]
+    return _GLOBAL_MODEL_ALIASES.get(needle, model)
+
+
 class OpenAICompatibleLLMAdapter:
     """Adapter for OpenAI-compatible chat completion endpoints.
 
@@ -157,7 +211,13 @@ class OpenAICompatibleLLMAdapter:
         model: str,
         options: Dict[str, Any],
     ) -> LLMGenerationResult:
-        headers = {"Content-Type": "application/json"}
+        # Cloudflare in front of some providers (notably Groq) returns 403/1010 for
+        # httpx's default Python User-Agent. Use a plain client string instead.
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "CurAI/1.0",
+        }
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
 
@@ -247,16 +307,28 @@ class LLMGateway:
     ) -> LLMGenerationResult:
         selected_provider = provider or self._default_provider
         adapter = self._adapters.get(selected_provider)
+        if adapter is None and selected_provider != self._default_provider:
+            # Stage routing can briefly point at a provider before the gateway cache
+            # rebuilds; fall back to the configured default so chat stays usable.
+            adapter = self._adapters.get(self._default_provider)
+            if adapter is not None:
+                selected_provider = self._default_provider
         if adapter is None:
-            raise RuntimeError(f"No LLM adapter registered for provider '{selected_provider}'")
-        async with observe_llm_call(provider=selected_provider, model=model):
-            result = await adapter.generate(messages=messages, model=model, options=options)
+            available = ", ".join(sorted(self._adapters)) or "(none)"
+            raise RuntimeError(
+                f"No LLM adapter registered for provider '{provider or self._default_provider}'. "
+                f"Available: {available}. Add/enable the provider in Admin and retry "
+                "(or restart the app if routing was just changed)."
+            )
+        resolved_model = normalize_provider_model(selected_provider, model)
+        async with observe_llm_call(provider=selected_provider, model=resolved_model):
+            result = await adapter.generate(messages=messages, model=resolved_model, options=options)
         try:
             from app.services.usage_meter import record_llm_usage
 
             record_llm_usage(
                 provider=selected_provider,
-                model=model,
+                model=resolved_model,
                 prompt_tokens=result.prompt_tokens,
                 completion_tokens=result.completion_tokens,
             )
@@ -273,5 +345,6 @@ __all__ = [
     "OpenAICompatibleLLMAdapter",
     "StageModelConfig",
     "WorkflowModelProfile",
+    "normalize_provider_model",
     "openai_compatible_chat_completions_url",
 ]

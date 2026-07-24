@@ -8,8 +8,10 @@ from typing import Any, AsyncIterator, Dict, List, Literal, Optional, Sequence
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.schemas.chat import ChatResponse, RetrievedChunk, WorkflowStep, WorkflowTrace
 from app.core.config import get_settings
+from app.services.citations import RAG_CITATION_RULE, ensure_answer_preserves_citations
 from app.services.context_compression import compress_context_block
 from app.services.evidence_cards import extract_cited_evidence_ids, format_writer_evidence_context
+from app.services.retrieval_rerank import lexical_overlap_score
 from app.services.ollama import OllamaClient
 from app.services.self_rag import retrieve_user_documents_with_self_rag
 from app.services.vector_store import VectorStore
@@ -541,7 +543,7 @@ class OrchestratedChatService:
         sources = [
             RetrievedChunk(
                 id=str(item.get("href") or f"web-{index}"),
-                score=0.0,
+                score=self._score_web_evidence(state["query"], item, index=index),
                 text=str(item.get("excerpt") or item.get("body") or ""),
                 metadata={
                     "title": item.get("title", ""),
@@ -555,9 +557,13 @@ class OrchestratedChatService:
             for index, item in enumerate(merged_results, start=1)
         ]
         registry = dict(state.get("evidence_registry") or {})
+        evidence_ids = list(state.get("evidence_ids") or [])
         for source in sources:
             registry[source.id] = source
+            if source.id not in evidence_ids:
+                evidence_ids.append(source.id)
         state["evidence_registry"] = registry
+        state["evidence_ids"] = evidence_ids
         return TaskOutcome(
             status="completed",
             summary=f"Collected {len(sources)} fresh web results.",
@@ -628,11 +634,26 @@ class OrchestratedChatService:
             [
                 {"role": "system", "content": state["system_prompt"]},
                 {"role": "system", "content": DEFAULT_WORKFLOW_ROLES["writer"].instruction},
+                {
+                    "role": "system",
+                    "content": (
+                        f"{RAG_CITATION_RULE} "
+                        "Preserve every [[evidence:<id>]] marker from the draft that supports a claim, "
+                        "or convert each marker into a matching [path]/style citation."
+                    ),
+                },
                 {"role": "user", "content": self._build_final_prompt(state)},
             ],
             options,
             stage="writer",
             state=state,
+        )
+        final_answer = ensure_answer_preserves_citations(
+            final_answer=final_answer,
+            draft=str(state.get("draft") or ""),
+            registry=dict(state.get("evidence_registry") or {}),
+            evidence_ids=list(state.get("evidence_ids") or []),
+            require_markers=bool(state.get("require_evidence_markers", True)),
         )
         state["final_answer"] = final_answer
         return TaskOutcome(status="completed", summary="Produced the final answer.", output=final_answer)
@@ -761,7 +782,9 @@ class OrchestratedChatService:
             f"Prior workflow memory:\n{state.get('memory_summary') or 'No prior workflow memory.'}\n\n"
             f"Draft answer:\n{state.get('draft') or 'No draft available.'}\n\n"
             f"Reviewer notes:\n{state.get('review_notes') or 'No review notes available.'}\n\n"
-            f"{evidence_block}"
+            f"{evidence_block}\n\n"
+            f"Citation rule: {RAG_CITATION_RULE} "
+            "Keep or convert every [[evidence:<id>]] marker from the draft."
         )
 
     def _update_trace_step(
@@ -801,6 +824,21 @@ class OrchestratedChatService:
             seen.add(key)
             deduped.append(source)
         return deduped
+
+    def _score_web_evidence(self, query: str, item: Dict[str, Any], *, index: int) -> float:
+        """Score web hits for ranking consistency with document chunks (never hardcode 0.0)."""
+        rank_score = 1.0 / max(1, index)
+        title = str(item.get("title") or "")
+        body = str(item.get("excerpt") or item.get("body") or "")
+        lexical = lexical_overlap_score(query, f"{title} {body}")
+        raw_provider = item.get("score", item.get("relevance_score"))
+        provider_score: Optional[float] = None
+        if isinstance(raw_provider, (int, float)):
+            value = float(raw_provider)
+            provider_score = value if value <= 1.0 else min(1.0, value / 100.0)
+        if provider_score is not None:
+            return round((0.45 * provider_score) + (0.35 * lexical) + (0.20 * rank_score), 4)
+        return round((0.55 * lexical) + (0.45 * min(1.0, rank_score)), 4)
 
     def _build_evidence_catalog(self, state: Dict[str, Any]) -> str:
         ids = state.get("evidence_ids") or []

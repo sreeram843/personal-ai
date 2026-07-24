@@ -38,9 +38,9 @@ interface Props {
   assistantsLoading?: boolean;
 }
 
-const MODE_ITEMS: Array<{ id: ConversationMode; label: string; icon: typeof MessageSquare }> = [
-  { id: 'chat', label: 'Chat', icon: MessageSquare },
-  { id: 'smart', label: 'Smart', icon: Sparkles },
+const MODE_ITEMS: Array<{ id: ConversationMode; label: string; description: string; icon: typeof MessageSquare }> = [
+  { id: 'chat', label: 'Chat', description: 'Fast direct replies', icon: MessageSquare },
+  { id: 'smart', label: 'Smart', description: 'RAG, tools, and workflows when needed', icon: Sparkles },
 ];
 
 function ModeToggle({
@@ -61,10 +61,11 @@ function ModeToggle({
             type="button"
             role="radio"
             aria-checked={isActive}
+            aria-label={`${item.label}: ${item.description}`}
             data-active={isActive ? 'true' : 'false'}
             onClick={() => onModeChange(item.id)}
-            className="composer-chip"
-            title={item.label}
+            className="composer-chip touch-target"
+            title={`${item.label} — ${item.description}`}
           >
             <Icon className="h-3 w-3 shrink-0" aria-hidden />
             {item.label}
@@ -146,7 +147,6 @@ function ComposerAssistantPicker({
 }
 
 const MIN_TA = 24;
-const MAX_TA = 200;
 const HINT_CHAR_THRESHOLD = 500;
 
 export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
@@ -171,6 +171,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
 ) {
   const [value, setValue] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [needsScroll, setNeedsScroll] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const inputId = useId();
@@ -234,9 +235,18 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
     if (!el) {
       return;
     }
+    // No JS-side height cap here — the box grows with its content instead of
+    // scrolling internally. The CSS max-h-[45vh] on the textarea is only a
+    // last-resort safety net for pathological pastes; it's never reached by
+    // ordinary messages.
     el.style.height = '0px';
-    const h = Math.min(MAX_TA, Math.max(MIN_TA, el.scrollHeight));
+    const h = Math.max(MIN_TA, el.scrollHeight);
     el.style.height = `${h}px`;
+    // Only turn overflow on once content genuinely exceeds the capped height —
+    // el.clientHeight now reflects the CSS max-height clamp, so this stays
+    // false for every normal (uncapped) message and the box never shows a
+    // scrollbar track just for being empty or short.
+    setNeedsScroll(el.scrollHeight > el.clientHeight);
   }, [value]);
 
   const handleSend = () => {
@@ -301,7 +311,10 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
             ref={textRef}
             id={inputId}
             rows={1}
-            className="composer-textarea min-h-[24px] min-w-0 max-h-[200px] flex-1 resize-none overflow-y-auto bg-transparent py-0.5 text-[14px] leading-[1.45] text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] placeholder:opacity-80"
+            className={clsx(
+              'composer-textarea min-h-[24px] min-w-0 max-h-[45vh] flex-1 resize-none bg-transparent py-0.5 text-[14px] leading-[1.45] text-[var(--phosphor)] placeholder:text-[var(--phosphor-dim)] placeholder:opacity-80',
+              needsScroll ? 'overflow-y-auto' : 'overflow-y-hidden',
+            )}
             placeholder={placeholder}
             aria-label="Message input"
             value={value}

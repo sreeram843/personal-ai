@@ -10,7 +10,7 @@ export function AirQualityCard({ data }: Props) {
   return (
     <LiveDataCardChrome
       title={`Air quality — ${data.location ?? 'Unknown location'}`}
-      footer={formatFreshness(data.asOf, data.source)}
+      footer={formatFreshness(data.asOf, data.source, data.confidence)}
     >
       <div className="text-2xl font-semibold tabular-nums text-[var(--phosphor-bright)]">
         US AQI {data.usAqi ?? '—'}

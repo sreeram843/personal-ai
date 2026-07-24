@@ -64,7 +64,7 @@ class _RecordingVectorStore:
         self.results = results
         self.last_limit: int | None = None
 
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         self.last_limit = limit
         return self.results
 

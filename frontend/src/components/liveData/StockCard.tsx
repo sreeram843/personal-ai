@@ -31,7 +31,7 @@ export function StockCard({ data, subscriptionKey }: Props) {
     <LiveDataCardChrome
       title={`${display.name} (${display.ticker})`}
       badge={<FreshnessBadge live={display.live} delayed={display.delayed} />}
-      footer={formatFreshness(display.asOf, display.source)}
+      footer={formatFreshness(display.asOf, display.source, display.confidence ?? data.confidence)}
     >
       <div className={`flex items-end justify-between gap-4 ${flash ? 'live-value-flash' : ''}`}>
         <div>

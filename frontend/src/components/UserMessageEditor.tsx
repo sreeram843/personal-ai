@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { clsx } from 'clsx';
 import { Check, X } from 'lucide-react';
 
 interface Props {
@@ -9,10 +10,10 @@ interface Props {
 }
 
 const MIN_TA = 44;
-const MAX_TA = 200;
 
 export function UserMessageEditor({ initialContent, disabled, onSubmit, onCancel }: Props) {
   const [value, setValue] = useState(initialContent);
+  const [needsScroll, setNeedsScroll] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -26,8 +27,11 @@ export function UserMessageEditor({ initialContent, disabled, onSubmit, onCancel
       return;
     }
     el.style.height = '0px';
-    const h = Math.min(MAX_TA, Math.max(MIN_TA, el.scrollHeight));
+    const h = Math.max(MIN_TA, el.scrollHeight);
     el.style.height = `${h}px`;
+    // Only enable the scrollbar once content genuinely exceeds the CSS
+    // max-height cap, so the box never shows one while short or empty.
+    setNeedsScroll(el.scrollHeight > el.clientHeight);
   }, [value]);
 
   const handleSubmit = () => {
@@ -59,7 +63,10 @@ export function UserMessageEditor({ initialContent, disabled, onSubmit, onCancel
         onKeyDown={handleKeyDown}
         disabled={disabled}
         rows={1}
-        className="min-h-[44px] w-full max-h-[200px] resize-none overflow-y-auto rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-bg)] px-3 py-2 text-base leading-normal text-[var(--phosphor)] outline-none ring-[var(--ui-focus)] focus-visible:ring-2"
+        className={clsx(
+          'min-h-[44px] w-full max-h-[45vh] resize-none rounded-xl border border-[var(--ui-border-strong)] bg-[var(--ui-bg)] px-3 py-2 text-base leading-normal text-[var(--phosphor)] outline-none ring-[var(--ui-focus)] focus-visible:ring-2',
+          needsScroll ? 'overflow-y-auto' : 'overflow-y-hidden',
+        )}
         aria-label="Edit message"
       />
       <div className="flex items-center justify-end gap-1">

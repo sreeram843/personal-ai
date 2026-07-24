@@ -62,6 +62,21 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 4,
+      "title": "Live adapter errors by domain",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (domain) (rate(live_adapter_requests_total{status=\"error\"}[5m]))",
+          "legendFormat": "{{domain}}",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "refresh": "30s",

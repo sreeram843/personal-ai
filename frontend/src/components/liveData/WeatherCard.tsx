@@ -27,7 +27,7 @@ export function WeatherCard({ data }: Props) {
             Forecast
           </span>
         }
-        footer={formatFreshness(data.asOf, data.source)}
+        footer={formatFreshness(data.asOf, data.source, data.confidence)}
       >
         <div className="space-y-2">
           {(data.days ?? []).map((day) => (
@@ -56,7 +56,7 @@ export function WeatherCard({ data }: Props) {
           Current
         </span>
       }
-      footer={formatFreshness(data.asOf, data.source)}
+      footer={formatFreshness(data.asOf, data.source, data.confidence)}
     >
       <div className="flex items-end justify-between gap-4">
         <div>

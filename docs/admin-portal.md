@@ -69,14 +69,15 @@ Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
 
    | Provider | `base_url` | Example model ids |
    |----------|------------|-------------------|
-   | Groq | `https://api.groq.com/openai` | `llama-3.1-8b-instant`, `llama-3.3-70b-versatile` |
+   | Groq | `https://api.groq.com/openai` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` (legacy `llama-3.1-8b-instant` / `llama-3.3-70b-versatile` / scout are remapped) |
    | Perplexity (Sonar chat) | `https://api.perplexity.ai` | `sonar`, `sonar-pro`, `sonar-reasoning-pro` |
    | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash`, `gemini-2.5-pro` |
    | OpenAI | `https://api.openai.com` | `gpt-4o-mini`, `gpt-4o` |
-   | DeepSeek | `https://api.deepseek.com` | `deepseek-chat`, `deepseek-reasoner` |
+   | DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash`, `deepseek-v4-pro` (legacy `deepseek-chat` / `deepseek-reasoner` are remapped automatically) |
 
    Env `PERPLEXITY_API_KEY` is still used for **web search**. Add Perplexity again under Providers only if you want Sonar as a chat/routing model.
 2. On **Routing**, assign provider + model id per stage (default / planner / synthesizer / reviewer / writer).
+   Avoid retired Groq ids (`meta-llama/llama-4-scout-17b-16e-instruct`, `qwen/qwen3-32b` — shut down 2026-07-17); prefer `llama-3.1-8b-instant` / `llama-3.3-70b-versatile`.
 3. Saving clears the in-process settings cache and rebuilds the LLM gateway — **no redeploy**. Next chat uses the new keys/models.
 4. Env `LLM_OPENAI_*` still registers as provider `openai` when that name is not defined in the DB.
 5. Native Anthropic Claude is not supported yet (needs a dedicated adapter or OpenAI-compat proxy).

@@ -21,6 +21,8 @@ Central map for Personal AI / CurAI docs. **Recorded benchmark data** lives in [
 | [prod-gcp-vm.md](./prod-gcp-vm.md) | Fresh GCP VM → HTTPS CurAI (DNS, firewall, Caddy, OAuth) |
 | [admin-portal.md](./admin-portal.md) | Platform admin (`admin.cura-i.com`): providers, users, usage |
 | [deployment-checklist.md](./deployment-checklist.md) | Pre-release checklist |
+| [prod-smoke.md](./prod-smoke.md) | Scheduled/manual production health, auth, and chat smoke checks |
+| [marketing-site.md](./marketing-site.md) | Marketing/legal domain split, legal pages, Squarespace copy |
 | [cloud-deploy-aws.md](./cloud-deploy-aws.md) | EKS / Helm |
 | [gpu-deployment.md](./gpu-deployment.md) | vLLM on GPU |
 

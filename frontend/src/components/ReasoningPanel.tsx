@@ -1,100 +1,112 @@
-import { ChevronDown } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import type { ChatMessage } from '../types';
+import { CheckCircle2, ChevronDown, CircleDashed, Loader2, MinusCircle, XCircle } from 'lucide-react';
+import { useState } from 'react';
+import type { WorkflowStep, WorkflowTrace } from '../types';
 
 interface Props {
-  message: ChatMessage;
-  isStreaming?: boolean;
+  reasoning?: string;
+  workflow?: WorkflowTrace;
 }
 
-function statusLabel(status: string): string {
-  return status.replace(/_/g, ' ');
+const STATUS_LABEL: Record<WorkflowStep['status'], string> = {
+  planned: 'Planned',
+  in_progress: 'In progress',
+  completed: 'Complete',
+  failed: 'Failed',
+  skipped: 'Skipped',
+};
+
+const STATUS_ICON: Record<WorkflowStep['status'], typeof CheckCircle2> = {
+  planned: CircleDashed,
+  in_progress: Loader2,
+  completed: CheckCircle2,
+  failed: XCircle,
+  skipped: MinusCircle,
+};
+
+const STATUS_COLOR: Record<WorkflowStep['status'], string> = {
+  planned: 'text-[var(--phosphor-dim)]',
+  in_progress: 'text-[var(--ui-accent)]',
+  completed: 'text-[#6fcf97]',
+  failed: 'text-[#f87171]',
+  skipped: 'text-[var(--phosphor-dim)]',
+};
+
+function stepLine(step: WorkflowStep): string {
+  return step.title || step.summary || step.id;
 }
 
-export function ReasoningPanel({ message, isStreaming = false }: Props) {
-  const hasWorkflow = Boolean(message.workflow?.steps?.length);
-  const hasReasoning = Boolean(message.reasoning?.trim());
-  const hasActiveWorkflow = useMemo(
-    () =>
-      Boolean(
-        message.workflow?.steps.some(
-          (step) => step.status === 'in_progress' || step.status === 'planned',
-        ),
-      ),
-    [message.workflow?.steps],
-  );
-  const [open, setOpen] = useState(hasActiveWorkflow || isStreaming);
-
-  useEffect(() => {
-    if (hasActiveWorkflow || isStreaming) {
-      setOpen(true);
-    }
-  }, [hasActiveWorkflow, isStreaming]);
-
-  if (!hasWorkflow && !hasReasoning) {
+/**
+ * Collapsible "Reasoning & workflow trace" panel — mirrors the mockup in
+ * CurAI Designs/CurAI Chat Content.dc.html: a workflow-steps list
+ * (agent · status) plus the model's own reasoning text underneath.
+ *
+ * Sized and colored as secondary/debug content — smaller and dimmer than the
+ * main answer text, so it reads as supplementary rather than competing for
+ * attention.
+ */
+export function ReasoningPanel({ reasoning, workflow }: Props) {
+  const [open, setOpen] = useState(false);
+  const steps = workflow?.steps ?? [];
+  const hasReasoning = Boolean(reasoning && reasoning.trim());
+  if (!steps.length && !hasReasoning) {
     return null;
   }
-
-  const activeStep = message.workflow?.steps.find((step) => step.status === 'in_progress');
 
   return (
     <details
       open={open}
       onToggle={(event) => setOpen((event.target as HTMLDetailsElement).open)}
-      className="mt-2 w-full overflow-hidden rounded-[10px] border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] text-sm text-[var(--phosphor-dim)]"
+      className="mt-2 w-full overflow-hidden rounded-[10px] border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)]"
     >
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-[13px] text-[var(--text-primary)] marker:content-none">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-2 text-[12px] text-[var(--phosphor-dim)] marker:content-none">
         <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 text-[var(--phosphor-dim)] transition-transform ${open ? 'rotate-180' : '-rotate-90'}`}
+          className={`h-3 w-3 shrink-0 transition-transform ${open ? 'rotate-180' : '-rotate-90'}`}
           aria-hidden
         />
-        <span>{isStreaming ? 'Working…' : 'Reasoning & workflow trace'}</span>
-        {message.sentiment && message.sentiment !== 'neutral' && (
-          <span className="rounded-full bg-[var(--ui-bg)] px-2 py-0.5 text-xs capitalize text-[var(--phosphor-dim)]">
-            tone: {message.sentiment}
-          </span>
-        )}
+        <span className="font-medium text-[var(--phosphor)]">Reasoning &amp; workflow trace</span>
+        {steps.length > 0 ? <span>· {steps.length} step{steps.length === 1 ? '' : 's'}</span> : null}
       </summary>
-
-      <div className="flex flex-col gap-2.5 border-t border-[var(--ui-border)] px-3.5 py-3">
-        {isStreaming && activeStep && (
-          <p className="text-xs leading-relaxed text-[var(--phosphor-dim)]">
-            {activeStep.title}
-            {activeStep.summary ? ` — ${activeStep.summary}` : ''}
-          </p>
-        )}
-
-        {hasWorkflow && message.workflow && (
-          <section>
-            <h4 className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--phosphor-dim)]">
+      <div className="space-y-3 border-t border-[var(--ui-border)] px-3 py-2.5">
+        {steps.length > 0 ? (
+          <div>
+            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.07em] text-[var(--phosphor-dim)]">
               Workflow steps
-            </h4>
-            <ol className="space-y-1.5">
-              {message.workflow.steps.map((step) => (
-                <li key={step.id} className="rounded-lg bg-[var(--ui-bg)] px-2.5 py-2 text-[13px] text-[var(--text-primary)]">
-                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                    <span className="font-medium">{step.title}</span>
-                    <span className="text-[11.5px] capitalize text-[var(--phosphor-dim)]">
-                      {step.agent} · {statusLabel(step.status)}
-                    </span>
-                  </div>
-                  {step.summary && <p className="mt-0.5 text-xs leading-relaxed text-[var(--phosphor-dim)]">{step.summary}</p>}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
-        {hasReasoning && (
-          <section>
-            <h4 className="mb-1.5 mt-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--phosphor-dim)]">
+            </div>
+            <ul className="space-y-1">
+              {steps.map((step) => {
+                const Icon = STATUS_ICON[step.status];
+                return (
+                  <li key={step.id} className="flex items-start gap-2 rounded-md bg-[var(--ui-bg)] px-2.5 py-1.5">
+                    <Icon
+                      className={`mt-[2px] h-3 w-3 shrink-0 ${STATUS_COLOR[step.status]} ${
+                        step.status === 'in_progress' ? 'animate-spin' : ''
+                      }`}
+                      aria-hidden
+                    />
+                    <div className="min-w-0 flex-1 text-[12px] leading-snug">
+                      <span className="text-[var(--phosphor)]">{stepLine(step)}</span>
+                      <span className="ml-1.5 text-[10.5px] text-[var(--phosphor-dim)]">
+                        {step.agent} · {STATUS_LABEL[step.status]}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+        {hasReasoning ? (
+          <div>
+            <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.07em] text-[var(--phosphor-dim)]">
               Model reasoning
-            </h4>
-            <pre className="whitespace-pre-wrap break-words font-sans text-[12.5px] leading-[1.6] text-[var(--ui-text-secondary)]">
-              {message.reasoning}
-            </pre>
-          </section>
-        )}
+            </div>
+            <div className="max-h-56 overflow-y-auto rounded-lg bg-[var(--ui-bg)] px-2.5 py-2">
+              <p className="whitespace-pre-line text-[11.5px] leading-[1.6] text-[var(--phosphor-dim)]">
+                {reasoning}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </div>
     </details>
   );

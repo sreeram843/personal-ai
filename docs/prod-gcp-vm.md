@@ -45,7 +45,7 @@ Fill at least:
 | `CADDY_APP_DOMAIN` / `CADDY_ADMIN_DOMAIN` / `CADDY_GRAFANA_DOMAIN` | Public hostnames |
 | `CADDY_ACME_EMAIL` | Let's Encrypt contact |
 | `GRAFANA_ADMIN_PASSWORD` | **Not** `admin` |
-| `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` | Optional; shown on login + OAuth consent |
+| `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` | Public legal URLs; app fallbacks are `/privacy` and `/terms` |
 
 ## 3. Google OAuth Console checklist
 
@@ -85,9 +85,13 @@ APP_URL=https://app.cura-i.com ./scripts/verify_prod_auth.sh
 
 Expect `/health` and `/ready` 200, HTTPS OK, and Google auth enabled when `AUTH_DISABLED=false`.
 
+For independent nightly/manual verification, see [prod-smoke.md](./prod-smoke.md).
+
 ## Related docs
 
 - [ops-runbook.md](./ops-runbook.md) — day-2 operations
 - [admin-portal.md](./admin-portal.md) — admin host + invites
 - [monitoring-subdomain.md](./monitoring-subdomain.md) — Grafana HTTPS
 - [deployment-checklist.md](./deployment-checklist.md) — release checklist
+- [marketing-site.md](./marketing-site.md) — marketing/legal domain split and Squarespace copy
+- [prod-smoke.md](./prod-smoke.md) — scheduled production health/auth/chat checks

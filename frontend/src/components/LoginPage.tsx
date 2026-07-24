@@ -25,6 +25,8 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
   const [googleButtonWidth, setGoogleButtonWidth] = useState(280);
   const useNativeGoogle = shouldUseNativeGoogleSignIn();
   const isAdmin = variant === 'admin';
+  const privacyUrl = authConfig.privacy_policy_url || '/privacy';
+  const termsUrl = authConfig.terms_of_service_url || '/terms';
 
   useEffect(() => {
     if (useNativeGoogle) {
@@ -171,32 +173,20 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
           {isAdmin
             ? 'Only emails listed in ADMIN_EMAILS (or invited as staff) can open this portal.'
             : 'Your conversations are private and tied to your account.'}
-          {(authConfig.privacy_policy_url || authConfig.terms_of_service_url) && (
-            <>
-              {' '}
-              {authConfig.privacy_policy_url && (
-                <a
-                  className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
-                  href={authConfig.privacy_policy_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Privacy
-                </a>
-              )}
-              {authConfig.privacy_policy_url && authConfig.terms_of_service_url && ' · '}
-              {authConfig.terms_of_service_url && (
-                <a
-                  className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
-                  href={authConfig.terms_of_service_url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Terms
-                </a>
-              )}
-            </>
-          )}
+          {' '}
+          <a
+            className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+            href={privacyUrl}
+          >
+            Privacy
+          </a>
+          {' · '}
+          <a
+            className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+            href={termsUrl}
+          >
+            Terms
+          </a>
         </p>
       </div>
     </div>

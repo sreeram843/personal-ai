@@ -513,30 +513,22 @@ export async function refreshLiveBlock(subscriptionKey: string): Promise<Content
   return (await response.json()) as ContentBlock;
 }
 
-async function readFileAsText(file: File): Promise<string> {
-  if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
-    throw new Error('PDF upload is not supported yet. Use .txt or .md files.');
-  }
-  return file.text();
-}
-
-export async function uploadDocuments(files: File[]): Promise<void> {
+export async function uploadDocuments(
+  files: File[],
+  options?: { onJobStatus?: (status: string) => void },
+): Promise<void> {
   for (const file of files) {
     assertUploadAllowed(file);
   }
-  const documents = await Promise.all(
-    files.map(async (file) => ({
-      text: await readFileAsText(file),
-      metadata: {
-        path: file.name,
-        title: file.name,
-      },
-    })),
-  );
 
-  const response = await apiFetch('/ingest', {
+  const form = new FormData();
+  for (const file of files) {
+    form.append('files', file);
+  }
+
+  const response = await apiFetch('/ingest/files', {
     method: 'POST',
-    body: JSON.stringify({ documents }),
+    body: form,
   });
 
   if (!response.ok) {
@@ -546,12 +538,15 @@ export async function uploadDocuments(files: File[]): Promise<void> {
 
   const payload = (await response.json()) as { count?: number; job_id?: string; status?: string };
   if (payload.job_id) {
-    await pollBackgroundJob(payload.job_id);
-    return;
+    await pollBackgroundJob(payload.job_id, options?.onJobStatus);
   }
 }
 
-async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<void> {
+async function pollBackgroundJob(
+  jobId: string,
+  onJobStatus?: (status: string) => void,
+  timeoutMs = 120_000,
+): Promise<void> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const response = await apiFetch(`/jobs/${jobId}`);
@@ -560,6 +555,9 @@ async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<vo
       throw new Error(detail || 'Failed to check ingest job status');
     }
     const job = (await response.json()) as { status?: string; error?: string };
+    if (job.status) {
+      onJobStatus?.(job.status);
+    }
     if (job.status === 'completed') {
       return;
     }

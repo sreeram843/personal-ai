@@ -196,7 +196,7 @@ export interface WorkflowTrace {
 export interface UploadStatus {
   id: string;
   name: string;
-  status: 'idle' | 'uploading' | 'success' | 'error';
+  status: 'idle' | 'uploading' | 'queued' | 'processing' | 'success' | 'error';
   error?: string;
 }
 

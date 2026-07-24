@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import { ChevronLeft, PanelLeft, Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import type { CurrentUser } from '../api';
 import { groupConversationsByDate } from '../utils/conversationGroups';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -18,6 +19,8 @@ interface Props {
   onDeleteConversation: (id: string, title: string) => void;
   sidebarCollapsed: boolean;
   onToggleSidebarCollapsed: () => void;
+  sidebarWidth: number;
+  onSidebarWidthChange: (width: number) => void;
   user: CurrentUser;
   onOpenAbout: () => void;
   onOpenSettings: () => void;
@@ -25,6 +28,10 @@ interface Props {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
 }
+
+const MIN_SIDEBAR_WIDTH = 220;
+const MAX_SIDEBAR_WIDTH = 420;
+const DEFAULT_SIDEBAR_WIDTH = 270;
 
 export function Sidebar({
   onNewChat,
@@ -36,6 +43,8 @@ export function Sidebar({
   onDeleteConversation,
   sidebarCollapsed,
   onToggleSidebarCollapsed,
+  sidebarWidth,
+  onSidebarWidthChange,
   user,
   onOpenAbout,
   onOpenSettings,
@@ -44,8 +53,56 @@ export function Sidebar({
   onMobileClose,
 }: Props) {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const resizeStartRef = useRef<{ pointerX: number; startWidth: number } | null>(null);
   const pinned = conversations.filter((item) => item.pinned);
   const recentGroups = groupConversationsByDate(conversations.filter((item) => !item.pinned));
+
+  const handleResizePointerMove = useCallback(
+    (event: PointerEvent) => {
+      const start = resizeStartRef.current;
+      if (!start) {
+        return;
+      }
+      const next = start.startWidth + (event.clientX - start.pointerX);
+      onSidebarWidthChange(Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, Math.round(next))));
+    },
+    [onSidebarWidthChange],
+  );
+
+  const stopResizing = useCallback(() => {
+    resizeStartRef.current = null;
+    setIsResizing(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) {
+      return undefined;
+    }
+    window.addEventListener('pointermove', handleResizePointerMove);
+    window.addEventListener('pointerup', stopResizing);
+    window.addEventListener('pointercancel', stopResizing);
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    return () => {
+      window.removeEventListener('pointermove', handleResizePointerMove);
+      window.removeEventListener('pointerup', stopResizing);
+      window.removeEventListener('pointercancel', stopResizing);
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+    };
+  }, [isResizing, handleResizePointerMove, stopResizing]);
+
+  const startResizing = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    resizeStartRef.current = { pointerX: event.clientX, startWidth: sidebarWidth };
+    setIsResizing(true);
+  };
 
   const handleDelete = (id: string, title: string) => {
     setDeleteTarget({ id, title });
@@ -119,13 +176,16 @@ export function Sidebar({
       )}
       <aside
         className={clsx(
-          'panel-rail fixed inset-y-0 left-0 z-40 w-[min(100vw-2.5rem,270px)] min-h-0 shadow-xl transition-transform duration-200 ease-out md:relative md:z-auto md:w-[270px] md:min-w-[270px] md:translate-x-0 md:shadow-none',
+          'panel-rail fixed inset-y-0 left-0 z-40 w-[min(100vw-2.5rem,270px)] min-h-0 shadow-xl transition-transform duration-200 ease-out md:relative md:z-auto md:w-[var(--sidebar-w)] md:min-w-[var(--sidebar-w)] md:translate-x-0 md:shadow-none',
           mobileOpen ? 'translate-x-0' : '-translate-x-full max-md:invisible max-md:pointer-events-none md:translate-x-0',
         )}
-        style={{
-          paddingTop: 'var(--safe-area-top)',
-          paddingBottom: 'var(--safe-area-bottom)',
-        }}
+        style={
+          {
+            paddingTop: 'var(--safe-area-top)',
+            paddingBottom: 'var(--safe-area-bottom)',
+            '--sidebar-w': `${sidebarWidth}px`,
+          } as CSSProperties
+        }
         aria-label="Main navigation"
       >
         <div className="panel-rail__inner">
@@ -195,6 +255,18 @@ export function Sidebar({
             />
           </div>
         </div>
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize sidebar"
+          title="Drag to resize · double-click to reset"
+          onPointerDown={startResizing}
+          onDoubleClick={() => onSidebarWidthChange(DEFAULT_SIDEBAR_WIDTH)}
+          className={clsx(
+            'sidebar-resize-handle absolute inset-y-0 right-0 hidden w-1.5 translate-x-1/2 cursor-col-resize md:block',
+            isResizing && 'sidebar-resize-handle--active',
+          )}
+        />
       </aside>
     </>
   );

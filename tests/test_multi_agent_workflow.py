@@ -133,7 +133,7 @@ class _SearchResult:
 class _StubVectorStore:
     last_search_user_id: str | None = None
 
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         self.last_search_user_id = user_id
         return [
             _SearchResult(
@@ -235,7 +235,11 @@ def test_multi_agent_workflow_executes_fallback_plan() -> None:
         )
     )
 
-    assert result.message == "Final coordinated answer."
+    # Writer text is followed by a "Sources: [...]" footnote whenever cited
+    # evidence exists (see ensure_answer_preserves_citations); assert the base
+    # answer rather than exact equality.
+    assert result.message.startswith("Final coordinated answer.")
+    assert "Sources:" in result.message
     assert result.workflow is not None
     assert result.workflow.status in {"completed", "partial"}
     assert result.workflow.steps[0].agent == "coordinator"
@@ -273,7 +277,7 @@ def test_multi_agent_workflow_skips_retrieval_when_disabled() -> None:
         )
     )
 
-    assert result.message == "Final coordinated answer."
+    assert result.message.startswith("Final coordinated answer.")
     assert result.workflow is not None
     retriever_steps = [step for step in result.workflow.steps if step.agent == "retriever"]
     assert retriever_steps == []
@@ -488,7 +492,7 @@ def test_multi_agent_workflow_uses_stage_provider_routing() -> None:
             )
         )
 
-    assert result.message == "Final coordinated answer."
+    assert result.message.startswith("Final coordinated answer.")
     assert gateway.providers == ["openai", "ollama", "openai", "openai", "ollama"]
     assert gateway.models == ["planner-mini", "synth-fast", "review-mini", "review-mini", "writer-strong"]
 

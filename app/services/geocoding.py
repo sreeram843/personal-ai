@@ -37,6 +37,13 @@ class GeocodingService:
             if cached is not None and cached.status == "ok":
                 return dict(cached.data)
 
+        coords = _parse_lat_lon(place)
+        if coords is not None:
+            payload = await self._reverse(*coords)
+            if payload is not None:
+                await self._store_cache(cache_key, payload)
+                return payload
+
         candidates = [place]
         no_state_abbrev = re.sub(r",\s*[A-Z]{2}\b", "", place)
         if no_state_abbrev and no_state_abbrev != place:
@@ -57,27 +64,65 @@ class GeocodingService:
                     results = response.json().get("results") or []
                     if results:
                         payload = results[0]
-                        if self._cache is not None:
-                            await self._cache.set(
-                                cache_key,
-                                AdapterResult(
-                                    domain="geocode",
-                                    status="ok",
-                                    verified=True,
-                                    source="Open-Meteo Geocoding",
-                                    fetched_at_utc=_utc_now(),
-                                    ttl_seconds=self._cache_ttl_seconds,
-                                    data=payload,
-                                    confidence=0.95,
-                                ),
-                                self._cache_ttl_seconds,
-                            )
+                        await self._store_cache(cache_key, payload)
                         return payload
         except Exception as exc:
             logger.warning("Geocode failed for '%s': %s", place, exc)
             return None
 
         return None
+
+    async def _reverse(self, latitude: float, longitude: float) -> Optional[Dict[str, Any]]:
+        try:
+            async with httpx.AsyncClient(timeout=self._timeout) as client:
+                response = await client.get(
+                    "https://geocoding-api.open-meteo.com/v1/reverse",
+                    params={
+                        "latitude": latitude,
+                        "longitude": longitude,
+                        "language": "en",
+                        "format": "json",
+                    },
+                )
+                response.raise_for_status()
+                results = response.json().get("results") or []
+                if results:
+                    return results[0]
+        except Exception as exc:
+            logger.warning("Reverse geocode failed for %s,%s: %s", latitude, longitude, exc)
+        return None
+
+    async def _store_cache(self, cache_key: str, payload: Dict[str, Any]) -> None:
+        if self._cache is None:
+            return
+        await self._cache.set(
+            cache_key,
+            AdapterResult(
+                domain="geocode",
+                status="ok",
+                verified=True,
+                source="Open-Meteo Geocoding",
+                fetched_at_utc=_utc_now(),
+                ttl_seconds=self._cache_ttl_seconds,
+                data=payload,
+                confidence=0.95,
+            ),
+            self._cache_ttl_seconds,
+        )
+
+
+def _parse_lat_lon(value: str) -> Optional[tuple[float, float]]:
+    match = re.fullmatch(
+        r"\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*",
+        value,
+    )
+    if not match:
+        return None
+    lat = float(match.group(1))
+    lon = float(match.group(2))
+    if abs(lat) > 90 or abs(lon) > 180:
+        return None
+    return lat, lon
 
 
 def _utc_now() -> str:
@@ -86,4 +131,15 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
-__all__ = ["GeocodingService"]
+def format_place_label(geo: Dict[str, Any], fallback: str) -> str:
+    """Prefer a human place name over raw coordinates."""
+    name = str(geo.get("name") or "").strip()
+    if not name or _parse_lat_lon(name) is not None:
+        name = fallback.strip() if fallback.strip() and _parse_lat_lon(fallback) is None else name
+    parts = [part for part in [name, geo.get("admin1"), geo.get("country")] if part]
+    if parts:
+        return ", ".join(str(part) for part in parts)
+    return fallback.strip() or "Unknown location"
+
+
+__all__ = ["GeocodingService", "format_place_label"]

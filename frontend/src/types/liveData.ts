@@ -42,6 +42,7 @@ export interface StockCardData {
   delayed?: boolean;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -53,6 +54,7 @@ export interface CryptoCardData {
   changePercent?: number | null;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -84,6 +86,7 @@ export interface WeatherCardData {
   windUnit?: string;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -107,6 +110,7 @@ export interface GameScoreCardData {
   live?: boolean;
   asOf?: string;
   source?: string;
+  confidence?: number;
 }
 
 export interface FxCardData {
@@ -116,6 +120,7 @@ export interface FxCardData {
   date?: string;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -130,6 +135,7 @@ export interface NewsCardData {
   headlines?: NewsHeadline[];
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -140,6 +146,7 @@ export interface AirQualityCardData {
   pm10?: number | string | null;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -149,6 +156,7 @@ export interface ServiceStatusCardData {
   description?: string;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -158,6 +166,7 @@ export interface FlightCardData {
   message?: string;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -168,6 +177,7 @@ export interface CommodityCardData {
   currency?: string;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -179,6 +189,7 @@ export interface SunTimesCardData {
   dayLengthSeconds?: number;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -189,6 +200,7 @@ export interface StubProviderCardData {
   kind?: string;
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }
 
@@ -206,5 +218,6 @@ export interface NearbyPlacesCardData {
   places?: NearbyPlaceItem[];
   asOf?: string;
   source?: string;
+  confidence?: number;
   live?: boolean;
 }

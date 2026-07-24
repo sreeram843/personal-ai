@@ -22,17 +22,6 @@ const SMART_CHIPS = [
 
 export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
   const chips = mode === 'smart' ? SMART_CHIPS : CHAT_CHIPS;
-  const hints =
-    mode === 'smart'
-      ? [
-          { label: 'Grounded answers', prompt: 'What do my documents say about our Q3 roadmap?' },
-          { label: 'Live data', prompt: 'What is the weather in Austin today?' },
-          { label: 'Workflow trace', prompt: 'Plan and execute a multi-step research workflow on:' },
-        ]
-      : [
-          { label: 'Quick edits', prompt: 'Rewrite this paragraph to be clearer and more concise:' },
-          { label: 'Fast back-and-forth', prompt: 'Help me brainstorm ideas for:' },
-        ];
 
   return (
     <div className="empty-state-card mx-auto flex min-h-[58vh] max-w-[560px] flex-col items-center justify-center gap-5 px-4 text-center">
@@ -58,22 +47,6 @@ export function EmptyStateCard({ mode, onSelectPrompt }: Props) {
           >
             <Icon className="h-[13px] w-[13px] shrink-0 text-[var(--ui-accent)]" aria-hidden />
             {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-1 grid w-full gap-2 sm:grid-cols-2">
-        {hints.map(({ label, prompt }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => onSelectPrompt(prompt)}
-            className="starter-hint rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-2.5 text-left text-sm leading-relaxed text-[var(--phosphor-dim)] transition hover:border-[var(--ui-accent)] hover:text-[var(--phosphor)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ui-accent)]"
-          >
-            <span className="type-eyebrow mb-0.5 block !text-[var(--ui-accent)] !tracking-[0.16em]">
-              {label}
-            </span>
-            {prompt}
           </button>
         ))}
       </div>

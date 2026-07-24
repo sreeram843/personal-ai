@@ -11,6 +11,7 @@ from app.services.llm_gateway import (
     _coerce_openai_chat_options,
     _format_openai_provider_error,
     _normalize_openai_messages,
+    normalize_provider_model,
     openai_compatible_chat_completions_url,
 )
 
@@ -56,23 +57,55 @@ def test_format_openai_provider_error_read_timeout_message() -> None:
     assert "LLM_OPENAI_TIMEOUT" in message
 
 
-def test_llm_gateway_dispatches_selected_provider() -> None:
-    ollama = _RecordingAdapter("ollama")
-    openai = _RecordingAdapter("openai")
-    gateway = LLMGateway(adapters={"ollama": ollama, "openai": openai}, default_provider="ollama")
+def test_normalize_provider_model_deepseek_aliases() -> None:
+    assert normalize_provider_model("deepseek", "deepseek-chat") == "deepseek-v4-flash"
+    assert normalize_provider_model("deepseek", "deepseek-reasoner") == "deepseek-v4-pro"
+    assert normalize_provider_model("deepseek", "deepseek-v4-flash") == "deepseek-v4-flash"
+    assert normalize_provider_model("groq", "deepseek-chat") == "deepseek-chat"
+
+
+def test_normalize_provider_model_retired_groq_aliases() -> None:
+    scout = "meta-llama/llama-4-scout-17b-16e-instruct"
+    assert normalize_provider_model("groq", scout) == "openai/gpt-oss-20b"
+    assert normalize_provider_model("openai", scout) == "openai/gpt-oss-20b"
+    assert normalize_provider_model("groq", "qwen/qwen3-32b") == "openai/gpt-oss-120b"
+    assert normalize_provider_model("groq", "llama-3.3-70b-versatile") == "openai/gpt-oss-120b"
+    assert normalize_provider_model("groq", "gpt-oss-20b") == "openai/gpt-oss-20b"
+    assert normalize_provider_model("deepseek", "llama-3.3-70b-versatile") == "deepseek-v4-flash"
+
+
+def test_llm_gateway_falls_back_to_default_provider() -> None:
+    default = _RecordingAdapter("groq")
+    gateway = LLMGateway(adapters={"groq": default}, default_provider="groq")
 
     output = asyncio.run(
         gateway.generate(
             messages=[{"role": "user", "content": "hi"}],
-            model="test-model",
+            model="deepseek-chat",
             options={},
-            provider="openai",
+            provider="deepseek",
         )
     )
 
-    assert output == "openai:test-model"
-    assert ollama.calls == 0
-    assert openai.calls == 1
+    assert output == "groq:deepseek-chat"
+    assert default.calls == 1
+
+
+def test_llm_gateway_rewrites_deepseek_model_ids() -> None:
+    deepseek = _RecordingAdapter("deepseek")
+    gateway = LLMGateway(adapters={"deepseek": deepseek}, default_provider="deepseek")
+
+    output = asyncio.run(
+        gateway.generate(
+            messages=[{"role": "user", "content": "hi"}],
+            model="deepseek-chat",
+            options={},
+            provider="deepseek",
+        )
+    )
+
+    assert output == "deepseek:deepseek-v4-flash"
+    assert deepseek.calls == 1
 
 
 def test_openai_compatible_adapter_parses_chat_completion() -> None:

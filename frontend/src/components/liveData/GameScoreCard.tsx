@@ -42,7 +42,7 @@ export function GameScoreCard({ data, subscriptionKey }: Props) {
           </span>
         )
       }
-      footer={formatFreshness(display.asOf, display.source)}
+      footer={formatFreshness(display.asOf, display.source, display.confidence ?? data.confidence)}
     >
       <div className={`grid grid-cols-[1fr_auto_1fr] items-center gap-3 ${flash ? 'live-value-flash' : ''}`}>
         <div className="text-right">

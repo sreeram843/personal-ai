@@ -22,8 +22,31 @@ from app.main import app as singleton_app, create_app
 
 
 class _StubVectorStore:
-    def search(self, vector, *, user_id: str, limit=4, score_threshold=None):
+    def search(self, vector, *, user_id: str, limit=4, score_threshold=None, query_text=None, hybrid=False):
         return []
+
+
+@pytest.fixture(autouse=True)
+def isolated_json_stores(tmp_path, monkeypatch) -> Generator[None, None, None]:
+    """Keep file-backed stores out of the real memory/ directory.
+
+    get_skill_store/get_skill_catalog read get_settings() directly (not the
+    FastAPI dependency override), so without this every test run appends
+    records to memory/user_skills.json and they show up in the product UI.
+    """
+    from app.core import deps
+
+    monkeypatch.setenv("USER_SKILLS_PATH", str(tmp_path / "user_skills.json"))
+    monkeypatch.setenv("AGENT_TASKS_PATH", str(tmp_path / "agent_tasks.json"))
+    get_settings.cache_clear()
+    deps.get_skill_store.cache_clear()
+    deps.get_skill_catalog.cache_clear()
+    deps.get_agent_task_store.cache_clear()
+    yield
+    deps.get_skill_store.cache_clear()
+    deps.get_skill_catalog.cache_clear()
+    deps.get_agent_task_store.cache_clear()
+    get_settings.cache_clear()
 
 
 @pytest.fixture(autouse=True)

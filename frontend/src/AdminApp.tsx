@@ -567,7 +567,7 @@ const PROVIDER_PRESETS = [
     name: 'groq',
     display_name: 'Groq',
     base_url: 'https://api.groq.com/openai',
-    modelHint: 'llama-3.1-8b-instant',
+    modelHint: 'openai/gpt-oss-20b',
   },
   {
     name: 'perplexity',
@@ -591,7 +591,7 @@ const PROVIDER_PRESETS = [
     name: 'deepseek',
     display_name: 'DeepSeek',
     base_url: 'https://api.deepseek.com',
-    modelHint: 'deepseek-chat',
+    modelHint: 'deepseek-v4-flash',
   },
 ] as const;
 
@@ -603,7 +603,7 @@ function ProvidersPanel() {
     base_url: 'https://api.groq.com/openai',
     api_key: '',
   });
-  const [modelHint, setModelHint] = useState('llama-3.1-8b-instant');
+  const [modelHint, setModelHint] = useState('openai/gpt-oss-20b');
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -779,7 +779,7 @@ function RoutingPanel() {
     >
       <p className="text-[12.5px] text-[var(--phosphor-dim)]">
         Each stage can use a different enabled provider. Model ids must match that vendor (e.g. Groq{' '}
-        <span className="font-mono">llama-3.1-8b-instant</span>).
+        <span className="font-mono">openai/gpt-oss-20b</span>).
       </p>
       {rows.map((row) => (
         <div key={row.label} className="admin-panel flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

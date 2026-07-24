@@ -24,6 +24,7 @@ from app.services.conversation_store import (
     list_messages_for_conversation,
     update_conversation_for_user,
 )
+from app.services.audit_log import record_audit
 
 router = APIRouter(prefix="/conversations", tags=["conversations"])
 
@@ -136,4 +137,9 @@ def delete_conversation_route(
     deleted = delete_conversation_for_user(db, user.id, conversation_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    record_audit(
+        "conversation.delete",
+        user_id=str(user.id),
+        detail={"conversation_id": str(conversation_id)},
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

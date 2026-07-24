@@ -61,7 +61,7 @@ export function localizeDataFetchedMarkers(content: string): string {
   return result;
 }
 
-export function formatFreshness(asOf?: string, source?: string): string {
+export function formatFreshness(asOf?: string, source?: string, confidence?: number): string {
   const parts = [];
   const local = formatFetchedAtLocal(asOf);
   if (local) {
@@ -69,6 +69,9 @@ export function formatFreshness(asOf?: string, source?: string): string {
   }
   if (source) {
     parts.push(source);
+  }
+  if (typeof confidence === 'number' && Number.isFinite(confidence) && confidence > 0) {
+    parts.push(`${Math.round(confidence * 100)}% confidence`);
   }
   return parts.join(' · ');
 }

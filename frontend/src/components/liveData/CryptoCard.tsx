@@ -26,6 +26,7 @@ export function CryptoCard({ data, subscriptionKey }: Props) {
         : undefined),
     asOf: data.asOf,
     source: data.source,
+    confidence: data.confidence,
     live: data.live ?? true,
   };
 
@@ -45,7 +46,7 @@ export function CryptoCard({ data, subscriptionKey }: Props) {
     <LiveDataCardChrome
       title={`${display.name} (${display.symbol})`}
       badge={<FreshnessBadge live={display.live} />}
-      footer={formatFreshness(display.asOf, display.source)}
+      footer={formatFreshness(display.asOf, display.source, display.confidence ?? data.confidence)}
     >
       <div className={`flex items-end justify-between gap-4 ${flash ? 'live-value-flash' : ''}`}>
         <div>

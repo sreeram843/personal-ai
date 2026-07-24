@@ -1,6 +1,11 @@
 const ACCEPTED_EXTENSIONS = ['.txt', '.md', '.pdf'];
-/** Client-side guard; server enforces INGEST_MAX_DOCUMENT_BYTES. */
-export const MAX_UPLOAD_BYTES = 512_000;
+/**
+ * Client-side guard for the raw file size; server enforces INGEST_MAX_UPLOAD_BYTES
+ * on the same raw bytes (PDFs carry fonts/images, so this is larger than the
+ * extracted-text ceiling, INGEST_MAX_DOCUMENT_BYTES, which is checked server-side
+ * after text extraction).
+ */
+export const MAX_UPLOAD_BYTES = 10_000_000;
 
 function isAcceptedFile(file: File): boolean {
   const name = file.name.toLowerCase();
@@ -9,7 +14,7 @@ function isAcceptedFile(file: File): boolean {
 
 export function assertUploadAllowed(file: File): void {
   if (!isAcceptedFile(file)) {
-    throw new Error(`Unsupported file type: ${file.name}. Use .txt or .md.`);
+    throw new Error(`Unsupported file type: ${file.name}. Use .txt, .md, or .pdf.`);
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     throw new Error(

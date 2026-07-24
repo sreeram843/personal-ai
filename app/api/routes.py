@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from fastapi.responses import StreamingResponse
 import httpx
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
@@ -31,11 +31,12 @@ from app.db.models import Conversation
 from app.db.session import get_db
 from app.schemas.chat import ChatRequest, ChatResponse, ChatMessage, RetrievedChunk
 from app.schemas.content_block import ContentBlock
-from app.schemas.documents import IngestRequest, IngestResponse
+from app.schemas.documents import IngestDocument, IngestRequest, IngestResponse
 from app.schemas.jobs import BackgroundJob, BackgroundJobKind, BackgroundJobStatus
 from app.schemas.run import RunStatus, WorkflowRun
 from app.services.chat_execution import execute_chat_mode, execute_chat_mode_stream
 from app.services.usage_meter import set_usage_context
+from app.services.audit_log import record_audit
 from app.services.live_data_manager import LiveDataManager
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.llamaindex_rag import query_with_llamaindex
@@ -48,17 +49,20 @@ from app.services.information_routing import (
     is_corpus_overview_query,
     is_document_grounded_query,
     is_quick_social_utterance,
+    is_trivial_chitchat,
     should_route_smart_toward_workflow,
 )
 from app.services.health import readiness_report
 from app.services.system_prompt import get_system_prompt
 from app.services.web_search import WebSearchService
 from app.services.chat_persistence import run_persisted_chat, wrap_chat_stream_with_persistence
+from app.services.document_extract import extract_document_text
 from app.services.ingest_service import (
     ingest_documents_for_user,
     should_enqueue_ingest,
 )
 from app.services.ingest_validation import validate_ingest_documents
+from app.services.job_store import JobStore
 from app.services.object_storage import ObjectStorage
 from app.services.chat_messages import get_last_user_message
 from app.services.orchestrated_runner import (
@@ -78,8 +82,6 @@ class CreateWorkflowRunRequest(BaseModel):
     mode: Literal["chat", "rag", "workflow"] = "workflow"
     conversation_id: Optional[str] = None
     run_id: Optional[str] = None
-
-RAG_CITATION_RULE = "Use [path] or [title p.X]; if unsure, say 'I cannot verify this.'"
 
 
 def _format_chat_response(message: str) -> str:
@@ -183,7 +185,8 @@ def _select_smart_mode(payload: ChatRequest) -> Literal["chat", "rag", "workflow
     lowered = query.lower()
     words = query.split()
 
-    if is_quick_social_utterance(query):
+    # Keep short acknowledgements / greetings on the fast chat path (never RAG/workflow).
+    if is_trivial_chitchat(query) or is_quick_social_utterance(query):
         return "chat"
 
     if is_document_grounded_query(query) or is_corpus_overview_query(query):
@@ -488,27 +491,149 @@ async def ingest_documents(
     task_queue: TaskQueue = Depends(get_task_queue),
 ) -> IngestResponse:
     """Embed and store documents inside Qdrant for the authenticated user."""
+    return await _run_ingest(
+        documents=payload.documents,
+        user=user,
+        settings=settings,
+        db=db,
+        ollama=ollama,
+        vector_store=vector_store,
+        object_storage=object_storage,
+        job_store=job_store,
+        task_queue=task_queue,
+    )
 
-    if not payload.documents:
+
+_UPLOAD_READ_CHUNK_SIZE = 1_048_576  # 1 MiB
+
+
+async def _read_upload_bounded(upload: UploadFile, *, max_bytes: int, filename: str) -> bytes:
+    """
+    Read an upload in bounded chunks, rejecting oversized files as soon as the
+    limit is crossed instead of buffering the whole (possibly huge) file first.
+    """
+    chunks: List[bytes] = []
+    total = 0
+    while True:
+        chunk = await upload.read(_UPLOAD_READ_CHUNK_SIZE)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{filename} exceeds max upload size ({max_bytes} bytes).",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+@router.post("/ingest/files", response_model=IngestResponse)
+async def ingest_files(
+    user: CurrentUser,
+    files: List[UploadFile] = File(...),
+    settings: Settings = Depends(get_settings),
+    db: Session = Depends(get_db),
+    ollama: OllamaClient = Depends(get_ollama_client),
+    vector_store: VectorStore = Depends(get_vector_store),
+    object_storage: ObjectStorage = Depends(get_object_storage),
+    job_store: JobStore = Depends(get_job_store),
+    task_queue: TaskQueue = Depends(get_task_queue),
+) -> IngestResponse:
+    """Accept raw uploads (including PDF), extract text, then embed and store."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
+
+    documents: List[IngestDocument] = []
+    extracted_text_bytes = 0
+    for upload in files:
+        filename = (upload.filename or "upload.txt").strip() or "upload.txt"
+        # Bound the raw (binary, pre-extraction) read — PDFs carry fonts/images
+        # so this ceiling is intentionally larger than ingest_max_document_bytes,
+        # which caps the *extracted text* that actually gets embedded.
+        payload = await _read_upload_bounded(
+            upload,
+            max_bytes=settings.ingest_max_upload_bytes,
+            filename=filename,
+        )
+        text = extract_document_text(
+            filename=filename,
+            payload=payload,
+            content_type=upload.content_type,
+        )
+        # Stop as soon as the batch's extracted text crosses the limit, rather
+        # than extracting every remaining file first and only checking at the end.
+        extracted_text_bytes += len(text.encode("utf-8"))
+        if extracted_text_bytes > settings.ingest_max_batch_bytes:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Ingest batch's extracted text is too large ({extracted_text_bytes} bytes). "
+                    f"Limit is {settings.ingest_max_batch_bytes} bytes."
+                ),
+            )
+        documents.append(
+            IngestDocument(
+                text=text,
+                metadata={
+                    "path": filename,
+                    "title": filename,
+                    "content_type": upload.content_type or "",
+                    "source_bytes": len(payload),
+                },
+            )
+        )
+
+    return await _run_ingest(
+        documents=documents,
+        user=user,
+        settings=settings,
+        db=db,
+        ollama=ollama,
+        vector_store=vector_store,
+        object_storage=object_storage,
+        job_store=job_store,
+        task_queue=task_queue,
+    )
+
+
+async def _run_ingest(
+    *,
+    documents: List[IngestDocument],
+    user: CurrentUser,
+    settings: Settings,
+    db: Session,
+    ollama: OllamaClient,
+    vector_store: VectorStore,
+    object_storage: ObjectStorage,
+    job_store: JobStore,
+    task_queue: TaskQueue,
+) -> IngestResponse:
+    if not documents:
         raise HTTPException(status_code=400, detail="No documents provided")
 
-    validate_ingest_documents(settings, payload.documents)
+    validate_ingest_documents(settings, documents)
 
-    if should_enqueue_ingest(settings, payload.documents):
+    if should_enqueue_ingest(settings, documents):
         job = job_store.create_job(kind=BackgroundJobKind.INGEST, user_id=str(user.id))
-        documents_payload = [doc.model_dump(mode="json") for doc in payload.documents]
+        documents_payload = [doc.model_dump(mode="json") for doc in documents]
         try:
             await task_queue.enqueue_ingest(job=job, documents=documents_payload)
         except Exception as exc:
             job_store.update_job(job.job_id, status=BackgroundJobStatus.FAILED, error=str(exc))
             raise HTTPException(status_code=503, detail=f"Failed to enqueue ingest job: {exc}") from exc
+        record_audit(
+            "documents.ingest",
+            user_id=str(user.id),
+            detail={"mode": "queued", "count": len(documents), "job_id": job.job_id},
+        )
         return IngestResponse(job_id=job.job_id, status=BackgroundJobStatus.QUEUED)
 
     try:
         count = await ingest_documents_for_user(
             db=db,
             user=user,
-            documents=payload.documents,
+            documents=documents,
             settings=settings,
             ollama=ollama,
             vector_store=vector_store,
@@ -516,6 +641,11 @@ async def ingest_documents(
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ingest error: {exc}") from exc
+    record_audit(
+        "documents.ingest",
+        user_id=str(user.id),
+        detail={"mode": "sync", "count": count},
+    )
     return IngestResponse(count=count)
 
 
