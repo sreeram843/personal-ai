@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { AuthConfig } from '../api';
 import { exchangeGoogleToken } from '../api';
+import { consumeSessionNotice } from '../auth';
 import { shouldUseNativeGoogleSignIn, signInWithGoogle } from '../auth/googleSignIn';
 import { queryKeys } from '../query/keys';
 import { CuraiLogo } from './CuraiLogo';
@@ -17,6 +18,7 @@ interface Props {
 export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Props) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [sessionNotice] = useState<string | null>(() => consumeSessionNotice());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleButtonWidth, setGoogleButtonWidth] = useState(280);
@@ -103,6 +105,12 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
               : 'Sign in to access your conversations, documents, and smart-routed chat history.'}
           </p>
         </div>
+
+        {sessionNotice && !error && (
+          <div className="mb-4 rounded-xl border border-[color-mix(in_srgb,var(--ui-accent)_35%,transparent)] bg-[color-mix(in_srgb,var(--ui-accent)_12%,transparent)] px-4 py-3 text-sm text-[var(--phosphor-bright)]">
+            {sessionNotice}
+          </div>
+        )}
 
         {authConfig.google_auth_enabled ? (
           <div className="flex w-full flex-col items-center gap-3">

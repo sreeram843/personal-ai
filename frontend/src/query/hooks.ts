@@ -10,7 +10,7 @@ import {
   mapServerMessage,
   updateConversation,
 } from '../api';
-import { clearAuthToken, getAuthToken } from '../auth';
+import { clearAuthToken, clearSessionNotice, getAuthToken } from '../auth';
 import { mapConversationSummary } from './conversations';
 import { queryKeys } from './keys';
 import type { ConversationMode } from '../types';
@@ -49,6 +49,7 @@ export function useLogout() {
   const queryClient = useQueryClient();
 
   return () => {
+    clearSessionNotice();
     clearAuthToken();
     queryClient.clear();
   };

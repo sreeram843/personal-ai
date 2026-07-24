@@ -1,4 +1,4 @@
-import { authHeaders, clearAuthToken, getAuthToken, setAuthToken } from './auth';
+import { authHeaders, expireAuthSession, getAuthToken, setAuthToken } from './auth';
 import { isCapacitorNative } from './platform/capacitor';
 import { resolveApiBaseUrl } from './platform/resolveApiBaseUrl';
 import { createChatRequestError } from './utils/chatErrors';
@@ -133,7 +133,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
   if (!response.ok) {
     const errorText = await response.text();
     if (response.status === 401) {
-      clearAuthToken();
+      expireAuthSession();
     }
     throw new Error(errorText || response.statusText);
   }
@@ -425,6 +425,9 @@ export async function sendMessage(
 
   if (!response.ok) {
     const errorText = await response.text();
+    if (response.status === 401) {
+      expireAuthSession();
+    }
     throw createChatRequestError(response.status, errorText || response.statusText);
   }
 

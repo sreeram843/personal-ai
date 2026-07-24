@@ -110,7 +110,7 @@ export function UserMenu({ user, onOpenAbout, onOpenSettings, onLogout }: Props)
             className="panel-rail__menu-item text-[var(--ui-danger)] hover:bg-[rgba(239,68,68,0.1)]"
           >
             <LogOut className="h-4 w-4 shrink-0" />
-            Log out
+            Sign out
           </button>
         </div>
       )}
