@@ -10,15 +10,18 @@ import { CuraiLogo } from './CuraiLogo';
 interface Props {
   authConfig: AuthConfig;
   onAuthenticated?: () => void;
+  /** Admin portal uses tighter copy about allowlisted accounts. */
+  variant?: 'app' | 'admin';
 }
 
-export function LoginPage({ authConfig, onAuthenticated }: Props) {
+export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Props) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const [googleButtonWidth, setGoogleButtonWidth] = useState(280);
   const useNativeGoogle = shouldUseNativeGoogleSignIn();
+  const isAdmin = variant === 'admin';
 
   useEffect(() => {
     if (useNativeGoogle) {
@@ -91,9 +94,13 @@ export function LoginPage({ authConfig, onAuthenticated }: Props) {
       <div className="elevated-panel w-full max-w-md rounded-2xl border border-[var(--ui-border)] p-6 shadow-xl sm:p-8">
         <div className="mb-6 flex flex-col items-center text-center">
           <CuraiLogo state={isSubmitting ? 'thinking' : error ? 'error' : 'idle'} size={48} className="mb-4" />
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">CurAI</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">
+            {isAdmin ? 'CurAI Admin' : 'CurAI'}
+          </h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">
-            Sign in to access your conversations, documents, and smart-routed chat history.
+            {isAdmin
+              ? 'Sign in with an allowlisted Google account to manage providers, users, and usage.'
+              : 'Sign in to access your conversations, documents, and smart-routed chat history.'}
           </p>
         </div>
 
@@ -132,6 +139,12 @@ export function LoginPage({ authConfig, onAuthenticated }: Props) {
               <p className="text-xs text-[var(--phosphor-dim)]">Completing sign-in…</p>
             )}
           </div>
+        ) : authConfig.auth_disabled ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Auth is disabled on this server (<code className="rounded bg-black/20 px-1 py-0.5 text-xs">AUTH_DISABLED=true</code>
+            ). Set <code className="rounded bg-black/20 px-1 py-0.5 text-xs">AUTH_DISABLED=false</code> and{' '}
+            <code className="rounded bg-black/20 px-1 py-0.5 text-xs">ADMIN_EMAILS</code> to require Google login for admin.
+          </div>
         ) : (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             Authentication is enabled but Google Sign-In is not configured. Set{' '}
@@ -146,7 +159,9 @@ export function LoginPage({ authConfig, onAuthenticated }: Props) {
         )}
 
         <p className="mt-6 text-center text-xs leading-relaxed text-[var(--phosphor-dim)]">
-          Your conversations are private and tied to your account.
+          {isAdmin
+            ? 'Only emails listed in ADMIN_EMAILS (or invited as staff) can open this portal.'
+            : 'Your conversations are private and tied to your account.'}
         </p>
       </div>
     </div>

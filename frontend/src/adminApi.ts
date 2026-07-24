@@ -66,7 +66,17 @@ export interface AdminUsageByUser {
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    throw new Error(await response.text());
+    const errorText = await response.text();
+    let message = errorText || `Request failed (${response.status})`;
+    try {
+      const parsed = JSON.parse(errorText) as { detail?: string };
+      if (parsed.detail) {
+        message = parsed.detail;
+      }
+    } catch {
+      // keep raw text
+    }
+    throw new Error(message);
   }
   return (await response.json()) as T;
 }

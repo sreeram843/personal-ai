@@ -18,6 +18,21 @@ Admin UI mounts when the hostname starts with `admin.` **or** the path is `/admi
 - **support** — users, invites, usage (no provider secrets)
 - **user** — chat only
 
+### Allowlisted Google accounts
+
+Only emails in `ADMIN_EMAILS` are promoted to **admin** on Google login (and may sign up without an invite when `AUTH_SIGNUP_MODE=invite`).
+
+```bash
+ADMIN_EMAILS=you@gmail.com,cofounder@gmail.com
+AUTH_SIGNUP_MODE=invite
+AUTH_DISABLED=false
+GOOGLE_CLIENT_ID=....apps.googleusercontent.com
+```
+
+Anyone else:
+- **Cannot** create an account (invite-only), unless you invite them
+- **Cannot** open `/admin` unless their role is `admin` or `support`
+
 Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
 
 ## Security

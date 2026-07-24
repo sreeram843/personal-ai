@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   fetchAdminInvites,
   fetchAdminMe,
@@ -23,6 +23,7 @@ import {
 } from './adminApi';
 import { clearAuthToken, getAuthToken } from './auth';
 import { LoginPage } from './components/LoginPage';
+import { CuraiLogo } from './components/CuraiLogo';
 import { fetchAuthConfig, type AuthConfig } from './api';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
@@ -32,6 +33,33 @@ function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
+}
+
+function humanizeError(raw: string): string {
+  const trimmed = raw.trim();
+  try {
+    const parsed = JSON.parse(trimmed) as { detail?: string };
+    if (parsed.detail) {
+      return parsed.detail;
+    }
+  } catch {
+    // keep text
+  }
+  return trimmed;
+}
+
+function AdminShell({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="classic-font flex min-h-[100dvh] items-center justify-center bg-[var(--ui-bg)] px-4 py-10 text-[var(--phosphor)]"
+      style={{
+        paddingTop: 'max(2.5rem, var(--safe-area-top))',
+        paddingBottom: 'max(2.5rem, var(--safe-area-bottom))',
+      }}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function AdminApp() {
@@ -59,20 +87,31 @@ export function AdminApp() {
   useEffect(() => {
     if (!tokenReady) return;
     void refreshMe().catch((err) => {
-      setError(err instanceof Error ? err.message : 'Not authorized for admin');
+      setError(humanizeError(err instanceof Error ? err.message : 'Not authorized for admin'));
       setMe(null);
     });
   }, [tokenReady, refreshMe]);
 
   if (!authConfig) {
-    return <div className="grid min-h-[100dvh] place-items-center bg-[var(--ui-bg)] text-[var(--phosphor)]">Loading…</div>;
+    return (
+      <AdminShell>
+        <div className="elevated-panel flex w-full max-w-md flex-col items-center rounded-2xl border border-[var(--ui-border)] p-8 text-center shadow-xl">
+          <CuraiLogo state="thinking" size={48} className="mb-4" />
+          <p className="text-sm text-[var(--phosphor-dim)]">Loading CurAI Admin…</p>
+        </div>
+      </AdminShell>
+    );
   }
 
   if (!tokenReady || !getAuthToken()) {
     const login = (
       <LoginPage
+        variant="admin"
         authConfig={authConfig}
-        onAuthenticated={() => setTokenReady(true)}
+        onAuthenticated={() => {
+          setError(null);
+          setTokenReady(true);
+        }}
       />
     );
     if (authConfig.google_auth_enabled && authConfig.google_client_id) {
@@ -83,27 +122,46 @@ export function AdminApp() {
 
   if (error && !me) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[var(--ui-bg)] px-4 text-center text-[var(--phosphor)]">
-        <div>
-          <p className="mb-3 text-sm">{error}</p>
+      <AdminShell>
+        <div className="elevated-panel w-full max-w-md rounded-2xl border border-[var(--ui-border)] p-6 shadow-xl sm:p-8">
+          <div className="mb-6 flex flex-col items-center text-center">
+            <CuraiLogo state="error" size={48} className="mb-4" />
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">
+              CurAI Admin
+            </h1>
+            <p className="mt-2 text-sm font-medium text-[var(--phosphor-bright)]">Access denied</p>
+            <p className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">{error}</p>
+          </div>
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
+            Your Google account signed in successfully, but it is not on the admin allowlist. Ask the owner to add your
+            email to <code className="rounded bg-black/10 px-1 py-0.5 text-xs">ADMIN_EMAILS</code>, recreate the app,
+            then try again.
+          </div>
           <button
             type="button"
-            className="rounded-lg border border-[var(--ui-border)] px-3 py-1.5 text-sm"
+            className="touch-target mt-5 w-full rounded-full border border-[var(--ui-border-strong)] bg-[var(--ui-panel)] px-4 py-3 text-sm font-medium text-[var(--phosphor-bright)] transition hover:bg-[var(--ui-bg-elevated)]"
             onClick={() => {
               clearAuthToken();
               setTokenReady(false);
               setError(null);
             }}
           >
-            Sign in again
+            Sign in with a different account
           </button>
         </div>
-      </div>
+      </AdminShell>
     );
   }
 
   if (!me) {
-    return <div className="grid min-h-[100dvh] place-items-center bg-[var(--ui-bg)] text-[var(--phosphor)]">Checking access…</div>;
+    return (
+      <AdminShell>
+        <div className="elevated-panel flex w-full max-w-md flex-col items-center rounded-2xl border border-[var(--ui-border)] p-8 text-center shadow-xl">
+          <CuraiLogo state="thinking" size={48} className="mb-4" />
+          <p className="text-sm text-[var(--phosphor-dim)]">Checking admin access…</p>
+        </div>
+      </AdminShell>
+    );
   }
 
   const tabs: Array<{ id: Tab; label: string; adminOnly?: boolean }> = [
@@ -116,21 +174,26 @@ export function AdminApp() {
   ];
 
   return (
-    <div className="min-h-[100dvh] bg-[var(--ui-bg)] text-[var(--phosphor)]">
+    <div className="classic-font min-h-[100dvh] bg-[var(--ui-bg)] text-[var(--phosphor)]">
       <header className="flex items-center justify-between border-b border-[var(--ui-border)] bg-[var(--ui-panel)] px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold text-[var(--phosphor-bright)]">CurAI Admin</p>
-          <p className="text-xs text-[var(--phosphor-dim)]">{me.email || me.role}</p>
+        <div className="flex items-center gap-3">
+          <CuraiLogo state="idle" size={32} />
+          <div>
+            <p className="font-display text-sm font-semibold text-[var(--phosphor-bright)]">CurAI Admin</p>
+            <p className="text-xs text-[var(--phosphor-dim)]">{me.email || me.role}</p>
+          </div>
         </div>
         <button
           type="button"
-          className="rounded-lg border border-[var(--ui-border)] px-2.5 py-1 text-xs"
+          className="rounded-full border border-[var(--ui-border)] px-3 py-1.5 text-xs font-medium text-[var(--phosphor)] transition hover:bg-[var(--ui-bg-elevated)]"
           onClick={() => {
             clearAuthToken();
-            window.location.href = 'https://app.cura-i.com';
+            setMe(null);
+            setTokenReady(false);
+            setError(null);
           }}
         >
-          Exit
+          Sign out
         </button>
       </header>
       <nav className="flex flex-wrap gap-1 border-b border-[var(--ui-border)] px-3 py-2">
@@ -141,10 +204,10 @@ export function AdminApp() {
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
-              className={`rounded-full px-3 py-1 text-xs ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
                 tab === item.id
                   ? 'bg-[var(--ui-bg-elevated)] text-[var(--phosphor-bright)]'
-                  : 'text-[var(--phosphor-dim)]'
+                  : 'text-[var(--phosphor-dim)] hover:text-[var(--phosphor)]'
               }`}
             >
               {item.label}

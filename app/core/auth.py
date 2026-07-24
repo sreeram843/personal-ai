@@ -249,13 +249,19 @@ def get_current_user(
 
 def require_staff(user: Annotated[User, Depends(get_current_user)]) -> User:
     if not user.is_staff:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staff access required. This Google account is not on the admin allowlist (ADMIN_EMAILS) and has no staff role.",
+        )
     return user
 
 
 def require_admin(user: Annotated[User, Depends(get_current_user)]) -> User:
     if not user.is_admin:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required. Only allowlisted Google accounts (ADMIN_EMAILS) can manage providers and settings.",
+        )
     return user
 
 
