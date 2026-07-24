@@ -47,6 +47,9 @@ async function getMermaid() {
     themeVariables: buildThemeVariables(),
     securityLevel: 'strict',
     fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+    // Without this, mermaid injects its own bomb/error SVG straight into the
+    // DOM on syntax errors, bypassing our catch-based fallback below.
+    suppressErrorRendering: true,
   });
   return mermaidModule;
 }
