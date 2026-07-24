@@ -5,6 +5,7 @@ import { ChatInput } from './components/ChatInput';
 import { CuraiLogo } from './components/CuraiLogo';
 import { resolveCuraiLogoState } from './components/curaiLogoState';
 import { VirtualizedMessageList } from './components/VirtualizedMessageList';
+import { friendlyDemoError, parseDemoError } from './demoErrors';
 import type { ChatMessage } from './types';
 
 const DEMO_SESSION_KEY = 'curai-demo-session-id';
@@ -29,28 +30,6 @@ function getDemoSessionId(): string {
   }
 }
 
-function parseDemoError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return 'Something went wrong. Please try again.';
-  }
-  const raw = error.message.trim();
-  if (!raw) {
-    return 'Something went wrong. Please try again.';
-  }
-  try {
-    const parsed = JSON.parse(raw) as { detail?: string | { message?: string } };
-    if (typeof parsed.detail === 'string') {
-      return parsed.detail;
-    }
-    if (parsed.detail && typeof parsed.detail === 'object' && parsed.detail.message) {
-      return parsed.detail.message;
-    }
-  } catch {
-    // keep raw text
-  }
-  return raw;
-}
-
 export function DemoApp() {
   const [config, setConfig] = useState<DemoConfig | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -60,6 +39,7 @@ export function DemoApp() {
   const [questionsRemaining, setQuestionsRemaining] = useState(5);
   const [limitReached, setLimitReached] = useState(false);
   const [fullAppUrl, setFullAppUrl] = useState<string | null>(null);
+  const [showChips, setShowChips] = useState(true);
   const sessionIdRef = useRef(getDemoSessionId());
   const messageLogRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,6 +53,9 @@ export function DemoApp() {
         }
         setConfig(demoConfig);
         setQuestionsRemaining(demoConfig.max_questions);
+        if (demoConfig.full_app_url) {
+          setFullAppUrl(demoConfig.full_app_url);
+        }
         setMessages([
           {
             id: createId(),
@@ -102,10 +85,14 @@ export function DemoApp() {
     [isLoading, configError, messages],
   );
 
+  const suggestedPrompts = config?.suggested_prompts ?? [];
+
   const handleSend = async (text: string) => {
     if (!config || isLoading || limitReached) {
       return;
     }
+
+    setShowChips(false);
 
     const userMessage: ChatMessage = {
       id: createId(),
@@ -125,14 +112,25 @@ export function DemoApp() {
     setIsLoading(true);
 
     try {
-      const response = await sendDemoMessage({
-        session_id: sessionIdRef.current,
-        message: text,
-        messages: nextMessages
-          .filter((item) => item.role === 'user' || item.role === 'assistant')
-          .filter((item) => item.content.trim().length > 0)
-          .map((item) => ({ role: item.role, content: item.content })),
-      });
+      const response = await sendDemoMessage(
+        {
+          session_id: sessionIdRef.current,
+          message: text,
+          messages: nextMessages
+            .filter((item) => item.role === 'user' || item.role === 'assistant')
+            .filter((item) => item.content.trim().length > 0)
+            .map((item) => ({ role: item.role, content: item.content })),
+        },
+        (statusMessage) => {
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === assistantPlaceholder.id
+                ? { ...item, content: statusMessage }
+                : item,
+            ),
+          );
+        },
+      );
 
       setQuestionsUsed(response.questions_used);
       setQuestionsRemaining(response.questions_remaining);
@@ -147,6 +145,7 @@ export function DemoApp() {
             ? {
                 ...item,
                 content: response.message,
+                blocks: response.blocks,
                 latencyMs: response.latency_ms,
               }
             : item,
@@ -154,19 +153,18 @@ export function DemoApp() {
       );
     } catch (error) {
       const message = parseDemoError(error);
-      const isLimit = message.toLowerCase().includes('limit reached');
-      if (isLimit) {
+      const { text, quotaExhausted } = friendlyDemoError(message, error);
+      if (quotaExhausted) {
         setLimitReached(true);
         setQuestionsRemaining(0);
+        setShowChips(false);
       }
       setMessages((current) =>
         current.map((item) =>
           item.id === assistantPlaceholder.id
             ? {
                 ...item,
-                content: isLimit
-                  ? `${message} Sign in for unlimited conversations.`
-                  : `⚠️ ${message}`,
+                content: `⚠️ ${text}`,
               }
             : item,
         ),
@@ -193,6 +191,7 @@ export function DemoApp() {
   }
 
   const inputDisabled = isLoading || limitReached;
+  const chipsVisible = showChips && !limitReached && suggestedPrompts.length > 0 && !isLoading;
 
   return (
     <div className="flex h-[100dvh] min-h-[480px] flex-col bg-[var(--ui-bg)] text-[var(--phosphor)]">
@@ -229,6 +228,7 @@ export function DemoApp() {
           isLoading={isLoading}
           isNearBottom
           editingUserMessageId={null}
+          hideActions
           onCopy={() => undefined}
           onEditResend={() => undefined}
           onEditCancel={() => undefined}
@@ -249,7 +249,7 @@ export function DemoApp() {
                 <a href={fullAppUrl} target="_blank" rel="noreferrer" className="font-medium text-[var(--ui-focus)] underline">
                   Open the full app
                 </a>{' '}
-                to keep chatting.
+                to keep chatting — with tools, live data, and your own docs.
               </>
             ) : (
               ' Sign in on the full app to keep chatting.'
@@ -261,6 +261,21 @@ export function DemoApp() {
               ? `${questionsUsed} of ${config.max_questions} questions used`
               : `Up to ${config.max_questions} free questions — no sign-in required`}
           </p>
+        )}
+        {chipsVisible && (
+          <div className="mb-2 flex flex-wrap justify-center gap-1.5">
+            {suggestedPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                disabled={inputDisabled}
+                onClick={() => void handleSend(prompt)}
+                className="max-w-full rounded-full border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-2.5 py-1 text-left text-xs text-[var(--phosphor)] transition hover:border-[var(--ui-focus)] hover:bg-[var(--ui-panel)] disabled:opacity-50"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
         )}
         <ChatInput disabled={inputDisabled} hideAttach hideVoice onSend={handleSend} />
       </footer>

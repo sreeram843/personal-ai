@@ -32,7 +32,7 @@ test.describe('capacitor mobile shell', () => {
   test('toggles theme from settings on mobile', async ({ page }) => {
     await prepareAuthenticatedPage(page, { mode: 'chat' });
     await page.getByRole('button', { name: 'Open navigation' }).click();
-    await page.getByRole('button', { name: /Account menu for/ }).click();
+    await page.getByRole('button', { name: 'Account menu' }).click();
     await page.getByRole('menuitem', { name: 'Settings' }).click();
     await page.getByRole('button', { name: 'Appearance' }).click();
     await page.getByRole('radio', { name: 'Dark' }).click();

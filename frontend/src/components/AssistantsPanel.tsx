@@ -122,7 +122,7 @@ export function AssistantsPanel({ open }: Props) {
         custom ones are pick-only.
       </p>
       {loading ? <div className="text-xs text-[var(--phosphor-dim)]">Loading assistants…</div> : null}
-      {error ? <div className="text-xs text-red-300">{error}</div> : null}
+      {error ? <div className="text-xs text-[#f87171]">{error}</div> : null}
       <div className="space-y-2">
         {assistants.map((assistant) => (
           <div
@@ -149,7 +149,7 @@ export function AssistantsPanel({ open }: Props) {
                     className={clsx(
                       'rounded-full px-2 py-0.5 text-[11px] font-medium',
                       assistant.enabled
-                        ? 'bg-emerald-500/15 text-emerald-200'
+                        ? 'bg-emerald-500/15 text-emerald-400'
                         : 'bg-[var(--ui-bg)] text-[var(--phosphor-dim)]',
                     )}
                   >
@@ -160,7 +160,7 @@ export function AssistantsPanel({ open }: Props) {
                   <button
                     type="button"
                     onClick={() => setDeleteTarget(assistant)}
-                    className="rounded-md border border-[var(--ui-border)] p-1 text-[var(--phosphor-dim)] hover:text-red-300"
+                    className="rounded-md border border-[var(--ui-border)] p-1 text-[var(--phosphor-dim)] hover:text-[#f87171]"
                     aria-label={`Delete ${assistant.name}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

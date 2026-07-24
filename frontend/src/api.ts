@@ -715,15 +715,54 @@ export async function fetchDemoConfig(): Promise<DemoConfig> {
   return (await response.json()) as DemoConfig;
 }
 
-export async function sendDemoMessage(payload: DemoChatRequestPayload): Promise<DemoChatResponsePayload> {
-  const response = await safeFetch(`${getBaseUrl()}/demo/chat`, {
+export async function sendDemoMessage(
+  payload: DemoChatRequestPayload,
+  onStatus?: (message: string) => void,
+): Promise<DemoChatResponsePayload> {
+  const response = await safeFetch(`${getBaseUrl()}/demo/chat/stream`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify(payload),
   });
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(errorText || response.statusText);
   }
+
+  if (response.headers.get('content-type')?.includes('text/event-stream')) {
+    let finalResponse: DemoChatResponsePayload | null = null;
+    let streamErrorPayload: string | null = null;
+
+    await streamSseEvents(response, (event) => {
+      if (event.type === 'status' && typeof event.message === 'string') {
+        onStatus?.(event.message);
+        return;
+      }
+      if (event.type === 'final' && event.response) {
+        finalResponse = event.response as DemoChatResponsePayload;
+        return;
+      }
+      if (event.type === 'error') {
+        const detail = (event as { detail?: { message?: string }; message?: string }).detail;
+        if (detail && typeof detail === 'object') {
+          streamErrorPayload = JSON.stringify({ detail });
+        } else if (typeof event.message === 'string') {
+          streamErrorPayload = JSON.stringify({ detail: event.message });
+        } else {
+          streamErrorPayload = JSON.stringify({ detail: 'Demo chat failed' });
+        }
+      }
+    });
+
+    if (streamErrorPayload) {
+      throw new Error(streamErrorPayload);
+    }
+    if (!finalResponse) {
+      throw new Error('Demo stream completed without a final response');
+    }
+    return finalResponse;
+  }
+
   return (await response.json()) as DemoChatResponsePayload;
 }

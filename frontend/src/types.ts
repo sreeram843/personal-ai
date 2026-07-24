@@ -204,6 +204,8 @@ export interface DemoConfig {
   enabled: boolean;
   max_questions: number;
   intro: string;
+  full_app_url?: string | null;
+  suggested_prompts?: string[];
 }
 
 export interface DemoChatRequestPayload {

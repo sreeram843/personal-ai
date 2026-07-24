@@ -6,6 +6,7 @@ import { LoginPage } from './components/LoginPage';
 import { DemoApp } from './DemoApp';
 import type { AuthConfig } from './api';
 import { getAuthToken, AUTH_CHANGED_EVENT } from './auth';
+import { useTheme } from './hooks/useTheme';
 import { useAuthBootstrap, useAuthConfig, useCurrentUser } from './query/hooks';
 
 export function AppRoot({ demoMode = false }: { demoMode?: boolean }) {
@@ -17,6 +18,8 @@ export function AppRoot({ demoMode = false }: { demoMode?: boolean }) {
 }
 
 function AuthenticatedAppRoot() {
+  // Apply theme before auth so login/bootstrap match CurAI Final dark shell.
+  useTheme();
   const configQuery = useAuthConfig();
 
   if (configQuery.isLoading) {

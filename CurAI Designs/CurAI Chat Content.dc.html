@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet data-dc-atomics>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden}
+  body{background:#e9e6e0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+  .cur-scroll::-webkit-scrollbar{width:8px}
+  .cur-scroll::-webkit-scrollbar-thumb{background:rgba(128,128,128,.25);border-radius:4px}
+  @keyframes curai-logo-bulb-breathe{0%,100%{transform:scale(0.86)}50%{transform:scale(1.16)}}
+</style>
+</helmet>
+
+<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center">
+<div style="width:1240px;height:820px;flex:none;display:flex;flex-direction:column;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25);transition:background .25s ease;background:{{ pageBg }};font-family:inherit">
+
+  <div style="padding:18px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid {{ borderColor }}">
+    <span style="font-size:13px;color:{{ textSecondary }}">Assistant: CurAI</span>
+    <div onClick="{{ toggleTheme }}" style="font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;border:1px solid {{ borderColor }};color:{{ textTertiary }}">{{ themeLabel }}</div>
+  </div>
+
+  <div class="cur-scroll" style="flex:1;overflow-y:auto;padding:28px 40px;display:flex;flex-direction:column;gap:22px;max-width:820px;margin:0 auto;width:100%;box-sizing:border-box">
+
+    <div style="{{ bubbleStyle }}">A production deployment caused API latency to increase from 200 ms to 1.8 seconds. Walk through a root cause investigation, identify likely bottlenecks, and propose a remediation plan.</div>
+    <div style="align-self:flex-end;font-size:12px;color:{{ textTertiary }}">7.4k tokens</div>
+
+    <div style="display:flex;gap:14px;max-width:100%">
+      <div style="width:30px;height:30px;border-radius:9px;flex:none;display:flex;align-items:center;justify-content:center;transition:background .25s ease;background:{{ tileBg }}">
+        <svg width="24" height="24" viewBox="0 0 128 128">
+          <defs><radialGradient id="bulbGradCC" cx="50%" cy="36%" r="58%" fx="50%" fy="34%"><stop offset="0%" stop-color="#FFF9C4"></stop><stop offset="32%" stop-color="#FFE566"></stop><stop offset="68%" stop-color="#F5B82E"></stop><stop offset="100%" stop-color="#E8A020"></stop></radialGradient></defs>
+          <g style="animation:curai-logo-bulb-breathe 7.7s ease-in-out infinite;transform-box:view-box;transform-origin:64px 53.76px">
+            <g transform="translate(64 62) scale(0.84) translate(-64 -62)">
+              <path d="M64 32 C49 32 41 42 41 55 C41 63 44 69 49 74 L50 80 C50 84 54 86 64 86 C74 86 78 84 78 80 L79 74 C84 69 87 63 87 55 C87 42 79 32 64 32 Z" fill="url(#bulbGradCC)"></path>
+              <path d="M64 32 C49 32 41 42 41 55 C41 63 44 69 49 74 L50 80 C50 84 54 86 64 86 C74 86 78 84 78 80 L79 74 C84 69 87 63 87 55 C87 42 79 32 64 32 Z" fill="none" stroke="#e0a446" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"></path>
+              <path d="M57.5 51 C57.5 57.5 60.5 61 64 61 C67.5 61 70.5 57.5 70.5 51" fill="none" stroke="#e0a446" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" opacity="0.88"></path>
+              <path d="M57 86 L56 93 C56 95 59 96 64 96 C69 96 72 95 72 93 L71 86 Z" fill="#e0a446" stroke="#e0a446" stroke-width="2" stroke-linejoin="round"></path>
+            </g>
+          </g>
+          <ellipse cx="64" cy="64" rx="18" ry="46" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.85" transform="rotate(0 64 64)"></ellipse>
+          <ellipse cx="64" cy="64" rx="18" ry="46" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.85" transform="rotate(-60 64 64)"></ellipse>
+          <ellipse cx="64" cy="64" rx="18" ry="46" fill="none" stroke="#e0a446" stroke-width="2.5" opacity="0.85" transform="rotate(60 64 64)"></ellipse>
+          <g transform="rotate(0 64 64)"><circle r="4" fill="#e0a446"><animateMotion dur="8.8s" begin="0s" repeatCount="indefinite" path="M 64 110 A 18 46 0 1 1 64 18 A 18 46 0 1 1 64 110"></animateMotion></circle></g>
+          <g transform="rotate(-60 64 64)"><circle r="4" fill="#e0a446"><animateMotion dur="11.2s" begin="-1.2s" repeatCount="indefinite" path="M 64 18 A 18 46 0 1 0 64 110 A 18 46 0 1 0 64 18"></animateMotion></circle></g>
+          <g transform="rotate(60 64 64)"><circle r="4" fill="#e0a446"><animateMotion dur="6.72s" begin="-0.6s" repeatCount="indefinite" path="M 64 110 A 18 46 0 1 1 64 18 A 18 46 0 1 1 64 110"></animateMotion></circle></g>
+        </svg>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0;flex:1">
+        <div style="{{ floatCardStyle }}">
+          <div style="font-size:16px;font-weight:600;color:{{ textPrimary }}">Root cause investigation</div>
+          <div style="font-size:14.5px;line-height:1.65;color:{{ textSecondary }}">The significant increase in API latency suggests the deployment introduced one or more bottlenecks. Here's the investigation flow and a live look at current API health.</div>
+        </div>
+
+        <!-- reasoning panel -->
+        <div style="border-radius:10px;border:1px solid {{ borderColor }};background:{{ tileBg }};overflow:hidden">
+          <div onClick="{{ toggleReasoning }}" style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13px;color:{{ textPrimary }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="2" style="{{ reasoningChevronStyle }}"><path d="M6 9l6 6 6-6"></path></svg>
+            Reasoning &amp; workflow trace
+          </div>
+          <sc-if value="{{ reasoningOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid {{ borderColor }};padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+              <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ textTertiary }}">Workflow steps</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="border-radius:8px;background:{{ pageBg }};padding:8px 10px;font-size:13px;color:{{ textPrimary }}">Review deployment changes <span style="font-size:11.5px;color:{{ textTertiary }}">· ops-agent · complete</span></div>
+                <div style="border-radius:8px;background:{{ pageBg }};padding:8px 10px;font-size:13px;color:{{ textPrimary }}">Analyze API request patterns <span style="font-size:11.5px;color:{{ textTertiary }}">· metrics-agent · complete</span></div>
+                <div style="border-radius:8px;background:{{ pageBg }};padding:8px 10px;font-size:13px;color:{{ textPrimary }}">Check database query performance <span style="font-size:11.5px;color:{{ textTertiary }}">· db-agent · in progress</span></div>
+              </div>
+              <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{{ textTertiary }};margin-top:4px">Model reasoning</div>
+              <div style="font-size:12.5px;line-height:1.6;color:{{ textSecondary }}">Deployment diff shows a new N+1 query path in the pricing service; correlating that with the Grafana p95 spike before drafting the remediation plan.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- tool approval banner -->
+        <div style="border-radius:12px;border:1px solid rgba(224,164,70,.35);background:rgba(224,164,70,.1);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#e0a446">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e0a446" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"></path></svg>
+            Tools waiting for approval
+          </div>
+          <div style="font-size:13px;color:{{ textPrimary }}">query_production_db <span style="color:{{ textTertiary }}">· high risk</span></div>
+          <div onClick="{{ approveTool }}" style="align-self:flex-start;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:rgba(224,164,70,.18);color:{{ textPrimary }};border:1px solid rgba(224,164,70,.4)">{{ approveLabel }}</div>
+        </div>
+
+        <!-- error banner -->
+        <div style="border-radius:12px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.1);padding:12px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;font-weight:600;color:#f87171">Something went wrong</div>
+          <div style="font-size:13px;color:{{ textSecondary }}">The model provider timed out before finishing this response.</div>
+          <div style="display:flex;gap:8px">
+            <div style="padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.35)">Retry</div>
+          </div>
+        </div>
+
+        <!-- mermaid-style diagram card -->
+        <div style="{{ floatCardStyle }};padding:16px;overflow-x:auto">
+          <svg width="100%" height="220" viewBox="0 0 740 220" style="display:block;max-width:740px">
+            <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="{{ diagramLine }}"></path></marker></defs>
+            <g fill="none" stroke="{{ diagramLine }}" stroke-width="1.4">
+              <path d="M110,110 L260,40" marker-end="url(#arrow)"></path>
+              <path d="M110,110 L260,85" marker-end="url(#arrow)"></path>
+              <path d="M110,110 L260,135" marker-end="url(#arrow)"></path>
+              <path d="M110,110 L260,180" marker-end="url(#arrow)"></path>
+              <path d="M420,40 L560,110" marker-end="url(#arrow)"></path>
+              <path d="M420,85 L560,110" marker-end="url(#arrow)"></path>
+              <path d="M420,135 L560,110" marker-end="url(#arrow)"></path>
+              <path d="M420,180 L560,110" marker-end="url(#arrow)"></path>
+            </g>
+            <rect x="6" y="88" width="104" height="44" rx="10" fill="{{ tileBg }}" stroke="{{ borderColor }}"></rect>
+            <text x="58" y="115" text-anchor="middle" font-size="12.5" fill="{{ textPrimary }}">Identify Bottlenecks</text>
+
+            <rect x="260" y="19" width="160" height="42" rx="10" fill="{{ tileBg }}" stroke="{{ borderColor }}"></rect>
+            <text x="340" y="44" text-anchor="middle" font-size="12" fill="{{ textPrimary }}">Optimize DB Queries</text>
+
+            <rect x="260" y="64" width="160" height="42" rx="10" fill="{{ tileBg }}" stroke="{{ borderColor }}"></rect>
+            <text x="340" y="89" text-anchor="middle" font-size="12" fill="{{ textPrimary }}">Review &amp; Optimize Code</text>
+
+            <rect x="260" y="114" width="160" height="42" rx="10" fill="{{ tileBg }}" stroke="{{ borderColor }}"></rect>
+            <text x="340" y="139" text-anchor="middle" font-size="12" fill="{{ textPrimary }}">Implement Caching</text>
+
+            <rect x="260" y="159" width="160" height="42" rx="10" fill="{{ tileBg }}" stroke="{{ borderColor }}"></rect>
+            <text x="340" y="184" text-anchor="middle" font-size="12" fill="{{ textPrimary }}">Monitor &amp; Scale Infra</text>
+
+            <rect x="560" y="88" width="130" height="44" rx="10" fill="rgba(224,164,70,.14)" stroke="#e0a446"></rect>
+            <text x="625" y="115" text-anchor="middle" font-size="13" font-weight="600" fill="{{ textPrimary }}">Improve Performance</text>
+          </svg>
+        </div>
+
+        <!-- live data card -->
+        <div style="{{ floatCardStyle }};padding:0;overflow:hidden;max-width:320px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid {{ borderColor }}">
+            <div style="font-size:14px;font-weight:600;color:{{ textPrimary }}">API p95 Latency</div>
+            <span style="display:inline-flex;align-items:center;gap:6px;border-radius:9999px;background:rgba(239,68,68,.15);padding:2px 8px;font-size:11px;font-weight:500;color:#f87171"><span style="width:6px;height:6px;border-radius:50%;background:#f87171"></span>Live</span>
+          </div>
+          <div style="padding:14px 16px;display:flex;align-items:flex-end;justify-content:space-between;gap:14px">
+            <div>
+              <div style="font-size:28px;font-weight:600;color:{{ textPrimary }}">1.8<span style="font-size:15px;font-weight:500;margin-left:4px;color:{{ textTertiary }}">s</span></div>
+              <div style="margin-top:2px;font-size:13px;font-weight:500;color:#f87171">+800% (200ms baseline)</div>
+            </div>
+            <div style="text-align:right;font-size:11.5px;line-height:1.5;color:{{ textTertiary }}">
+              <div>Region us-east-1</div>
+              <div>p50 620ms</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid {{ borderColor }};padding:8px 16px;font-size:11px;color:{{ textTertiary }}">Fetched just now · Grafana</div>
+        </div>
+
+        <!-- code block -->
+        <div style="{{ floatCardStyle }};padding:0;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid {{ borderColor }}">
+            <span style="font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:{{ textTertiary }}">bash</span>
+            <span style="font-family:ui-monospace,monospace;font-size:11px;color:{{ textTertiary }};cursor:pointer">Copy</span>
+          </div>
+          <pre style="margin:0;padding:14px 16px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;overflow-x:auto;color:{{ textPrimary }}">kubectl logs deploy/api --since=2h | grep "slow_query"
+psql -c "SELECT query, mean_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 5;"</pre>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:14px;padding-left:2px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><path d="M23 4v6h-6M1 20v-6h6"></path><path d="M3.5 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.65 4.36A9 9 0 0 0 20.5 15"></path></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="1.8" style="cursor:pointer"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zM17 2h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
+          <span style="font-size:12px;color:{{ textTertiary }}">9.4s</span>
+          <span style="font-size:12px;color:{{ textTertiary }}">2.9k tokens</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 32px 24px;position:relative;z-index:2">
+    <div style="max-width:640px;margin:0 auto 8px;display:flex;flex-direction:column;gap:6px">
+      <div style="border-radius:10px;border:1px solid {{ borderColor }};background:{{ tileBg }};padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:12.5px;color:{{ textPrimary }}">incident-notes.md</div>
+        <span style="font-size:11px;color:#6fcf97">SUCCESS</span>
+      </div>
+      <div style="border-radius:10px;border:1px solid {{ borderColor }};background:{{ tileBg }};padding:8px 12px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:12.5px;color:{{ textPrimary }}">latency-graph.png</div>
+        <span style="font-size:11px;color:{{ textTertiary }}">UPLOADING</span>
+      </div>
+    </div>
+    <div style="{{ composerStyle }}">
+      <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a5 5 0 0 1-7.07-7.07l9.19-9.19a3.5 3.5 0 0 1 4.95 4.95L10.13 17.1a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+      </div>
+      <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{{ textTertiary }}" stroke-width="2"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8"></path></svg>
+      </div>
+      <span style="flex:1;font-size:14px;color:{{ textTertiary }}">Message...</span>
+      <div onClick="{{ send }}" style="width:34px;height:34px;border-radius:50%;background:#e0a446;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a1408" stroke-width="2.2"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"></path></svg>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = { theme: 'dark', reasoningOpen: false, approved: false };
+  toggleTheme() { this.setState(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })); }
+
+  renderVals() {
+    const dark = {
+      pageBg: '#18140f', borderColor: 'rgba(255,255,255,.07)',
+      textPrimary: '#f6f1e8', textSecondary: 'rgba(255,255,255,.5)', textTertiary: 'rgba(255,255,255,.34)',
+      tileBg: '#241b12', inputBg: '#221a12', bubbleBg: '#2a2018', bubbleText: '#f3ede4',
+      diagramLine: 'rgba(255,255,255,.35)'
+    };
+    const light = {
+      pageBg: '#faf8f4', borderColor: 'rgba(0,0,0,.07)',
+      textPrimary: '#1c1710', textSecondary: 'rgba(36,31,22,.6)', textTertiary: 'rgba(36,31,22,.42)',
+      tileBg: '#fdf1de', inputBg: '#fff', bubbleBg: '#e0a446', bubbleText: '#1a1408',
+      diagramLine: 'rgba(36,31,22,.32)'
+    };
+    const T = this.state.theme === 'dark' ? dark : light;
+    return {
+      ...T,
+      themeLabel: this.state.theme === 'dark' ? 'Light mode' : 'Dark mode',
+      toggleTheme: () => this.toggleTheme(),
+      reasoningOpen: this.state.reasoningOpen,
+      toggleReasoning: () => this.setState(s => ({ reasoningOpen: !s.reasoningOpen })),
+      reasoningChevronStyle: 'transition:transform .2s ease;transform:rotate(' + (this.state.reasoningOpen ? '0deg' : '-90deg') + ')',
+      approveLabel: this.state.approved ? 'Approved' : 'Approve and retry',
+      approveTool: () => this.setState({ approved: true }),
+      bubbleStyle: 'align-self:flex-end;max-width:66%;border-radius:14px 14px 4px 14px;padding:14px 18px;font-size:14.5px;line-height:1.5;background:' + T.bubbleBg + ';color:' + T.bubbleText,
+      floatCardStyle: 'display:flex;flex-direction:column;gap:12px;border-radius:16px;padding:16px 18px;border:1px solid ' + T.borderColor + ';background:' + T.tileBg + ';box-shadow:0 4px 16px rgba(0,0,0,.08)',
+      composerStyle: 'display:flex;align-items:center;gap:10px;border-radius:9999px;padding:10px 10px 10px 22px;max-width:640px;margin:0 auto;border:1px solid ' + T.borderColor + ';background:' + T.inputBg + ';box-shadow:0 10px 30px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.1)'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

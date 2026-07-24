@@ -40,30 +40,40 @@ export function UserMenu({ user, onOpenAbout, onOpenSettings, onLogout }: Props)
   }, [open]);
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="panel-rail__item w-full justify-start gap-2.5 px-2 py-2"
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={`Account menu for ${userLabel(user)}`}
-      >
-        <div className="grid h-8 w-8 shrink-0 place-content-center rounded-full bg-[var(--ui-bg-elevated)] text-xs font-semibold text-[var(--phosphor)]">
-          {userInitials(user)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
-          <div className="truncate text-xs text-[var(--phosphor-dim)]">{user.email || 'Account'}</div>
-        </div>
-      </button>
+    <div ref={rootRef} className="relative border-t border-[var(--ui-border)] pt-4">
+      <div className="flex items-center gap-1 rounded-lg px-1 py-1 transition hover:bg-[var(--ui-hover)]">
+        <button
+          type="button"
+          onClick={() => onOpenSettings()}
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left"
+          aria-label={`Open settings for ${userLabel(user)}`}
+        >
+          <div className="grid h-[30px] w-[30px] shrink-0 place-content-center rounded-full bg-[var(--ui-accent)] text-[12px] font-bold text-[var(--ui-accent-fg)]">
+            {userInitials(user)}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[13px] font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
+            <div className="truncate text-[11px] text-[var(--phosphor-dim)]">{user.email || 'Settings'}</div>
+          </div>
+        </button>
+        <button
+          type="button"
+          className="grid h-7 w-7 shrink-0 place-content-center rounded-md text-[var(--phosphor-dim)] transition hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--phosphor)]"
+          aria-label="Account menu"
+          aria-expanded={open}
+          aria-haspopup="menu"
+          onClick={() => setOpen((prev) => !prev)}
+        >
+          <Settings2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       {open && (
         <div role="menu" className="panel-rail__menu panel-rail__menu--up">
-          <div className="border-b border-[var(--ui-border)] px-3 py-2.5">
-            <div className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
+          <div className="border-b border-[var(--ui-border)] px-3.5 py-3">
+            <div className="truncate text-[13px] font-semibold text-[var(--phosphor-bright)]">{userLabel(user)}</div>
             {user.email && (
-              <div className="truncate text-xs text-[var(--phosphor-dim)]">{user.email}</div>
+              <div className="truncate text-[11.5px] text-[var(--phosphor-dim)]">{user.email}</div>
             )}
           </div>
           <button
@@ -97,7 +107,7 @@ export function UserMenu({ user, onOpenAbout, onOpenSettings, onLogout }: Props)
               setOpen(false);
               onLogout();
             }}
-            className="panel-rail__menu-item text-red-300 hover:bg-red-500/10"
+            className="panel-rail__menu-item text-[var(--ui-danger)] hover:bg-[rgba(239,68,68,0.1)]"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             Log out
