@@ -73,7 +73,7 @@ Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
    | Perplexity (Sonar chat) | `https://api.perplexity.ai` | `sonar`, `sonar-pro`, `sonar-reasoning-pro` |
    | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash`, `gemini-2.5-pro` |
    | OpenAI | `https://api.openai.com` | `gpt-4o-mini`, `gpt-4o` |
-   | DeepSeek | `https://api.deepseek.com` | `deepseek-chat`, `deepseek-reasoner` |
+   | DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash`, `deepseek-v4-pro` (legacy `deepseek-chat` / `deepseek-reasoner` are remapped automatically) |
 
    Env `PERPLEXITY_API_KEY` is still used for **web search**. Add Perplexity again under Providers only if you want Sonar as a chat/routing model.
 2. On **Routing**, assign provider + model id per stage (default / planner / synthesizer / reviewer / writer).

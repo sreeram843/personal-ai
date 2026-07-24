@@ -139,6 +139,24 @@ def openai_compatible_chat_completions_url(base_url: str) -> str:
     return f"{root}/v1/chat/completions"
 
 
+# DeepSeek retired deepseek-chat / deepseek-reasoner in favor of v4 model ids.
+_PROVIDER_MODEL_ALIASES: Dict[str, Dict[str, str]] = {
+    "deepseek": {
+        "deepseek-chat": "deepseek-v4-flash",
+        "deepseek-reasoner": "deepseek-v4-pro",
+        "deepseek-coder": "deepseek-v4-flash",
+    }
+}
+
+
+def normalize_provider_model(provider: str, model: str) -> str:
+    """Map deprecated provider model ids to current API names."""
+    aliases = _PROVIDER_MODEL_ALIASES.get((provider or "").strip().lower())
+    if not aliases:
+        return model
+    return aliases.get((model or "").strip(), model)
+
+
 class OpenAICompatibleLLMAdapter:
     """Adapter for OpenAI-compatible chat completion endpoints.
 
@@ -247,16 +265,28 @@ class LLMGateway:
     ) -> LLMGenerationResult:
         selected_provider = provider or self._default_provider
         adapter = self._adapters.get(selected_provider)
+        if adapter is None and selected_provider != self._default_provider:
+            # Stage routing can briefly point at a provider before the gateway cache
+            # rebuilds; fall back to the configured default so chat stays usable.
+            adapter = self._adapters.get(self._default_provider)
+            if adapter is not None:
+                selected_provider = self._default_provider
         if adapter is None:
-            raise RuntimeError(f"No LLM adapter registered for provider '{selected_provider}'")
-        async with observe_llm_call(provider=selected_provider, model=model):
-            result = await adapter.generate(messages=messages, model=model, options=options)
+            available = ", ".join(sorted(self._adapters)) or "(none)"
+            raise RuntimeError(
+                f"No LLM adapter registered for provider '{provider or self._default_provider}'. "
+                f"Available: {available}. Add/enable the provider in Admin and retry "
+                "(or restart the app if routing was just changed)."
+            )
+        resolved_model = normalize_provider_model(selected_provider, model)
+        async with observe_llm_call(provider=selected_provider, model=resolved_model):
+            result = await adapter.generate(messages=messages, model=resolved_model, options=options)
         try:
             from app.services.usage_meter import record_llm_usage
 
             record_llm_usage(
                 provider=selected_provider,
-                model=model,
+                model=resolved_model,
                 prompt_tokens=result.prompt_tokens,
                 completion_tokens=result.completion_tokens,
             )
@@ -273,5 +303,6 @@ __all__ = [
     "OpenAICompatibleLLMAdapter",
     "StageModelConfig",
     "WorkflowModelProfile",
+    "normalize_provider_model",
     "openai_compatible_chat_completions_url",
 ]

@@ -591,7 +591,7 @@ const PROVIDER_PRESETS = [
     name: 'deepseek',
     display_name: 'DeepSeek',
     base_url: 'https://api.deepseek.com',
-    modelHint: 'deepseek-chat',
+    modelHint: 'deepseek-v4-flash',
   },
 ] as const;
 
