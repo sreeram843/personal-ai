@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000"
 
     enable_fast_chat: bool = True
+    # When no other tier matches, use fast for local MLX/LM Studio; orchestrated for cloud/GPU.
+    chat_fallback_strategy: str = "orchestrated"
     enable_tool_agent: bool = Field(
         default=True,
         validation_alias=AliasChoices(
@@ -87,6 +89,8 @@ class Settings(BaseSettings):
     live_cache_ttl_weather_forecast_seconds: int = 900
     live_cache_ttl_news_seconds: int = 180
     live_cache_ttl_sports_seconds: int = 30
+    live_cache_ttl_nearby_places_seconds: int = 3600
+    enable_nearby_places_llm_clarification: bool = True
     geocoding_cache_ttl_seconds: int = 86_400
     market_data_provider: str = "yahoo"
     finnhub_api_key: Optional[str] = None

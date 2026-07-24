@@ -15,6 +15,9 @@
 #   Groq (very fast, generous free tier):
 #     LLM_CLOUD_BASE_URL=https://api.groq.com/openai
 #
+#   DeepSeek (OpenAI-compatible):
+#     LLM_CLOUD_BASE_URL=https://api.deepseek.com
+#
 #   Together AI ($25 free credit):
 #     LLM_CLOUD_BASE_URL=https://api.together.xyz
 #

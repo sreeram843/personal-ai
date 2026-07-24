@@ -9,6 +9,7 @@ from app.services.llm_gateway import (
     LLMGenerationResult,
     OpenAICompatibleLLMAdapter,
     _coerce_openai_chat_options,
+    _format_openai_provider_error,
     _normalize_openai_messages,
     openai_compatible_chat_completions_url,
 )
@@ -47,6 +48,12 @@ class _RecordingAdapter:
     async def generate(self, *, messages, model: str, options):
         self.calls += 1
         return LLMGenerationResult(content=f"{self.label}:{model}")
+
+
+def test_format_openai_provider_error_read_timeout_message() -> None:
+    message = _format_openai_provider_error(httpx.ReadTimeout("timed out"))
+    assert "timed out" in message.lower()
+    assert "LLM_OPENAI_TIMEOUT" in message
 
 
 def test_llm_gateway_dispatches_selected_provider() -> None:

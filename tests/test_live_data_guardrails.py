@@ -14,7 +14,11 @@ class _StubLiveDataManager:
         self._resolve_result = resolve_result
         self._live_intent = live_intent
 
-    async def resolve(self, query: str) -> Optional[AdapterResult]:
+    async def resolve(
+        self,
+        query: str,
+        chat_history: list[dict[str, str]] | None = None,
+    ) -> Optional[AdapterResult]:
         return self._resolve_result
 
     def is_live_intent_query(self, query: str) -> bool:

@@ -44,7 +44,7 @@ Use the eval tests as regression guards for routing and grounding:
 pytest tests/test_eval_routing_accuracy.py tests/test_eval_rag_grounding.py -q
 ```
 
-For live LLM quality checks, run scripted prompts against `/smart_chat` and assert:
+For live LLM quality checks, run scripted prompts against **`POST /chat`** or **`POST /chat/stream`** and assert:
 
 - workflow traces appear for multi-step prompts
 - `/rag_chat` returns sources with document paths

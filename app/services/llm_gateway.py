@@ -104,6 +104,12 @@ def _format_openai_provider_error(exc: httpx.HTTPError) -> str:
         except ValueError:
             error_body = exc.response.text
         return f"OpenAI-compatible provider request failed ({exc.response.status_code}): {error_body}"
+    if isinstance(exc, httpx.ReadTimeout):
+        return (
+            "OpenAI-compatible provider request timed out waiting for a response. "
+            "Increase LLM_CLOUD_TIMEOUT / LLM_OPENAI_TIMEOUT (e.g. 180 for DeepSeek v4-pro "
+            "in orchestrated workflow mode)."
+        )
     return f"OpenAI-compatible provider request failed: {exc}"
 
 

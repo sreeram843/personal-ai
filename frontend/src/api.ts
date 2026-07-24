@@ -212,7 +212,7 @@ export async function listConversations(): Promise<ServerConversationSummary[]> 
 }
 
 export async function createConversation(
-  mode: ConversationMode,
+  mode: ConversationMode = 'smart',
   title?: string,
   assistantId?: string | null,
 ): Promise<ServerConversationSummary> {
@@ -452,7 +452,7 @@ export async function sendMessage(
 
   if (response.headers.get('content-type')?.includes('application/json')) {
     const data = (await response.json()) as ChatResponsePayload;
-    if (data.sources && mode === 'smart') {
+    if (data.sources) {
       data.sources = normalizeSources(data.sources);
     }
     data.blocks = normalizeContentBlocks(data.blocks);

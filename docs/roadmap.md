@@ -77,7 +77,7 @@ flowchart LR
   - `POST /conversations`
   - `GET /conversations/{id}/messages`
   - `DELETE /conversations/{id}`
-- [x] Wire chat routes (`/chat`, `/rag_chat`, `/workflow_chat`, `/smart_chat` + streams) to persist messages
+- [x] Wire chat routes (`/chat`, `/chat/stream`, `/rag_chat`, `/workflow_chat` + streams) to persist messages; `/smart_chat*` kept as deprecated aliases
 - [x] Scope ingest route to `user_id` from token
 - [x] Qdrant payload filter: `user_id` on every upsert/search
 - [x] Scope workflow run routes to `user_id` from token
@@ -87,7 +87,7 @@ flowchart LR
 
 - [x] Login flow (or dev bypass via `AUTH_DISABLED` + `/auth/token`)
 - [x] Send `Authorization` header on all API calls
-- [x] Stop persisting chat history in `localStorage` (keep theme/mode only)
+- [x] Unified chat UI (no Chat/Smart toggle); server-synced history via TanStack Query
 
 ### Exit criteria
 

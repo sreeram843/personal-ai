@@ -126,6 +126,20 @@ class LiveToolHub:
             return self._fail("News tool requires a topic or query")
         return await self._from_resolve(q)
 
+    async def get_nearby_places(
+        self,
+        query: str = "",
+        user_query: str = "",
+        location: str = "",
+        category: str = "",
+    ) -> LiveToolResult:
+        q = (query or user_query).strip()
+        if location:
+            q = f"{category or 'places'} in {location}".strip()
+        if not q:
+            return self._fail("Nearby places tool requires a location or query like 'coffee in Austin'")
+        return await self._from_resolve(q)
+
     async def get_game_score(
         self,
         query: str = "",

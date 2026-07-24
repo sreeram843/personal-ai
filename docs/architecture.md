@@ -20,9 +20,9 @@ graph TD
         VectorStore["VectorStore (Qdrant)"]
         WebSearch["WebSearchService"]
         AdapterCache["AdapterCache (Redis / Memory)"]
-        RunStore["RunStore (memory/runs/)"]
+        RunStore["RunStore (disk or Redis)"]
         WorkflowMemory["WorkflowMemoryStore"]
-        PersonaManager["PersonaManager"]
+        TaskQueue["TaskQueue (ARQ / inline)"]
     end
 
     subgraph ExternalServices ["External / Local Services"]
@@ -39,15 +39,14 @@ graph TD
         Grafana["Grafana"]
     end
 
-    Browser -- "POST /chat, /rag_chat, /workflow_chat" --> Routes
-    Browser -- "SSE /workflow_chat/stream" --> Routes
+    Browser -- "POST /chat, /chat/stream" --> Routes
+    Browser -- "POST /rag_chat, /workflow_chat (+ streams)" --> Routes
     Browser -- "POST /ingest" --> Routes
-    Browser -- "GET/POST /personas" --> Routes
 
     Routes --> LiveData
     Routes --> Orchestrator
     Routes --> RunStore
-    Routes --> PersonaManager
+    Routes --> TaskQueue
 
     LiveData --> AdapterCache
     LiveData --> WebSearch
@@ -71,29 +70,54 @@ graph TD
 
 ---
 
-## Smart-Mode Routing (POST /smart_chat)
+## Chat modes (`POST /chat` / `POST /smart_chat`)
+
+The web UI has a **Chat vs Smart** toggle in the sidebar.
+
+| UI mode | Endpoint | Behavior |
+|---------|----------|----------|
+| **Chat** | `POST /chat/stream` | Direct fast path; no smart auto-routing to RAG/workflow |
+| **Smart** | `POST /smart_chat/stream` | `_select_smart_mode` → `chat`, `rag`, or `workflow` |
+
+Live-data short-circuit runs first on both paths.
 
 ```mermaid
 flowchart TD
     Start([User message]) --> Extract[Extract last user message]
     Extract --> LiveCheck{Live-data\nintent?}
-    LiveCheck -- Yes, verified --> LiveReturn[Return provider data\nwith timestamp]
+    LiveCheck -- Yes, verified --> LiveReturn[Return provider data\nor clarification question]
     LiveCheck -- Yes, unverified --> GuardrailReturn[Return LIVE_DATA_NOT_VERIFIED\nguardrail error]
-    LiveCheck -- No --> SmartMode[_select_smart_mode]
-    SmartMode --> Greet{Short greeting\nor ≤4 words?}
-    Greet -- Yes --> ChatMode[mode = chat]
-    Greet -- No --> Fresh{Fresh web\ndata needed?}
-    Fresh -- Yes --> WorkflowMode[mode = workflow]
-    Fresh -- No --> Long{Query ≥\n24 words?}
-    Long -- Yes --> WorkflowMode
-    Long -- No --> Complex{Complex reasoning\nterms present?}
-    Complex -- Yes --> WorkflowMode
-    Complex -- No --> RAGMode[mode = rag]
-    ChatMode --> Orchestrator[OrchestratedChatService]
-    RAGMode --> Orchestrator
-    WorkflowMode --> Orchestrator
-    Orchestrator --> FinalResponse([Plain assistant message in JSON response])
+    LiveCheck -- No --> Route[_select_smart_mode]
+    Route --> Greet{Short greeting\nor social utterance?}
+    Greet -- Yes --> ChatRoute[route = chat]
+    Greet -- No --> Docs{Document-grounded\nor corpus query?}
+    Docs -- Yes --> RagRoute[route = rag]
+    Docs -- No --> Complex{Workflow signals\nor long query?}
+    Complex -- Yes --> WfRoute[route = workflow]
+    Complex -- No --> ChatRoute
+    ChatRoute --> ChatExec{chat execution\nstrategy}
+    ChatExec --> Fast[fast: single LLM call]
+    ChatExec --> Tools[tools: tool-calling agent]
+    ChatExec --> Orch[orchestrated pipeline]
+    RagRoute --> Orchestrator[OrchestratedChatService]
+    WfRoute --> Orchestrator
+    Fast --> FinalResponse([Assistant message in JSON/SSE])
+    Tools --> FinalResponse
+    Orch --> FinalResponse
+    Orchestrator --> FinalResponse
 ```
+
+**Route selection** (`_select_smart_mode` in `app/api/routes.py`):
+
+| Route | When |
+|-------|------|
+| `chat` | Greetings, general Q&A, tool-friendly prompts (default) |
+| `rag` | Queries about uploaded documents or corpus overviews |
+| `workflow` | Multi-step reasoning, comparisons, long prompts (24+ words), explicit workflow terms |
+
+Within `chat`, **`resolve_chat_execution_strategy`** picks `fast`, `tools`, or `orchestrated` (see README).
+
+Response header on streams: **`X-Chat-Route`** (`chat`, `rag`, or `workflow`).
 
 ---
 
@@ -102,53 +126,66 @@ flowchart TD
 | File | Responsibility |
 |------|---------------|
 | `app/main.py` | Creates the FastAPI app, applies CORS, serves built frontend from `/app/frontend_dist` |
-| `app/api/routes.py` | Owns `/chat`, `/rag_chat`, `/workflow_chat`, `/workflow_chat/stream`, `/workflow_runs*`, `/ingest`, `/metrics`, `/personas*` |
+| `app/api/routes.py` | Owns `/chat`, `/chat/stream`, `/rag_chat`, `/workflow_chat`, `/workflow_chat/background`, `/workflow_chat/stream`, `/workflow_runs*`, `/ingest`, `/metrics`; deprecated `/smart_chat*` aliases |
+| `app/services/chat_execution.py` | Fast / tool-agent / orchestrated execution within `chat` route |
 | `app/services/orchestrated_chat.py` | Shared orchestration engine for chat, RAG, and workflow modes |
 | `app/services/workflow_roles.py` | Per-agent role instructions: coordinator, retriever, researcher, synthesizer, reviewer, writer |
-| `app/services/workflow_memory.py` | File-backed conversation-scoped memory store |
+| `app/services/workflow_memory.py` | Conversation-scoped workflow memory (disk or Redis) |
+| `app/services/task_queue.py` | Enqueues ingest and background workflows via ARQ or inline fallback |
+| `app/workers/tasks.py` | ARQ worker jobs: async ingest, background workflow, scheduled reports cron |
 | `app/services/ollama.py` | Async client wrapping Ollama chat and embed endpoints |
 | `app/services/llm_gateway.py` | Adapter layer supporting Ollama and OpenAI-compatible backends |
 | `app/services/vector_store.py` | Qdrant wrapper for storing and searching embedded chunks |
-| `app/services/live_data_manager.py` | Routes live-intent queries through deterministic providers before generative fallback |
-| `app/services/web_search.py` | DuckDuckGo search and live data provider integrations (FX, weather, news, stocks) |
+| `app/services/live_data_manager.py` | Routes live-intent queries (FX, weather, news, nearby places, …) through deterministic providers |
+| `app/services/local_places.py` | Nearby-places detection, geocoding, and OpenStreetMap fetch |
+| `app/services/nearby_places_clarification.py` | Hybrid clarification gate (rules + planner LLM) for ambiguous location queries |
+| `app/services/web_search.py` | DuckDuckGo search and live data provider integrations |
 | `app/services/adapter_cache.py` | Redis or in-memory TTL cache for normalized adapter responses |
-| `app/services/run_store.py` | Durable run records with lifecycle events and checkpoints |
+| `app/services/run_store.py` | Durable run records with lifecycle events (disk or Redis) |
+| `app/services/job_store.py` | Background job status in Redis or memory |
 | `app/services/sandbox_policy.py` | Tool-invocation policy enforcement and dangerous-command blocking |
-| `app/services/persona_manager.py` | Loads persona files and generates dynamic system prompts |
-| `frontend/src/App.tsx` | Top-level UI state, mode switching, uploads, and message history |
-| `frontend/src/api.ts` | Browser API client with localhost/remote fallback and Safari retry logic |
+| `frontend/src/App.tsx` | Top-level UI: conversations, composer, uploads, settings; Chat/Smart mode toggle |
+| `frontend/src/api.ts` | Browser API client; `sendMessage` uses `/chat/stream` or `/smart_chat/stream` by mode |
 
 ---
 
 ## Request Paths
 
-### Standard Chat (`POST /chat`)
+### Unified Chat (`POST /chat` / `POST /chat/stream`)
+
+Primary path for the web UI and OpenAI-compatible clients using default routing.
 
 ```mermaid
 sequenceDiagram
     participant Browser
     participant Routes as routes.py
     participant LD as LiveDataManager
-    participant Orch as OrchestratedChatService
+    participant Route as _select_smart_mode
+    participant Orch as OrchestratedChatService / chat_execution
     participant LLM as LLMGateway → Ollama
 
-    Browser->>Routes: POST /chat {messages, conversation_id}
-    Routes->>LD: resolve(last_user_message)
-    alt Verified live data
-        LD-->>Routes: AdapterResult (verified=true)
-        Routes-->>Browser: JSON response (plain `message` + Data fetched timestamp)
+    Browser->>Routes: POST /chat/stream {messages, conversation_id}
+    Routes->>LD: resolve(last_user_message, chat_history)
+    alt Verified live data or clarification
+        LD-->>Routes: AdapterResult or location question
+        Routes-->>Browser: SSE final (live cards / plain message)
     else Live-intent but unverified
-        LD-->>Routes: None (is_live_intent=true)
-        Routes-->>Browser: LIVE_DATA_NOT_VERIFIED guardrail error
+        Routes-->>Browser: LIVE_DATA_NOT_VERIFIED guardrail
     else Not live-intent
-        LD-->>Routes: None
-        Routes->>Orch: run_mode(mode="chat")
-        Orch->>LLM: generate(messages, system_prompt)
-        LLM-->>Orch: raw text
+        Routes->>Route: select chat | rag | workflow
+        alt route = chat
+            Routes->>Orch: fast / tools / orchestrated strategy
+        else route = rag or workflow
+            Routes->>Orch: run_mode(mode)
+        end
+        Orch->>LLM: generate / tool loop / multi-agent plan
+        LLM-->>Orch: response
         Orch-->>Routes: ChatResponse
-        Routes-->>Browser: JSON response with plain `message` text
+        Routes-->>Browser: SSE events + final response
     end
 ```
+
+Explicit mode endpoints (`/rag_chat`, `/workflow_chat`) still exist for callers that want to force a path.
 
 ---
 
@@ -322,19 +359,21 @@ flowchart TD
 
 ## Frontend State Model
 
+Chat history is **server-synced** (Postgres via TanStack Query). The UI does not persist messages in `localStorage`.
+
 ```mermaid
 stateDiagram-v2
     direction LR
-    [*] --> SmartConversation : mode=smart (default)
-    SmartConversation --> ChatOnly : setMode(chat)
-    ChatOnly --> SmartConversation : setMode(smart)
+    [*] --> ActiveConversation
+    ActiveConversation --> ActiveConversation : send via /chat/stream
+    ActiveConversation --> NewConversation : Start new conversation
 
-    state "LocalStorage (persisted)" as LS {
-        personal_ai_mode
-        personal_ai_persona
-        personal_ai_phosphor
-        personal_ai_history
-        personal_ai_conversation_id
+    state "LocalStorage (persisted preferences)" as LS {
+        personal_ai_theme
+        personal_ai_tool_permission_mode
+        personal_ai_selected_assistant
+        personal_ai_sidebar_collapsed
+        personal_ai_auth_token
     }
 ```
 
@@ -342,11 +381,13 @@ stateDiagram-v2
 
 | Key | Values | Description |
 |-----|--------|-------------|
-| `personal-ai-mode` | `smart`, `chat` | Conversation routing mode |
-| `personal-ai-persona` | `ideal_chatbot`, `therapist`, `barney` | Active persona |
-| `personal-ai-phosphor` | `green`, `amber` | Accent color for dark theme |
-| `personal-ai-history` | `ChatMessage[]` | Full chat history |
-| `personal-ai-conversation-id` | UUID | Workflow memory key |
+| `personal-ai-theme` | `light`, `dark` | UI theme |
+| `personal-ai-tool-permission-mode` | `auto`, `ask`, `plan` | When tools run vs require approval |
+| `personal-ai-selected-assistant` | assistant id | Active assistant in sidebar |
+| `personal-ai-sidebar-collapsed` | boolean | Desktop sidebar rail state |
+| `personal-ai-auth-token` | JWT | Session token when auth enabled |
+
+Removed: `personal-ai-mode` (old Chat vs Smart toggle). Routing is automatic from the prompt.
 
 ---
 
@@ -357,10 +398,15 @@ graph LR
     App["FastAPI App"]
 
     subgraph Persistent
+        Postgres["PostgreSQL\nusers, conversations, messages"]
         Qdrant["Qdrant\nvector index for document chunks"]
-        Redis["Redis (optional)\nadapter response cache"]
-        RunFiles["memory/runs/*.json\ndurable run records + event ledger"]
-        MemoryFile["memory/workflow_sessions.json\nconversation memory summaries"]
+        Redis["Redis (Docker / prod)\nadapter cache, ARQ queue, job status;\noptional run + workflow memory"]
+        RunFiles["memory/runs/*.json\nor Redis run store"]
+        MemoryFile["memory/workflow_sessions.json\nor Redis workflow memory"]
+    end
+
+    subgraph Background
+        Worker["ARQ worker container\n(profile: workers)"]
     end
 
     subgraph ModelServer
@@ -368,7 +414,7 @@ graph LR
     end
 
     subgraph Browser
-        LocalStorage["localStorage\nUI state + chat history"]
+        LocalStorage["localStorage\nUI preferences only"]
     end
 
     subgraph Metrics
@@ -376,14 +422,42 @@ graph LR
         Grafana["Grafana\ndashboards"]
     end
 
+    App --> Postgres
     App --> Qdrant
     App --> Redis
     App --> RunFiles
     App --> MemoryFile
+    App --> Worker
+    Worker --> Redis
     App --> Ollama
     App --> Prometheus
     Prometheus --> Grafana
 ```
+
+---
+
+## Redis and Background Workers
+
+Redis is always available in the Docker Compose stack. Usage depends on env:
+
+| Concern | Setting | Default (code) | Docker app default |
+|---------|---------|----------------|-------------------|
+| Live-data cache | `ADAPTER_CACHE_BACKEND=redis` | `memory` | `redis` |
+| Job queue | `WORKER_QUEUE_BACKEND=arq` | `arq` | `arq` |
+| Workers enabled | `ENABLE_BACKGROUND_WORKERS` | `false` | `true` |
+| Job status | `REDIS_URL` | optional | `redis://redis:6379/0` |
+| Run store | `RUN_STORE_BACKEND` | `disk` | `disk` (Helm prod: `redis`) |
+| Workflow memory | `WORKFLOW_MEMORY_BACKEND` | `disk` | `disk` (Helm prod: `redis`) |
+
+**ARQ worker** (`make up-workers`): separate container running `arq app.workers.settings.WorkerSettings`.
+
+| Task | Trigger |
+|------|---------|
+| `ingest_documents_task` | Large `POST /ingest` (≥5 docs or ≥32KB) |
+| `run_workflow_task` | `POST /workflow_chat/background` |
+| `scheduled_reports_tick` | Cron every 15 minutes |
+
+Normal chat (`POST /chat/stream`) runs in the API process. Rebuild the app image after UI changes (`make build`) — the frontend is baked into `Dockerfile.backend`.
 
 ---
 

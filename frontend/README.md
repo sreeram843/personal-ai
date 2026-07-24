@@ -4,7 +4,7 @@ React + Vite chat shell for the Personal AI backend (CurAI).
 
 ## Features
 
-- **Chat** and **Smart** modes (backend auto-routes in Smart mode).
+- **Unified chat** — backend auto-routes each message (live data, documents, workflows).
 - Server-synced conversations (TanStack Query), new chat, document upload.
 - **Per-message response time** next to copy / feedback actions.
 - **Account menu:** theme toggle (light/dark), about, logout.

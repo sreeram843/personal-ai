@@ -11,9 +11,9 @@ import {
   updateConversation,
 } from '../api';
 import { clearAuthToken, getAuthToken } from '../auth';
-import type { ConversationMode } from '../types';
 import { mapConversationSummary } from './conversations';
 import { queryKeys } from './keys';
+import type { ConversationMode } from '../types';
 import { mergeFetchedMessages, messageQueryKey, readCachedMessages } from './messageCache';
 
 export function useAuthConfig() {

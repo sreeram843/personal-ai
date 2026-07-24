@@ -66,7 +66,12 @@ def resolve_chat_execution_strategy(
         return "orchestrated"
     if cfg.enable_tool_agent and should_route_chat_toward_tools(query):
         return "tools"
-    return "orchestrated"
+    fallback = str(cfg.chat_fallback_strategy or "orchestrated").strip().lower()
+    if fallback not in {"fast", "tools", "orchestrated"}:
+        fallback = "orchestrated"
+    if fallback == "tools" and not cfg.enable_tool_agent:
+        fallback = "fast"
+    return fallback  # type: ignore[return-value]
 
 
 def _agent_metadata_from_context(options: ChatAgentOptions) -> dict:
