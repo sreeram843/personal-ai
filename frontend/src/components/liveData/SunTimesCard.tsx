@@ -21,7 +21,7 @@ export function SunTimesCard({ data }: Props) {
   return (
     <LiveDataCardChrome
       title={`Sun times — ${data.location ?? 'Unknown location'}`}
-      footer={formatFreshness(data.asOf, data.source)}
+      footer={formatFreshness(data.asOf, data.source, data.confidence)}
     >
       <div className="space-y-1 text-sm text-[var(--phosphor)]">
         <div>Sunrise {formatTime(data.sunrise)}</div>

@@ -14,7 +14,7 @@ export function NearbyPlacesCard({ data }: Props) {
   return (
     <LiveDataCardChrome
       title={`${label} near ${location}`}
-      footer={formatFreshness(data.asOf, data.source)}
+      footer={formatFreshness(data.asOf, data.source, data.confidence)}
     >
       <ul className="space-y-2 text-sm text-[var(--phosphor)]">
         {places.map((place, index) => (

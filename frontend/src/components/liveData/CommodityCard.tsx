@@ -11,7 +11,7 @@ export function CommodityCard({ data }: Props) {
   const price = data.price != null ? Number(data.price).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '—';
 
   return (
-    <LiveDataCardChrome title={label} footer={formatFreshness(data.asOf, data.source)}>
+    <LiveDataCardChrome title={label} footer={formatFreshness(data.asOf, data.source, data.confidence)}>
       <div className="text-3xl font-semibold tabular-nums tracking-tight text-[var(--phosphor-bright)]">
         {price}
         <span className="ml-1 text-base font-medium text-[var(--phosphor-dim)]">{data.currency ?? 'USD'}</span>

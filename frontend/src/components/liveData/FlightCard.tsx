@@ -11,7 +11,7 @@ export function FlightCard({ data }: Props) {
   const message = data.message ?? data.status ?? 'No flight data available.';
 
   return (
-    <LiveDataCardChrome title={title} footer={formatFreshness(data.asOf, data.source)}>
+    <LiveDataCardChrome title={title} footer={formatFreshness(data.asOf, data.source, data.confidence)}>
       <p className="text-sm text-[var(--phosphor-dim)]">{message}</p>
     </LiveDataCardChrome>
   );

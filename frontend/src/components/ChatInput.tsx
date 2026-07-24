@@ -38,9 +38,9 @@ interface Props {
   assistantsLoading?: boolean;
 }
 
-const MODE_ITEMS: Array<{ id: ConversationMode; label: string; icon: typeof MessageSquare }> = [
-  { id: 'chat', label: 'Chat', icon: MessageSquare },
-  { id: 'smart', label: 'Smart', icon: Sparkles },
+const MODE_ITEMS: Array<{ id: ConversationMode; label: string; description: string; icon: typeof MessageSquare }> = [
+  { id: 'chat', label: 'Chat', description: 'Fast direct replies', icon: MessageSquare },
+  { id: 'smart', label: 'Smart', description: 'RAG, tools, and workflows when needed', icon: Sparkles },
 ];
 
 function ModeToggle({
@@ -61,10 +61,11 @@ function ModeToggle({
             type="button"
             role="radio"
             aria-checked={isActive}
+            aria-label={`${item.label}: ${item.description}`}
             data-active={isActive ? 'true' : 'false'}
             onClick={() => onModeChange(item.id)}
-            className="composer-chip"
-            title={item.label}
+            className="composer-chip touch-target"
+            title={`${item.label} — ${item.description}`}
           >
             <Icon className="h-3 w-3 shrink-0" aria-hidden />
             {item.label}

@@ -520,7 +520,10 @@ async function readFileAsText(file: File): Promise<string> {
   return file.text();
 }
 
-export async function uploadDocuments(files: File[]): Promise<void> {
+export async function uploadDocuments(
+  files: File[],
+  options?: { onJobStatus?: (status: string) => void },
+): Promise<void> {
   for (const file of files) {
     assertUploadAllowed(file);
   }
@@ -546,12 +549,15 @@ export async function uploadDocuments(files: File[]): Promise<void> {
 
   const payload = (await response.json()) as { count?: number; job_id?: string; status?: string };
   if (payload.job_id) {
-    await pollBackgroundJob(payload.job_id);
-    return;
+    await pollBackgroundJob(payload.job_id, options?.onJobStatus);
   }
 }
 
-async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<void> {
+async function pollBackgroundJob(
+  jobId: string,
+  onJobStatus?: (status: string) => void,
+  timeoutMs = 120_000,
+): Promise<void> {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const response = await apiFetch(`/jobs/${jobId}`);
@@ -560,6 +566,9 @@ async function pollBackgroundJob(jobId: string, timeoutMs = 120_000): Promise<vo
       throw new Error(detail || 'Failed to check ingest job status');
     }
     const job = (await response.json()) as { status?: string; error?: string };
+    if (job.status) {
+      onJobStatus?.(job.status);
+    }
     if (job.status === 'completed') {
       return;
     }

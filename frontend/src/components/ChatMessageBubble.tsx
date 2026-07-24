@@ -9,6 +9,7 @@ import {
 } from '../utils/chatErrors';
 import { CuraiLogo } from './CuraiLogo';
 import { ReasoningPanel } from './ReasoningPanel';
+import { SourcesPanel } from './SourcesPanel';
 import { resolveAssistantLogoState } from './curaiLogoState';
 import { AssistantMessageParts } from './liveData/LiveDataCards';
 import { UserMessageEditor } from './UserMessageEditor';
@@ -242,6 +243,9 @@ export function ChatMessageBubble({
           )}
 
           {!isUser && <ReasoningPanel message={message} isStreaming={Boolean(isStreaming)} />}
+          {!isUser && !isStreaming && message.sources && message.sources.length > 0 ? (
+            <SourcesPanel sources={message.sources} />
+          ) : null}
 
           {showUserActions && (
             <div className="mt-1.5 flex flex-wrap items-center gap-3.5 pl-0.5 opacity-100 transition-opacity md:opacity-0 md:group-hover/message:opacity-100 md:group-focus-within/message:opacity-100">

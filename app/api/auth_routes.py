@@ -21,6 +21,7 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.account_lifecycle import delete_user_account, export_user_data
+from app.services.audit_log import record_audit
 from app.services.google_auth import GoogleAuthError, verify_google_id_token
 from app.services.object_storage import ObjectStorage
 from app.services.settings_store import get_signup_mode
@@ -62,6 +63,7 @@ def issue_token(
         )
 
     token = create_access_token(user_id=user.id, settings=settings)
+    record_audit("auth.sign_in", user_id=str(user.id), detail={"method": "dev_token", "email": user.email})
     return TokenResponse(access_token=token, user_id=str(user.id))
 
 
@@ -115,6 +117,7 @@ def google_sign_in(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
     token = create_access_token(user_id=user.id, settings=settings)
+    record_audit("auth.sign_in", user_id=str(user.id), detail={"method": "google", "email": user.email})
     return TokenResponse(access_token=token, user_id=str(user.id))
 
 
@@ -130,6 +133,7 @@ def export_current_user_data(
     db: Session = Depends(get_db),
 ) -> dict:
     """Download a JSON export of the signed-in user's conversations."""
+    record_audit("account.export", user_id=str(user.id))
     return export_user_data(db, user)
 
 
@@ -150,6 +154,7 @@ def delete_current_user_account(
     db_user = db.get(User, user.id)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    record_audit("account.delete", user_id=str(user.id), detail={"email": db_user.email})
     return delete_user_account(
         db=db,
         user=db_user,

@@ -1,0 +1,23 @@
+{
+  "name": "CurAI",
+  "short_name": "CurAI",
+  "description": "Your personal AI assistant",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2b2b2b",
+  "icons": [
+    {
+      "src": "/curai-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/curai-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

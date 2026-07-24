@@ -122,6 +122,13 @@ class LiveDataManager:
     @staticmethod
     def to_blocks(result: AdapterResult) -> list[ContentBlock]:
         """Map a verified adapter result to structured UI blocks."""
+        blocks = LiveDataManager._map_verified_blocks(result)
+        for block in blocks:
+            block.data.setdefault("confidence", float(result.confidence))
+        return blocks
+
+    @staticmethod
+    def _map_verified_blocks(result: AdapterResult) -> list[ContentBlock]:
         if result.status != "ok" or not result.verified:
             return []
 

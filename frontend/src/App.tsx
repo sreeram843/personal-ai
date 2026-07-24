@@ -512,7 +512,22 @@ export default function App({ authConfig, user }: AppProps) {
     setUploadStatuses((prev) => [...items, ...prev]);
 
     try {
-      await uploadDocuments(Array.from(files));
+      await uploadDocuments(Array.from(files), {
+        onJobStatus: (status) => {
+          const mapped: UploadStatus['status'] =
+            status === 'queued' ? 'queued' : status === 'in_progress' ? 'processing' : 'uploading';
+          setUploadStatuses((prev) =>
+            prev.map((item) =>
+              items.some((it) => it.id === item.id)
+                ? {
+                    ...item,
+                    status: mapped,
+                  }
+                : item,
+            ),
+          );
+        },
+      });
       setUploadStatuses((prev) =>
         prev.map((item) =>
           items.some((it) => it.id === item.id)

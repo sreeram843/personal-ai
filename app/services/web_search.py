@@ -313,14 +313,10 @@ class WebSearchService:
         current = weather_payload.get("current") or {}
         units = weather_payload.get("current_units") or {}
 
-        label_parts = [best.get("name", location)]
-        if best.get("admin1"):
-            label_parts.append(best["admin1"])
-        if best.get("country"):
-            label_parts.append(best["country"])
+        from app.services.geocoding import format_place_label
 
         return {
-            "location": ", ".join(label_parts),
+            "location": format_place_label(best, location),
             "time": current.get("time", ""),
             "temperature": current.get("temperature_2m"),
             "temperature_unit": units.get("temperature_2m", "C"),
@@ -387,14 +383,10 @@ class WebSearchService:
                 }
             )
 
-        label_parts = [best.get("name", location)]
-        if best.get("admin1"):
-            label_parts.append(best["admin1"])
-        if best.get("country"):
-            label_parts.append(best["country"])
+        from app.services.geocoding import format_place_label
 
         return {
-            "location": ", ".join(label_parts),
+            "location": format_place_label(best, location),
             "days": rows,
             "temp_unit": units.get("temperature_2m_max", "C"),
             "precip_unit": units.get("precipitation_sum", "mm"),

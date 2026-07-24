@@ -7,8 +7,19 @@ interface Props {
 const statusColor: Record<UploadStatus['status'], string> = {
   idle: 'text-[var(--phosphor-dim)]',
   uploading: 'text-[var(--phosphor-dim)]',
+  queued: 'text-[var(--ui-accent)]',
+  processing: 'text-[var(--ui-accent)]',
   success: 'text-[#6fcf97]',
   error: 'text-[var(--ui-danger)]',
+};
+
+const statusLabel: Record<UploadStatus['status'], string> = {
+  idle: 'IDLE',
+  uploading: 'UPLOADING',
+  queued: 'QUEUED',
+  processing: 'PROCESSING',
+  success: 'SUCCESS',
+  error: 'ERROR',
 };
 
 export function UploadStatusList({ items }: Props) {
@@ -29,7 +40,7 @@ export function UploadStatusList({ items }: Props) {
         >
           <div className="min-w-0 truncate text-[12.5px] text-[var(--text-primary)]">{item.name}</div>
           <span className={`shrink-0 pl-2 text-[11px] font-medium tracking-wide ${statusColor[item.status]}`}>
-            {item.status === 'error' && item.error ? item.error : item.status.toUpperCase()}
+            {item.status === 'error' && item.error ? item.error : statusLabel[item.status]}
           </span>
         </div>
       ))}

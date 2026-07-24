@@ -32,6 +32,7 @@ from app.schemas.admin import (
     UsageSummaryResponse,
 )
 from app.services.secret_box import encrypt_secret, key_last4
+from app.services.audit_log import record_audit
 from app.services.settings_store import (
     clear_settings_cache,
     get_signup_mode,
@@ -137,6 +138,15 @@ def update_user(
 
     db.commit()
     db.refresh(target)
+    record_audit(
+        "admin.user.update",
+        user_id=str(actor.id),
+        detail={
+            "target_user_id": str(target.id),
+            "role": target.role,
+            "is_active": target.is_active,
+        },
+    )
     return AdminUserSummary(
         id=str(target.id),
         email=target.email,
@@ -185,6 +195,11 @@ def create_user_invite(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    record_audit(
+        "admin.invite.create",
+        user_id=str(user.id),
+        detail={"email": invite.email, "role": invite.role},
+    )
     base = (settings.demo_full_app_url or "").rstrip("/") or "https://app.cura-i.com"
     return InviteResponse(
         id=str(invite.id),

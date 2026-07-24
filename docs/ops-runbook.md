@@ -54,6 +54,55 @@ cd /opt/personal-ai
 
 This runs `compose up --build`, pulls `nomic-embed-text` into Ollama, migrates the DB, then `./scripts/verify_prod.sh` (`/health`, `/ready`, HTTPS, auth config).
 
+### Backup and restore (Postgres + Qdrant)
+
+VM disk loss wipes conversations and embeddings. Take periodic backups:
+
+```bash
+cd /opt/personal-ai
+./scripts/backup_prod.sh
+# optional: BACKUP_DIR=/var/backups/personal-ai BACKUP_RETENTION_DAYS=14 ./scripts/backup_prod.sh
+```
+
+Each run writes `backups/<UTC-stamp>/`:
+
+- `postgres.sql.gz` — `pg_dump` of the app database
+- `qdrant_storage.tar.gz` — Qdrant named volume (when present)
+- `qdrant-snapshot.json` — collection snapshot metadata (best-effort)
+
+**Retention:** directories older than `BACKUP_RETENTION_DAYS` (default 14) under the backup root are deleted. Prefer copying backups off-VM (GCS/S3) and encrypt at rest with your storage provider’s CMEK/SSE.
+
+**Restore on a fresh VM** (after `deploy_prod.sh` has created empty volumes):
+
+```bash
+# 1) Postgres
+gunzip -c backups/<stamp>/postgres.sql.gz | \
+  docker compose --profile cloud-chat --profile workers \
+    -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud \
+    exec -T postgres psql -U postgres -d personal_ai
+
+# 2) Qdrant (stop qdrant, replace volume data, start)
+docker stop personal-ai-qdrant
+docker run --rm \
+  -v personal-ai_qdrant_storage:/data \
+  -v "$PWD/backups/<stamp>":/backup \
+  alpine:3.20 \
+  sh -c 'rm -rf /data/* && tar -C /data -xzf /backup/qdrant_storage.tar.gz'
+docker start personal-ai-qdrant
+```
+
+Volume name may be `<compose-project>_qdrant_storage` — confirm with `docker volume ls | grep qdrant`.
+
+### Audit events (Loki)
+
+Sensitive actions emit JSON lines on logger `personal_ai.audit` (`audit_event`, `user_id`, `detail`). In Grafana Explore (Loki):
+
+```
+{container="personal-ai-app"} |= "audit_event"
+```
+
+Events include `auth.sign_in`, `account.export`, `account.delete`, `conversation.delete`, `documents.ingest`, `admin.user.update`, `admin.invite.create`.
+
 **Compose profiles:** `app` depends on `ollama`, which is only defined with `--profile cloud-chat`. Plain `docker compose logs app` fails with “undefined service ollama”. Use container names or the full compose invocation:
 
 ```bash

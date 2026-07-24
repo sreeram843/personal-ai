@@ -36,6 +36,7 @@ from app.schemas.jobs import BackgroundJob, BackgroundJobKind, BackgroundJobStat
 from app.schemas.run import RunStatus, WorkflowRun
 from app.services.chat_execution import execute_chat_mode, execute_chat_mode_stream
 from app.services.usage_meter import set_usage_context
+from app.services.audit_log import record_audit
 from app.services.live_data_manager import LiveDataManager
 from app.services.llm_gateway import LLMGateway, WorkflowModelProfile
 from app.services.llamaindex_rag import query_with_llamaindex
@@ -48,6 +49,7 @@ from app.services.information_routing import (
     is_corpus_overview_query,
     is_document_grounded_query,
     is_quick_social_utterance,
+    is_trivial_chitchat,
     should_route_smart_toward_workflow,
 )
 from app.services.health import readiness_report
@@ -183,7 +185,8 @@ def _select_smart_mode(payload: ChatRequest) -> Literal["chat", "rag", "workflow
     lowered = query.lower()
     words = query.split()
 
-    if is_quick_social_utterance(query):
+    # Keep short acknowledgements / greetings on the fast chat path (never RAG/workflow).
+    if is_trivial_chitchat(query) or is_quick_social_utterance(query):
         return "chat"
 
     if is_document_grounded_query(query) or is_corpus_overview_query(query):
@@ -502,6 +505,11 @@ async def ingest_documents(
         except Exception as exc:
             job_store.update_job(job.job_id, status=BackgroundJobStatus.FAILED, error=str(exc))
             raise HTTPException(status_code=503, detail=f"Failed to enqueue ingest job: {exc}") from exc
+        record_audit(
+            "documents.ingest",
+            user_id=str(user.id),
+            detail={"mode": "queued", "count": len(payload.documents), "job_id": job.job_id},
+        )
         return IngestResponse(job_id=job.job_id, status=BackgroundJobStatus.QUEUED)
 
     try:
@@ -516,6 +524,11 @@ async def ingest_documents(
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Ingest error: {exc}") from exc
+    record_audit(
+        "documents.ingest",
+        user_id=str(user.id),
+        detail={"mode": "sync", "count": count},
+    )
     return IngestResponse(count=count)
 
 

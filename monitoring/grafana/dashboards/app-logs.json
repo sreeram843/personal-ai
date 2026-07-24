@@ -197,6 +197,25 @@
       "title": "Promtail",
       "type": "logs",
       "targets": [{ "expr": "{container=\"personal-ai-promtail\"}", "refId": "A" }]
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "description": "Structured audit events (auth, account, ingest, admin).",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 35 },
+      "id": 10,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "title": "Audit events",
+      "type": "logs",
+      "targets": [{ "expr": "{container=\"personal-ai-app\"} |= \"audit_event\"", "refId": "A" }]
     }
   ],
   "refresh": "10s",
