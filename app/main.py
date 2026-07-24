@@ -66,6 +66,15 @@ def create_app() -> FastAPI:
                 raise HTTPException(status_code=404, detail='Not Found')
             return FileResponse(index_html)
 
+        @app.get('/privacy', include_in_schema=False)
+        @app.get('/privacy/', include_in_schema=False)
+        @app.get('/terms', include_in_schema=False)
+        @app.get('/terms/', include_in_schema=False)
+        async def legal_spa() -> FileResponse:
+            if not index_html.is_file():
+                raise HTTPException(status_code=404, detail='Not Found')
+            return FileResponse(index_html)
+
         # Same as /demo: API lives under /admin/*, but the portal UI is a SPA at /admin.
         @app.get('/admin', include_in_schema=False)
         @app.get('/admin/', include_in_schema=False)

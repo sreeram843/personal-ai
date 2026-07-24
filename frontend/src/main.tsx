@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import { AdminApp } from './AdminApp.tsx';
 import { AppRoot } from './AppRoot.tsx';
+import { LegalPage } from './components/LegalPage.tsx';
 import { initCapacitorShell } from './platform/capacitor.ts';
 import { QueryProvider } from './providers/QueryProvider.tsx';
 
@@ -22,10 +23,22 @@ function isAdminHost(): boolean {
   return path === '/admin' || path.startsWith('/admin/');
 }
 
+function legalDocument(): 'privacy' | 'terms' | null {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/privacy') {
+    return 'privacy';
+  }
+  if (path === '/terms') {
+    return 'terms';
+  }
+  return null;
+}
+
+const legal = legalDocument();
 const root = (
   <StrictMode>
     <QueryProvider>
-      {isAdminHost() ? <AdminApp /> : <AppRoot demoMode={isDemoRoute()} />}
+      {legal ? <LegalPage document={legal} /> : isAdminHost() ? <AdminApp /> : <AppRoot demoMode={isDemoRoute()} />}
     </QueryProvider>
   </StrictMode>
 );

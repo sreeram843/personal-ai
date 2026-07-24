@@ -1,0 +1,59 @@
+name: Production Smoke
+
+on:
+  schedule:
+    - cron: '17 12 * * *'
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: Deployment URL
+        required: false
+        default: https://app.cura-i.com
+        type: string
+      run_authenticated:
+        description: Validate the configured production smoke token
+        required: false
+        default: false
+        type: boolean
+      run_mutations:
+        description: Run authenticated chat and upload checks
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: app.cura-i.com smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      APP_URL: ${{ inputs.app_url || vars.PROD_APP_URL || 'https://app.cura-i.com' }}
+      PROD_SMOKE_AUTH_TOKEN: ${{ secrets.PROD_SMOKE_AUTH_TOKEN }}
+      RUN_AUTHENTICATED: ${{ inputs.run_authenticated || vars.PROD_SMOKE_AUTHENTICATED || 'false' }}
+      RUN_MUTATIONS: ${{ inputs.run_mutations || vars.PROD_SMOKE_MUTATIONS || 'false' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run production smoke
+        run: |
+          chmod +x scripts/prod_smoke.sh
+          ./scripts/prod_smoke.sh
+
+      - name: Report failure
+        if: failure()
+        run: |
+          {
+            echo '## Production smoke failed'
+            echo
+            echo "Target: \`$APP_URL\`"
+            echo
+            echo 'Inspect the failed step and deployment logs before the next release.'
+          } >> "$GITHUB_STEP_SUMMARY"
