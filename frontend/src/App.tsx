@@ -499,6 +499,10 @@ export default function App({ authConfig, user }: AppProps) {
     logout();
   };
 
+  const uploadsInFlight = uploadStatuses.some((item) =>
+    item.status === 'uploading' || item.status === 'queued' || item.status === 'processing',
+  );
+
   const handleUpload = () => {
     fileInputRef.current?.click();
   };
@@ -542,6 +546,12 @@ export default function App({ authConfig, user }: AppProps) {
             : item,
         ),
       );
+      const names = items.map((item) => item.name).join(', ');
+      showToast(
+        items.length === 1
+          ? `Uploaded ${names}. Ask about it (Smart mode works best for summaries).`
+          : `Uploaded ${items.length} files. Ask about them in chat.`,
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Upload failed';
       setUploadStatuses((prev) =>
@@ -555,6 +565,7 @@ export default function App({ authConfig, user }: AppProps) {
             : item,
         ),
       );
+      showToast(message);
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -783,13 +794,13 @@ export default function App({ authConfig, user }: AppProps) {
                 </button>
               </div>
             )}
-            <AttachmentDropZone disabled={isBootstrapping} onFiles={onFilesSelected}>
+            <AttachmentDropZone disabled={isBootstrapping || uploadsInFlight} onFiles={onFilesSelected}>
               <ChatInput
                 ref={chatInputRef}
                 onSend={handleSend}
                 onStop={handleStop}
                 isStreaming={isLoading}
-                disabled={isBootstrapping}
+                disabled={isBootstrapping || uploadsInFlight}
                 onAttach={handleUpload}
                 onFilesPasted={onFilesSelected}
                 mode={mode}

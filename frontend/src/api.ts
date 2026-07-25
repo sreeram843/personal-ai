@@ -526,14 +526,23 @@ export async function uploadDocuments(
     form.append('files', file);
   }
 
-  const response = await apiFetch('/ingest/files', {
-    method: 'POST',
-    body: form,
-  });
-
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(detail || 'Upload failed');
+  // Bound upload time so the UI cannot sit on UPLOADING forever (PDF extract / queue).
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 120_000);
+  let response: Response;
+  try {
+    response = await apiFetch('/ingest/files', {
+      method: 'POST',
+      body: form,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Upload timed out. Try a smaller file or retry in a moment.');
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 
   const payload = (await response.json()) as { count?: number; job_id?: string; status?: string };
