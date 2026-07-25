@@ -71,7 +71,7 @@ Bootstrap admins with `ADMIN_EMAILS=you@example.com` (promoted on Google login).
    |----------|------------|-------------------|
    | Groq | `https://api.groq.com/openai` | `openai/gpt-oss-20b`, `openai/gpt-oss-120b` (legacy `llama-3.1-8b-instant` / `llama-3.3-70b-versatile` / scout are remapped) |
    | Perplexity (Sonar chat) | `https://api.perplexity.ai` | `sonar`, `sonar-pro`, `sonar-reasoning-pro` |
-   | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash`, `gemini-2.5-pro` |
+   | Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-flash-latest`, `gemini-3.6-flash`, `gemini-3.1-flash-lite` (avoid `gemini-2.5-flash` / `gemini-2.5-pro` for new API keys — Google returns 404) |
    | OpenAI | `https://api.openai.com` | `gpt-4o-mini`, `gpt-4o` |
    | DeepSeek | `https://api.deepseek.com` | `deepseek-v4-flash`, `deepseek-v4-pro` (legacy `deepseek-chat` / `deepseek-reasoner` are remapped automatically) |
 

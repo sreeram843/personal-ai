@@ -265,6 +265,21 @@ _DOCUMENT_GROUNDED_HINTS: Final[tuple[str, ...]] = (
     "based on my",
     "our document",
     "our notes",
+    "this document",
+    "the document",
+    "this file",
+    "the file",
+    "this pdf",
+    "the pdf",
+    "this resume",
+    "the resume",
+    "attached",
+    "attachment",
+    "summarize this",
+    "summarise this",
+    "summary of this",
+    "condense this",
+    "condense the",
 )
 
 

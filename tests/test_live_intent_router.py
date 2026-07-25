@@ -50,3 +50,33 @@ def test_stock_intent_avoids_false_ticker_from_what_is_stock_price_of() -> None:
     assert intent is not None
     assert intent.domain == "stock"
     assert intent.slots["ticker"] == "TDOC"
+
+
+def test_stock_intent_prefers_parenthetical_ticker_over_company_name() -> None:
+    intent = route_live_intent("What is the current stock price of Apple (AAPL)?")
+    assert intent is not None
+    assert intent.domain == "stock"
+    assert intent.slots["ticker"] == "AAPL"
+
+
+def test_compare_databases_is_not_soccer_score() -> None:
+    intent = route_live_intent(
+        "Compare PostgreSQL vs MongoDB for a high-write analytics workload and recommend one."
+    )
+    assert intent is None or intent.domain != "game_score"
+
+
+def test_morning_briefing_is_not_single_weather_adapter() -> None:
+    intent = route_live_intent(
+        "Give me a morning briefing with weather, news, and anything urgent."
+    )
+    assert intent is None
+
+
+def test_coffee_shops_seattle_is_nearby_places() -> None:
+    intent = route_live_intent("Find good coffee shops near Seattle, WA.")
+    assert intent is not None
+    assert intent.domain == "nearby_places"
+    assert intent.slots["category"] == "coffee"
+    assert "Seattle" in str(intent.slots.get("location") or "")
+

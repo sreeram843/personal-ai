@@ -65,11 +65,30 @@ _CATEGORY_RULES: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 _OSM_TAGS: dict[str, list[tuple[str, str]]] = {
     "food": [("amenity", "restaurant"), ("amenity", "fast_food")],
-    "coffee": [("amenity", "cafe")],
+    "coffee": [("amenity", "cafe"), ("shop", "coffee")],
     "bar": [("amenity", "bar"), ("amenity", "pub")],
     "things_to_do": [("tourism", "attraction"), ("tourism", "museum"), ("leisure", "park")],
     "hotel": [("tourism", "hotel")],
     "general": [("amenity", "restaurant"), ("amenity", "cafe"), ("tourism", "attraction")],
+}
+
+_OVERPASS_ENDPOINTS: tuple[str, ...] = (
+    "https://overpass-api.de/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter",
+)
+
+_HTTP_HEADERS = {
+    "User-Agent": "CurAI/1.0 (https://github.com/sreeram843/personal-ai)",
+}
+
+_NOMINATIM_CATEGORY_QUERIES = {
+    "food": "restaurant",
+    "coffee": "cafe coffee",
+    "bar": "bar pub",
+    "things_to_do": "attraction museum",
+    "hotel": "hotel",
+    "general": "restaurant cafe",
 }
 
 _CATEGORY_LABELS = {
@@ -213,7 +232,7 @@ async def _geocode(location: str, *, timeout: float = 10.0) -> Optional[dict[str
     if not place:
         return None
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=timeout, headers=_HTTP_HEADERS) as client:
             resp = await client.get(
                 "https://geocoding-api.open-meteo.com/v1/search",
                 params={"name": place, "count": 1, "language": "en", "format": "json"},
@@ -236,6 +255,87 @@ def _build_overpass_query(lat: float, lon: float, category: str, *, radius_m: in
     return f"[out:json][timeout:25];(\n  {body}\n);out center {limit};"
 
 
+async def _fetch_overpass_elements(
+    query: str,
+    *,
+    timeout: float,
+) -> Optional[list[dict[str, Any]]]:
+    last_error: Exception | None = None
+    async with httpx.AsyncClient(timeout=timeout, headers=_HTTP_HEADERS) as client:
+        for url in _OVERPASS_ENDPOINTS:
+            try:
+                resp = await client.post(url, data={"data": query})
+                if resp.status_code == 406:
+                    # Some Overpass frontends reject Accept: application/json; retry bare.
+                    resp = await client.post(
+                        url,
+                        data={"data": query},
+                        headers={**_HTTP_HEADERS, "Accept": "*/*"},
+                    )
+                resp.raise_for_status()
+                return list(resp.json().get("elements") or [])
+            except Exception as exc:
+                last_error = exc
+                logger.warning("Overpass endpoint failed (%s): %s", url, exc)
+                continue
+    if last_error is not None:
+        logger.exception("All Overpass endpoints failed: %s", last_error)
+    return None
+
+
+async def _fetch_nominatim_places(
+    location: str,
+    *,
+    category: str,
+    limit: int,
+    timeout: float,
+) -> Optional[dict[str, Any]]:
+    """Fallback POI search when Overpass is unavailable."""
+    keyword = _NOMINATIM_CATEGORY_QUERIES.get(category, category.replace("_", " "))
+    try:
+        async with httpx.AsyncClient(timeout=timeout, headers=_HTTP_HEADERS) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={
+                    "q": f"{keyword} {location}",
+                    "format": "json",
+                    "limit": limit,
+                    "addressdetails": 0,
+                },
+            )
+            resp.raise_for_status()
+            rows = resp.json() or []
+    except Exception:
+        logger.exception("Nominatim nearby fallback failed for %s", location)
+        return None
+
+    places: list[dict[str, Any]] = []
+    for row in rows:
+        name = str(row.get("name") or "").strip()
+        display = str(row.get("display_name") or "").strip()
+        if not name:
+            name = display.split(",")[0].strip() if display else ""
+        if not name:
+            continue
+        places.append(
+            {
+                "name": name,
+                "type": str(row.get("type") or category).replace("_", " "),
+                "distanceKm": None,
+            }
+        )
+    if not places:
+        return None
+    return {
+        "location": location,
+        "category": category,
+        "categoryLabel": _CATEGORY_LABELS.get(category, _CATEGORY_LABELS["general"]),
+        "radiusKm": None,
+        "places": places[:limit],
+        "source": "OpenStreetMap",
+    }
+
+
 async def fetch_nearby_places(
     location: str,
     *,
@@ -246,12 +346,12 @@ async def fetch_nearby_places(
 ) -> Optional[dict[str, Any]]:
     geo = await _geocode(location, timeout=timeout)
     if not geo:
-        return None
+        return await _fetch_nominatim_places(location, category=category, limit=limit, timeout=timeout)
 
     lat = geo.get("latitude")
     lon = geo.get("longitude")
     if lat is None or lon is None:
-        return None
+        return await _fetch_nominatim_places(location, category=category, limit=limit, timeout=timeout)
 
     label_parts = [geo.get("name", location)]
     if geo.get("admin1"):
@@ -261,20 +361,10 @@ async def fetch_nearby_places(
     location_label = ", ".join(part for part in label_parts if part)
 
     query = _build_overpass_query(float(lat), float(lon), category, radius_m=radius_m, limit=limit)
-    try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            resp = await client.post(
-                "https://overpass-api.de/api/interpreter",
-                data={"data": query},
-            )
-            resp.raise_for_status()
-            payload = resp.json()
-    except Exception:
-        logger.exception("Overpass fetch failed for %s", location)
-        return None
+    elements = await _fetch_overpass_elements(query, timeout=timeout)
 
     places: list[dict[str, Any]] = []
-    for element in payload.get("elements") or []:
+    for element in elements or []:
         tags = element.get("tags") or {}
         name = str(tags.get("name") or "").strip()
         if not name:
@@ -299,14 +389,24 @@ async def fetch_nearby_places(
     places.sort(key=lambda item: item.get("distanceKm") if item.get("distanceKm") is not None else 999)
     places = places[:limit]
 
-    return {
-        "location": location_label,
-        "category": category,
-        "categoryLabel": _CATEGORY_LABELS.get(category, _CATEGORY_LABELS["general"]),
-        "radiusKm": round(radius_m / 1000, 1),
-        "places": places,
-        "source": "OpenStreetMap",
-    }
+    if places:
+        return {
+            "location": location_label,
+            "category": category,
+            "categoryLabel": _CATEGORY_LABELS.get(category, _CATEGORY_LABELS["general"]),
+            "radiusKm": round(radius_m / 1000, 1),
+            "places": places,
+            "source": "OpenStreetMap",
+        }
+
+    # Overpass empty/down — Nominatim search still often finds cafes in major cities.
+    fallback = await _fetch_nominatim_places(
+        location_label or location,
+        category=category,
+        limit=limit,
+        timeout=timeout,
+    )
+    return fallback
 
 
 __all__ = [

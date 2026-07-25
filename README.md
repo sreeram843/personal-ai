@@ -344,6 +344,7 @@ Benchmark results (smoke + stress, local + prod): [docs/model-stress-testing.md]
 
 | Doc | Topic |
 |-----|--------|
+| [**Wiki handbook**](docs/wiki/Home.md) | Navigable product + ops handbook (also publishable to [GitHub Wiki](https://github.com/sreeram843/personal-ai/wiki)) |
 | [docs/README.md](docs/README.md) | **Documentation index** |
 | [docs/model-stress-testing.md](docs/model-stress-testing.md) | Smoke/stress benchmarks + scripts |
 | [docs/results/](docs/results/) | JSON result artifacts |

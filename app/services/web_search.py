@@ -1029,6 +1029,74 @@ def _normalize_weather_location_candidate(candidate: str) -> str:
     return normalized
 
 
+_WEATHER_NON_LOCATION_TOKENS = frozenset(
+    {
+        "give",
+        "me",
+        "a",
+        "an",
+        "the",
+        "my",
+        "our",
+        "morning",
+        "evening",
+        "afternoon",
+        "briefing",
+        "news",
+        "headline",
+        "headlines",
+        "urgent",
+        "anything",
+        "with",
+        "and",
+        "or",
+        "please",
+        "update",
+        "updates",
+        "summary",
+        "summarize",
+        "report",
+        "about",
+        "tell",
+        "what",
+        "whats",
+        "how's",
+        "hows",
+        "like",
+    }
+)
+
+
+def _is_plausible_weather_location(candidate: str) -> bool:
+    """Reject sentence leftovers that are not place names."""
+    text = candidate.strip(" .?,-")
+    if not text or len(text) > 60:
+        return False
+    words = text.split()
+    if not words or len(words) > 6:
+        return False
+    lowered = text.lower()
+    if any(
+        token in lowered
+        for token in (
+            "briefing",
+            "urgent",
+            "recommend",
+            "compare",
+            "summarize",
+            "anything",
+        )
+    ):
+        return False
+    meaningful = [w for w in words if w.lower().strip(",.") not in _WEATHER_NON_LOCATION_TOKENS]
+    if not meaningful:
+        return False
+    # Require at least one capitalized-looking place token or a short place phrase.
+    if len(meaningful) >= 4 and not re.search(r"[A-Z]", text):
+        return False
+    return bool(re.match(r"^[A-Za-z]", text))
+
+
 def extract_weather_location(user_query: str) -> str | None:
     """Extract location phrase from weather query, e.g. 'weather in Austin'."""
     if not is_weather_query(user_query):
@@ -1044,7 +1112,7 @@ def extract_weather_location(user_query: str) -> str | None:
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
             candidate = _normalize_weather_location_candidate(match.group(1))
-            if candidate:
+            if candidate and _is_plausible_weather_location(candidate):
                 return candidate
 
     # Fallback: remove common weather terms and use remaining words as place.
@@ -1061,7 +1129,7 @@ def extract_weather_location(user_query: str) -> str | None:
         flags=re.IGNORECASE,
     )
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .?,-")
-    if cleaned:
+    if cleaned and _is_plausible_weather_location(cleaned):
         return cleaned
 
     return None
@@ -1182,29 +1250,94 @@ _NON_TICKER_WORDS = {
 }
 
 _STOCK_PATTERNS = [
-    # "stock price of TDOC", "price of AAPL" — check before bare TICKER stock
+    # "stock price of TDOC", "price of AAPL" — ticker must be all-caps in the source text
     r"\b(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Z]{1,5})\b",
     # "what is the stock price of TDOC"
-    r"\bwhat\s+is\s+(?:the\s+)?(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Z]{1,5})\b",
+    r"\b[Ww]hat\s+is\s+(?:the\s+)?(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Z]{1,5})\b",
     # "what is TDOC stock", "what is MSFT price"
-    r"\bwhat\s+is\s+(?:the\s+)?([A-Z]{1,5})\s+(?:stock|share|price|quote)\b",
+    r"\b[Ww]hat\s+is\s+(?:the\s+)?([A-Z]{1,5})\s+(?:stock|share|price|quote)\b",
     # "TDOC stock price", "AAPL stock", "TSLA shares"
     r"\b([A-Z]{1,5})\s+(?:stock|share|shares|price|quote)\b",
 ]
+
+# Common company names → Yahoo tickers (used when the user writes the name, not the symbol).
+_COMPANY_TO_TICKER = {
+    "apple": "AAPL",
+    "microsoft": "MSFT",
+    "google": "GOOGL",
+    "alphabet": "GOOGL",
+    "amazon": "AMZN",
+    "meta": "META",
+    "facebook": "META",
+    "nvidia": "NVDA",
+    "tesla": "TSLA",
+    "netflix": "NFLX",
+    "intel": "INTC",
+    "amd": "AMD",
+    "ibm": "IBM",
+    "oracle": "ORCL",
+    "salesforce": "CRM",
+    "adobe": "ADBE",
+    "paypal": "PYPL",
+    "uber": "UBER",
+    "airbnb": "ABNB",
+    "spotify": "SPOT",
+    "coinbase": "COIN",
+}
+
+
+def _looks_like_stock_ask(user_query: str) -> bool:
+    lower = user_query.lower()
+    return bool(
+        re.search(r"\b(stock|share|shares|ticker|quote|market\s+price|share\s+price)\b", lower)
+        or re.search(r"\b(price of|quote for)\b", lower)
+    )
 
 
 def detect_stock_query(user_query: str) -> str | None:
     """Extract a stock ticker from natural-language queries.
 
-    Examples: 'TDOC stock price', 'what is AAPL stock', 'price of NVDA'.
+    Examples: 'TDOC stock price', 'what is AAPL stock', 'price of NVDA',
+    'stock price of Apple (AAPL)'.
     Returns uppercase ticker or None.
     """
-    # Run patterns case-insensitively but capture original case
+    if not _looks_like_stock_ask(user_query):
+        return None
+
+    # Prefer an explicit parenthetical ticker: Apple (AAPL)
+    paren = re.search(r"\(([A-Za-z]{1,5})\)", user_query)
+    if paren:
+        ticker = paren.group(1).upper()
+        if ticker not in _NON_TICKER_WORDS:
+            return ticker
+
+    # Company name → ticker
+    lower = user_query.lower()
+    for name, ticker in _COMPANY_TO_TICKER.items():
+        if re.search(rf"\b{re.escape(name)}\b", lower):
+            return ticker
+
+    # Case-sensitive patterns so "Apple" is not captured as ticker APPLE
     for pat in _STOCK_PATTERNS:
-        m = re.search(pat, user_query, re.IGNORECASE)
+        m = re.search(pat, user_query)
         if m:
             ticker = m.group(1).upper()
             if ticker not in _NON_TICKER_WORDS:
+                return ticker
+
+    # Lowercase ticker forms: "stock price of msft"
+    for pat in (
+        r"\b(?:stock|share|price|quote)\s+(?:of|for)\s+([A-Za-z]{1,5})\b",
+        r"\b([A-Za-z]{1,5})\s+(?:stock|share|shares|price|quote)\b",
+    ):
+        m = re.search(pat, user_query, re.IGNORECASE)
+        if m:
+            raw = m.group(1)
+            # Reject Titlecase company names (Apple); allow msft / MSFT / aapl
+            if raw[:1].isupper() and raw[1:].islower() and len(raw) > 1:
+                continue
+            ticker = raw.upper()
+            if ticker not in _NON_TICKER_WORDS and ticker not in _COMPANY_TO_TICKER:
                 return ticker
     return None
 

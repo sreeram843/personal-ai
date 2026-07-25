@@ -14,6 +14,8 @@ _LEAGUE_ALIASES = {
     "ncaab": "ncaab",
 }
 
+# Strong sports signals only. Bare "vs"/"versus" alone must NOT match —
+# product comparisons ("PostgreSQL vs MongoDB") are not game scores.
 _SPORTS_HINTS = (
     "score",
     "scores",
@@ -21,8 +23,6 @@ _SPORTS_HINTS = (
     "game",
     "match",
     "playing",
-    "vs",
-    "versus",
     "beat",
     "winning",
     "losing",
@@ -37,6 +37,28 @@ _SPORTS_HINTS = (
     "wickets",
     "overs",
     "run rate",
+)
+
+_NON_SPORTS_COMPARISON_HINTS = (
+    "compare",
+    "comparison",
+    "trade-off",
+    "tradeoff",
+    "pros and cons",
+    "recommend",
+    "workload",
+    "database",
+    "architecture",
+    "framework",
+    "library",
+    "language",
+    "mongodb",
+    "postgresql",
+    "postgres",
+    "mysql",
+    "redis",
+    "kafka",
+    "versus which",
 )
 
 _CRICKET_HINTS = (
@@ -207,7 +229,25 @@ def detect_sports_game_query(query: str) -> Optional[SportsGameQuery]:
         return None
 
     lower = text.lower()
-    if not any(hint in lower for hint in _SPORTS_HINTS):
+    if any(hint in lower for hint in _NON_SPORTS_COMPARISON_HINTS):
+        return None
+
+    has_strong_sports = any(hint in lower for hint in _SPORTS_HINTS)
+    has_league_token = bool(_LEAGUE_PATTERN.search(text))
+    has_soccer_hint = any(hint in lower for hint in _SOCCER_HINTS)
+    has_cricket_hint = any(hint in lower for hint in _CRICKET_HINTS) or _has_ipl_team_hint(lower)
+    has_nba_team = any(hint in lower for hint in _NBA_TEAM_HINTS)
+    has_football_hint = any(hint in lower for hint in _AMERICAN_FOOTBALL_HINTS)
+
+    # Require an explicit sports signal — not merely "A vs B".
+    if not (
+        has_strong_sports
+        or has_league_token
+        or has_soccer_hint
+        or has_cricket_hint
+        or has_nba_team
+        or has_football_hint
+    ):
         return None
 
     team_a, team_b = _extract_matchup_teams(text)
@@ -221,6 +261,17 @@ def detect_sports_game_query(query: str) -> Optional[SportsGameQuery]:
         return None
 
     return SportsGameQuery(league=league, team_query=team_query, opponent_query=team_b or None)
+
+
+def _has_ipl_team_hint(lower: str) -> bool:
+    """Match IPL team tokens with word boundaries so 'rr' does not hit 'tomorrow'."""
+    for hint in _IPL_TEAM_HINTS:
+        if " " in hint:
+            if hint in lower:
+                return True
+        elif re.search(rf"\b{re.escape(hint)}\b", lower):
+            return True
+    return False
 
 
 def _infer_league(text: str, *, team_a: str, team_b: str) -> Optional[str]:
@@ -262,7 +313,7 @@ def _looks_like_cricket(text: str, *, team_a: str, team_b: str) -> bool:
     lower = text.lower()
     if any(hint in lower for hint in _CRICKET_HINTS):
         return True
-    if any(hint in lower for hint in _IPL_TEAM_HINTS):
+    if _has_ipl_team_hint(lower):
         return True
     if team_a and team_b and _both_cricket_nations(team_a, team_b):
         return True
@@ -301,9 +352,11 @@ def _looks_like_international_soccer(text: str, *, team_a: str, team_b: str) -> 
             hint in lower for hint in _AMERICAN_FOOTBALL_HINTS
         ):
             return True
-        # Two national-style names in a vs matchup — treat as soccer, not NBA.
-        if not any(hint in lower for hint in _NBA_TEAM_HINTS):
-            return True
+        # Country/club matchup with score/game/match wording — not NBA.
+        if any(hint in lower for hint in ("score", "scores", "scoreboard", "game", "match")):
+            if not any(hint in lower for hint in _NBA_TEAM_HINTS):
+                if not any(hint in lower for hint in _AMERICAN_FOOTBALL_HINTS):
+                    return True
 
     return False
 
