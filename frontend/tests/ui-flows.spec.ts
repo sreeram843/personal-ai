@@ -136,8 +136,9 @@ test.describe('browser interaction flows', () => {
       buffer: Buffer.from('# Sample\n\nThis file is used for Playwright upload coverage.\n', 'utf-8'),
     });
 
-    await expect(page.getByText('sample-notes.md')).toBeVisible();
-    await expect(page.getByText('SUCCESS')).toBeVisible();
+    await expect(page.getByText('sample-notes.md', { exact: true })).toBeVisible();
+    await expect(page.getByText('SUCCESS', { exact: true })).toBeVisible();
+    await expect(page.getByText(/Uploaded sample-notes\.md/)).toBeVisible();
   });
 
   test('upload then smart chat can return a cited assistant response', async ({ page }) => {

@@ -39,6 +39,11 @@ def route_live_intent(
     if not text:
         return None
 
+    # Compound briefings (weather + news, etc.) belong to the orchestrator —
+    # a single adapter short-circuit produces bad locations / incomplete answers.
+    if _is_compound_live_request(text):
+        return None
+
     pair = extract_currency_pair(text)
     if pair:
         return LiveIntent(
@@ -124,6 +129,40 @@ def route_live_intent(
         return LiveIntent(domain="generic_fresh", slots={}, confidence=0.55)
 
     return None
+
+
+def _is_compound_live_request(text: str) -> bool:
+    """True when the user asks for multiple live domains in one turn (e.g. morning briefing)."""
+    lowered = text.lower()
+    if re.search(r"\b(briefing|morning update|daily update|digest)\b", lowered):
+        return True
+
+    # Long multi-section / meta prompts often embed example live queries
+    # ("Extract the ticker from: … Apple (AAPL)"). Those must not short-circuit
+    # to a single stock/weather adapter.
+    if text.count("###") >= 2 or text.count("## ") >= 3:
+        return True
+    if len(text.split()) >= 120:
+        return True
+    if re.search(
+        r"extract the ticker from|required output format|capability matrix|"
+        r"stress-test|self-critique|evaluate a multi-provider",
+        lowered,
+    ):
+        return True
+
+    signals = 0
+    if is_weather_query(text):
+        signals += 1
+    if is_news_query(text):
+        signals += 1
+    if detect_stock_query(text) is not None or detect_commodity_query(text) is not None:
+        signals += 1
+    if is_nearby_places_query(text):
+        signals += 1
+    if extract_currency_pair(text):
+        signals += 1
+    return signals >= 2
 
 
 def is_structured_live_intent(intent: Optional[LiveIntent]) -> bool:

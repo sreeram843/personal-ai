@@ -2,6 +2,17 @@
 
 Central map for Personal AI / CurAI docs. **Recorded benchmark data** lives in [results/](./results/).
 
+## Wiki handbook
+
+Start here for a structured tour of the product and ops surface:
+
+| Doc | Purpose |
+|-----|---------|
+| [wiki/Home.md](./wiki/Home.md) | Handbook home + table of contents |
+| [GitHub Wiki](https://github.com/sreeram843/personal-ai/wiki) | Same pages on GitHub (after `./scripts/publish_wiki.sh`) |
+
+Deep reference docs below remain authoritative for long-form detail.
+
 ## Getting started
 
 | Doc | Purpose |

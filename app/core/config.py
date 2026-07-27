@@ -196,7 +196,14 @@ class Settings(BaseSettings):
     # Path to assistant system prompt markdown (default: app/prompts/system.md)
     system_prompt_path: Optional[str] = None
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        # Default includes "settings_", which blocks env loading of settings_secret_key /
+        # SETTINGS_SECRET_KEY (provider API key encryption). Keep only model_ protected.
+        protected_namespaces=("model_",),
+    )
 
 
 @lru_cache
