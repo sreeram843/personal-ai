@@ -137,6 +137,20 @@ def _is_compound_live_request(text: str) -> bool:
     if re.search(r"\b(briefing|morning update|daily update|digest)\b", lowered):
         return True
 
+    # Long multi-section / meta prompts often embed example live queries
+    # ("Extract the ticker from: … Apple (AAPL)"). Those must not short-circuit
+    # to a single stock/weather adapter.
+    if text.count("###") >= 2 or text.count("## ") >= 3:
+        return True
+    if len(text.split()) >= 120:
+        return True
+    if re.search(
+        r"extract the ticker from|required output format|capability matrix|"
+        r"stress-test|self-critique|evaluate a multi-provider",
+        lowered,
+    ):
+        return True
+
     signals = 0
     if is_weather_query(text):
         signals += 1

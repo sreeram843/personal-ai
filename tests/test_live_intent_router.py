@@ -59,6 +59,18 @@ def test_stock_intent_prefers_parenthetical_ticker_over_company_name() -> None:
     assert intent.slots["ticker"] == "AAPL"
 
 
+def test_long_eval_prompt_with_embedded_stock_example_is_not_stock_short_circuit() -> None:
+    prompt = """
+You are evaluating a multi-provider personal AI stack.
+### 5) Stress-test mini-problems
+Extract the ticker from: "What is the current stock price of Apple (AAPL)?" and explain why "APPLE" would be wrong.
+### 6) Self-critique
+Prefer actionable admin-panel settings over abstract advice.
+"""
+    intent = route_live_intent(prompt)
+    assert intent is None or intent.domain != "stock"
+
+
 def test_compare_databases_is_not_soccer_score() -> None:
     intent = route_live_intent(
         "Compare PostgreSQL vs MongoDB for a high-write analytics workload and recommend one."
