@@ -11,6 +11,7 @@ from app.api.auth_routes import router as auth_router
 from app.api.admin_routes import router as admin_router
 from app.api.conversation_routes import router as conversation_router
 from app.api.demo_routes import router as demo_router
+from app.api.agent_lab_routes import router as agent_lab_router
 from app.api.agent_routes import router as agent_router
 from app.api.openai_routes import router as openai_router
 from app.api.mcp_routes import router as mcp_router
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(schedule_router)
     app.include_router(mcp_router)
     app.include_router(agent_router)
+    app.include_router(agent_lab_router)
     app.include_router(openai_router)
     app.include_router(demo_router)
 
