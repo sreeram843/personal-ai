@@ -162,7 +162,11 @@ def get_llm_gateway() -> LLMGateway:
         finally:
             db.close()
     except Exception:
-        pass
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "Failed to load admin LLM providers; falling back to Ollama-only gateway"
+        )
 
     for provider in db_providers:
         if not provider.base_url:

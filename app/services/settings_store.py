@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from dataclasses import dataclass
@@ -12,7 +13,9 @@ from sqlalchemy.orm import Session
 
 from app.core.config import Settings, get_settings
 from app.db.models import LlmProvider, LlmRouting, SystemFlag
-from app.services.secret_box import decrypt_secret
+from app.services.secret_box import SettingsCryptoError, decrypt_secret
+
+logger = logging.getLogger(__name__)
 
 _CACHE_TTL_SECONDS = 15.0
 _lock = threading.Lock()
@@ -84,10 +87,18 @@ def set_signup_mode(db: Session, mode: str) -> str:
     return normalized
 
 
-def _provider_to_config(provider: LlmProvider, cfg: Settings) -> EffectiveOpenAIConfig:
+def _provider_to_config(provider: LlmProvider, cfg: Settings) -> EffectiveOpenAIConfig | None:
     api_key = None
     if provider.encrypted_api_key:
-        api_key = decrypt_secret(provider.encrypted_api_key, cfg)
+        try:
+            api_key = decrypt_secret(provider.encrypted_api_key, cfg)
+        except SettingsCryptoError:
+            logger.warning(
+                "Skipping provider %s: cannot decrypt API key (SETTINGS_SECRET_KEY mismatch?). "
+                "Re-save the key in Admin.",
+                provider.name,
+            )
+            return None
     return EffectiveOpenAIConfig(
         base_url=provider.base_url,
         api_key=api_key,
@@ -105,7 +116,12 @@ def list_enabled_provider_configs(db: Session, settings: Optional[Settings] = No
                 select(LlmProvider).where(LlmProvider.enabled.is_(True)).order_by(LlmProvider.created_at.asc())
             ).all()
         )
-        return [_provider_to_config(row, cfg) for row in rows]
+        configs: list[EffectiveOpenAIConfig] = []
+        for row in rows:
+            config = _provider_to_config(row, cfg)
+            if config is not None:
+                configs.append(config)
+        return configs
 
     return list(_cached("enabled_providers", load))
 
