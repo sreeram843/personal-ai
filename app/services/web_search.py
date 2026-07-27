@@ -1305,11 +1305,18 @@ def detect_stock_query(user_query: str) -> str | None:
         return None
 
     # Prefer an explicit parenthetical ticker: Apple (AAPL)
-    paren = re.search(r"\(([A-Za-z]{1,5})\)", user_query)
-    if paren:
-        ticker = paren.group(1).upper()
-        if ticker not in _NON_TICKER_WORDS:
+    # Require 2–5 chars and prefer ALL-CAPS so plurals like "stage(s)" are ignored.
+    paren_candidates: list[str] = []
+    for m in re.finditer(r"\(([A-Za-z]{2,5})\)", user_query):
+        raw = m.group(1)
+        ticker = raw.upper()
+        if ticker in _NON_TICKER_WORDS:
+            continue
+        if raw.isupper():
             return ticker
+        paren_candidates.append(ticker)
+    if len(paren_candidates) == 1:
+        return paren_candidates[0]
 
     # Company name → ticker
     lower = user_query.lower()
