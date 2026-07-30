@@ -35,6 +35,38 @@ RUN_AUTHENTICATED=true \
 
 Add `RUN_MUTATIONS=true` to exercise chat and upload.
 
+## Deep smoke (your user JWT)
+
+Prod disables `POST /auth/token` email minting. Use your Google session JWT for a full workflow matrix:
+
+1. Sign in at https://app.cura-i.com
+2. DevTools → Application → Local Storage → `personal-ai-auth-token`
+3. Run:
+
+```bash
+export AUTH_TOKEN='paste-jwt-here'
+APP_URL=https://app.cura-i.com ./scripts/prod_deep_smoke.sh
+# or:
+make prod-deep-smoke
+```
+
+`PROD_SMOKE_AUTH_TOKEN` is accepted as an alias for `AUTH_TOKEN`.
+
+Deep smoke covers:
+
+| Phase | Checks |
+|-------|--------|
+| Public | app shell, `/health`, `/ready`, `/auth/config` |
+| Auth | `/auth/me`, create conversation titled `PROD_DEEP_SMOKE …` |
+| Chat paths | `/chat` with `force_strategy` fast / tools / orchestrated |
+| Smart | `/smart_chat` greeting + heavier prompt |
+| Stream | `/chat/stream` SSE final event |
+| Workflow | `/workflow_chat` light prompt |
+
+**Mutations:** creates a conversation and several messages under **your** account and consumes provider tokens. Prefer a dedicated low-privilege test user when possible; an admin account is fine for ad-hoc checks. JWT expires with the normal session lifetime.
+
+Do **not** schedule deep smoke in GitHub Actions nightly (cost + personal tokens). Keep Actions on the light [`scripts/prod_smoke.sh`](../scripts/prod_smoke.sh) workflow.
+
 ## GitHub configuration
 
 Repository settings → **Secrets and variables → Actions**:

@@ -82,6 +82,37 @@ def _coerce_openai_chat_options(options: Dict[str, Any]) -> Dict[str, Any]:
     return coerced
 
 
+# Sampling knobs some reasoning / Kimi models reject unless omitted or fixed at 1.
+_SAMPLING_OPTION_KEYS = ("temperature", "top_p", "presence_penalty", "frequency_penalty")
+
+
+def _model_locks_sampling_defaults(model: str) -> bool:
+    """True when the vendor only allows default sampling (typically temperature=1 / omit)."""
+    needle = (model or "").strip().lower()
+    if not needle:
+        return False
+    # Kimi / Moonshot: "invalid temperature: only 1 is allowed for this model"
+    if needle.startswith("kimi-") or needle.startswith("moonshot-"):
+        return True
+    # OpenAI reasoning family (o1/o3/o4) — custom temperature is unsupported.
+    if needle.startswith(("o1", "o3", "o4")):
+        return True
+    # DeepSeek thinking / pro variants are happiest with defaults omitted.
+    if needle in {"deepseek-v4-pro", "deepseek-reasoner"} or needle.endswith("-reasoner"):
+        return True
+    return False
+
+
+def _apply_model_option_constraints(model: str, options: Dict[str, Any]) -> Dict[str, Any]:
+    """Drop sampling params vendors reject when not at their fixed default."""
+    if not _model_locks_sampling_defaults(model):
+        return options
+    constrained = dict(options)
+    for key in _SAMPLING_OPTION_KEYS:
+        constrained.pop(key, None)
+    return constrained
+
+
 def _normalize_openai_messages(messages: Sequence[Dict[str, str]]) -> List[Dict[str, str]]:
     """Merge consecutive system messages for stricter OpenAI-compatible providers."""
     normalized: List[Dict[str, str]] = []
@@ -242,7 +273,7 @@ class OpenAICompatibleLLMAdapter:
             "model": model,
             "messages": _normalize_openai_messages(messages),
             "stream": False,
-            **_coerce_openai_chat_options(options),
+            **_apply_model_option_constraints(model, _coerce_openai_chat_options(options)),
         }
 
         try:

@@ -228,6 +228,24 @@ def test_coerce_openai_chat_options_ignores_unknown_keys() -> None:
     ) == {"temperature": 0.1, "max_tokens": 256}
 
 
+def test_apply_model_option_constraints_drops_sampling_for_kimi() -> None:
+    from app.services.llm_gateway import _apply_model_option_constraints
+
+    assert _apply_model_option_constraints(
+        "kimi-k2.6",
+        {"temperature": 0.3, "max_tokens": 256, "top_p": 0.9},
+    ) == {"max_tokens": 256}
+
+
+def test_apply_model_option_constraints_keeps_sampling_for_groq() -> None:
+    from app.services.llm_gateway import _apply_model_option_constraints
+
+    assert _apply_model_option_constraints(
+        "openai/gpt-oss-20b",
+        {"temperature": 0.3, "max_tokens": 256},
+    ) == {"temperature": 0.3, "max_tokens": 256}
+
+
 def test_normalize_openai_messages_merges_system_prompts() -> None:
     assert _normalize_openai_messages(
         [

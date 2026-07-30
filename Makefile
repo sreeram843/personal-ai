@@ -1,4 +1,4 @@
-.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval check-remote-inference
+.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod prod-deep-smoke security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval check-remote-inference
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
 COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
@@ -31,6 +31,7 @@ help:
 	@echo "make model-accuracy-smoke - LLM + live-data accuracy checks (needs app on :8000)"
 	@echo "make model-stress-local   - Concurrent chat stress test (local remote inference)"
 	@echo "make model-stress-prod    - Lighter chat stress test (needs AUTH_TOKEN, app.cura-i.com)"
+	@echo "make prod-deep-smoke      - Deep prod smoke (needs AUTH_TOKEN JWT from browser)"
 	@echo "make test-frontend  - Run Playwright browser suite"
 	@echo "make security-check - Run lightweight security checks"
 	@echo "make compose-validate - Validate docker compose config"
@@ -204,6 +205,13 @@ model-stress-prod:
 		app python3 - < scripts/model_stress_test.py --profile prod --concurrency 1 --requests 4 \
 		--label prod-$$(date -u +%Y%m%dT%H%M%SZ) || true
 	@echo "Note: JSON output inside container is not persisted; copy from stdout or run host-side with httpx."
+
+prod-deep-smoke:
+	@if [ -z "$$AUTH_TOKEN" ] && [ -z "$$PROD_SMOKE_AUTH_TOKEN" ]; then \
+		echo "ERROR: set AUTH_TOKEN from browser localStorage key personal-ai-auth-token (see docs/prod-smoke.md)"; \
+		exit 1; \
+	fi
+	APP_URL=$${APP_URL:-https://app.cura-i.com} bash scripts/prod_deep_smoke.sh
 
 security-check:
 	python scripts/security_checks.py
