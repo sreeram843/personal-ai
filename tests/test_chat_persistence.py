@@ -70,6 +70,49 @@ def test_chat_appends_to_existing_conversation(chat_client: TestClient, db_sessi
     assert messages[-1].content == "persisted assistant reply"
 
 
+def test_chat_persists_failed_assistant_turn(monkeypatch: pytest.MonkeyPatch, db_session) -> None:
+    async def fake_short_circuit(**kwargs: object) -> ChatResponse | None:
+        return None
+
+    async def boom(**kwargs: object) -> ChatResponse:
+        raise RuntimeError("OpenAI-compatible provider request timed out waiting for a response")
+
+    monkeypatch.setattr(routes_mod, "_live_data_short_circuit", fake_short_circuit)
+    monkeypatch.setattr(routes_mod, "run_orchestrated_mode", boom)
+    monkeypatch.setattr(routes_mod, "get_settings", lambda: Settings(enable_tool_agent=False))
+
+    from app.main import app
+
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post("/chat", json={"message": "This will fail"})
+    assert response.status_code == 500
+
+    from app.core.auth import DEV_USER_ID
+    from app.db.models import Conversation
+    from sqlalchemy import select
+
+    conversation = db_session.scalar(select(Conversation).order_by(Conversation.created_at.desc()).limit(1))
+    assert conversation is not None
+    messages = list_messages_for_conversation(db_session, DEV_USER_ID, conversation.id)
+    assert messages is not None
+    assert len(messages) == 2
+    assert messages[0].role.value == "user"
+    assert messages[0].content == "This will fail"
+    assert messages[1].role.value == "assistant"
+    assert messages[1].content == ""
+    metadata = messages[1].metadata_json or {}
+    assert metadata.get("error_kind") == "timeout"
+    assert "timed out" in str(metadata.get("error_detail") or "").lower()
+
+
+def test_classify_persisted_error_kind() -> None:
+    from app.services.conversation_store import classify_persisted_error_kind
+
+    assert classify_persisted_error_kind("ReadTimeout timed out") == "timeout"
+    assert classify_persisted_error_kind("HTTP 429 rate limit") == "rate_limit"
+    assert classify_persisted_error_kind("something else") == "unknown"
+
+
 def test_smart_chat_returns_conversation_id(chat_client: TestClient) -> None:
     class _StubRunStore:
         def create_run(self, **kwargs: object):

@@ -68,10 +68,17 @@ export function mergeFetchedMessages(fetched: ChatMessage[], cached: ChatMessage
     return cached;
   }
 
+  // Prefer server-persisted error rows (survive refresh) over optimistic empty assistants.
+  const fetchedLast = fetched[fetched.length - 1];
+  if (fetchedLast?.role === 'assistant' && fetchedLast.errorKind) {
+    return mergeAssistantLatency(fetched, cached);
+  }
+
   const pendingAssistant = cached[cached.length - 1];
   if (
     pendingAssistant?.role === 'assistant' &&
     pendingAssistant.content.trim() === '' &&
+    !pendingAssistant.errorKind &&
     fetched.length === cached.length
   ) {
     return cached;

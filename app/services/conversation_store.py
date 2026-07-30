@@ -259,6 +259,44 @@ def persist_assistant_turn(
     return message
 
 
+def classify_persisted_error_kind(detail: str) -> str:
+    """Map exception/error text to frontend ChatErrorKind values."""
+    lowered = (detail or "").lower()
+    if "timeout" in lowered or "timed out" in lowered:
+        return "timeout"
+    if "429" in lowered or "rate limit" in lowered or "rate_limit" in lowered:
+        return "rate_limit"
+    if "refused" in lowered or "content_policy" in lowered or "safety" in lowered:
+        return "refused"
+    if "network" in lowered or "connection" in lowered or "connect" in lowered:
+        return "network"
+    return "unknown"
+
+
+def persist_failed_assistant_turn(
+    db: Session,
+    conversation: Conversation,
+    *,
+    detail: str,
+    mode: str,
+    error_kind: str | None = None,
+) -> Message:
+    """Persist an assistant error row so the UI can show Retry after refresh."""
+    text = (detail or "").strip() or "Chat request failed"
+    kind = error_kind or classify_persisted_error_kind(text)
+    return append_message(
+        db,
+        conversation,
+        role=MessageRole.assistant,
+        content="",
+        metadata={
+            "mode": mode,
+            "error_kind": kind,
+            "error_detail": text[:4000],
+        },
+    )
+
+
 def attach_conversation_id(response: ChatResponse, conversation: Conversation) -> ChatResponse:
     return response.model_copy(update={"conversation_id": str(conversation.id)})
 

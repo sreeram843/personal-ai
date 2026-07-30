@@ -12,6 +12,7 @@ from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.conversation_store import (
     attach_conversation_id,
     persist_assistant_turn,
+    persist_failed_assistant_turn,
     persist_user_turn,
     resolve_conversation_for_chat,
 )
@@ -51,8 +52,17 @@ async def run_persisted_chat(
     payload.conversation_id = str(conversation.id)
 
     started = time.perf_counter()
-    async with observe_chat_request(mode=mode):
-        response = await handler(payload, conversation)
+    try:
+        async with observe_chat_request(mode=mode):
+            response = await handler(payload, conversation)
+    except Exception as exc:
+        persist_failed_assistant_turn(
+            db,
+            conversation,
+            detail=str(exc),
+            mode=mode,
+        )
+        raise
     elapsed_ms = (time.perf_counter() - started) * 1000
     response = response.model_copy(update={"latency_ms": elapsed_ms})
     persist_assistant_turn(db, conversation, response, mode=mode)
@@ -117,24 +127,47 @@ async def wrap_chat_stream_with_persistence(
     yield f"data: {json.dumps({'type': 'conversation', 'conversation_id': str(conversation.id)})}\n\n"
 
     started = time.perf_counter()
-    async for event in stream_factory(payload):
-        parsed = _parse_sse_event(event)
-        if parsed and parsed.get("type") == "final" and isinstance(parsed.get("response"), dict):
-            elapsed_ms = (time.perf_counter() - started) * 1000
-            response = ChatResponse(**parsed["response"]).model_copy(update={"latency_ms": elapsed_ms})
-            persist_assistant_turn(db, conversation, response, mode=mode)
-            _record_user_memory(
-                user_id=str(user.id),
-                user_message=user_message.content,
-                assistant_message=response.message,
+    persisted_assistant = False
+    try:
+        async for event in stream_factory(payload):
+            parsed = _parse_sse_event(event)
+            if parsed and parsed.get("type") == "final" and isinstance(parsed.get("response"), dict):
+                elapsed_ms = (time.perf_counter() - started) * 1000
+                response = ChatResponse(**parsed["response"]).model_copy(update={"latency_ms": elapsed_ms})
+                persist_assistant_turn(db, conversation, response, mode=mode)
+                persisted_assistant = True
+                _record_user_memory(
+                    user_id=str(user.id),
+                    user_message=user_message.content,
+                    assistant_message=response.message,
+                )
+                yield inject_conversation_id_into_sse_event(
+                    event,
+                    str(conversation.id),
+                    latency_ms=elapsed_ms,
+                )
+                continue
+            if parsed and parsed.get("type") == "error" and not persisted_assistant:
+                detail = str(parsed.get("message") or "Chat stream failed")
+                persist_failed_assistant_turn(
+                    db,
+                    conversation,
+                    detail=detail,
+                    mode=mode,
+                )
+                persisted_assistant = True
+            yield event
+    except Exception as exc:
+        if not persisted_assistant:
+            persist_failed_assistant_turn(
+                db,
+                conversation,
+                detail=str(exc),
+                mode=mode,
             )
-            yield inject_conversation_id_into_sse_event(
-                event,
-                str(conversation.id),
-                latency_ms=elapsed_ms,
-            )
-            continue
-        yield event
+            yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
+        else:
+            raise
 
 
 def persist_stream_final_response(
