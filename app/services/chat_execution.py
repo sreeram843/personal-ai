@@ -13,6 +13,7 @@ from app.schemas.chat import ChatRequest, ChatResponse
 from app.services.fast_chat import run_fast_chat
 from app.services.information_routing import (
     is_document_grounded_query,
+    is_simple_direct_chat,
     is_trivial_chitchat,
     prefers_tool_agent_for_query,
     should_route_chat_toward_orchestrated,
@@ -58,7 +59,7 @@ def resolve_chat_execution_strategy(
         return forced  # type: ignore[return-value]
 
     cfg = settings or get_settings()
-    if cfg.enable_fast_chat and is_trivial_chitchat(query):
+    if cfg.enable_fast_chat and (is_trivial_chitchat(query) or is_simple_direct_chat(query)):
         return "fast"
     if cfg.enable_tool_agent and prefers_tool_agent_for_query(query):
         return "tools"
@@ -66,11 +67,13 @@ def resolve_chat_execution_strategy(
         return "orchestrated"
     if cfg.enable_tool_agent and should_route_chat_toward_tools(query):
         return "tools"
-    fallback = str(cfg.chat_fallback_strategy or "orchestrated").strip().lower()
+    fallback = str(cfg.chat_fallback_strategy or "fast").strip().lower()
     if fallback not in {"fast", "tools", "orchestrated"}:
-        fallback = "orchestrated"
+        fallback = "fast"
     if fallback == "tools" and not cfg.enable_tool_agent:
         fallback = "fast"
+    if fallback == "fast" and not cfg.enable_fast_chat:
+        fallback = "orchestrated"
     return fallback  # type: ignore[return-value]
 
 

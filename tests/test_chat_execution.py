@@ -31,9 +31,11 @@ def skip_live_short_circuit(monkeypatch: pytest.MonkeyPatch) -> None:
     [
         ("hi", True, True, "fast", "orchestrated"),
         ("thanks", True, True, "fast", "orchestrated"),
+        ("hello in a sentence", True, True, "fast", "orchestrated"),
         ("What is NVDA trading at today?", True, True, "tools", "orchestrated"),
-        ("Explain quantum computing", True, True, "tools", "orchestrated"),
-        ("Explain quantum computing", True, False, "orchestrated", "orchestrated"),
+        # Short explain prompts stay on a single LLM call (not tool-agent / synthesizer).
+        ("Explain quantum computing", True, True, "fast", "orchestrated"),
+        ("Explain quantum computing", True, False, "fast", "orchestrated"),
         ("Explain quantum computing", True, False, "fast", "fast"),
         (
             "Compare three deployment strategies for multi-tenant RAG and recommend trade-offs",
@@ -88,7 +90,7 @@ def test_tool_agent_path_for_fresh_query(client: TestClient, monkeypatch: pytest
 
     monkeypatch.setattr(chat_execution_mod, "run_tool_agent", fake_agent)
 
-    response = client.post("/chat", json={"message": "Summarize the plot of Dune in two sentences"})
+    response = client.post("/chat", json={"message": "What is NVDA trading at today?"})
     assert response.status_code == 200
     assert "from-tool-agent" in response.json()["message"]
 
@@ -105,9 +107,26 @@ def test_tool_agent_falls_back_to_fast_chat_on_failure(
     monkeypatch.setattr(chat_execution_mod, "run_tool_agent", failing_agent)
     monkeypatch.setattr(chat_execution_mod, "run_fast_chat", fake_fast_chat)
 
-    response = client.post("/chat", json={"message": "Summarize the plot of Dune in two sentences"})
+    response = client.post("/chat", json={"message": "What is NVDA trading at today?"})
     assert response.status_code == 200
     assert response.json()["message"] == "from-fast-chat-fallback"
+
+
+def test_simple_prompt_uses_fast_chat_not_tools(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_fast_chat(**kwargs: object) -> ChatResponse:
+        return ChatResponse(message="from-fast-chat", sources=[])
+
+    async def should_not_run(**kwargs: object) -> str:
+        raise AssertionError("tool agent should not run for simple chat prompts")
+
+    monkeypatch.setattr(chat_execution_mod, "run_fast_chat", fake_fast_chat)
+    monkeypatch.setattr(chat_execution_mod, "run_tool_agent", should_not_run)
+
+    response = client.post("/chat", json={"message": "hello in a sentence"})
+    assert response.status_code == 200
+    assert response.json()["message"] == "from-fast-chat"
 
 
 def test_orchestrated_fallback_when_tools_disabled(

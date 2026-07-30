@@ -74,8 +74,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000"
 
     enable_fast_chat: bool = True
-    # When no other tier matches, use fast for local MLX/LM Studio; orchestrated for cloud/GPU.
-    chat_fallback_strategy: str = "orchestrated"
+    # Default to a single LLM call. Orchestrated/tools are opt-in via routing heuristics.
+    chat_fallback_strategy: str = "fast"
     enable_tool_agent: bool = Field(
         default=True,
         validation_alias=AliasChoices(

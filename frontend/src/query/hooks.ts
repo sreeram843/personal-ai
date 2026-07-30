@@ -81,9 +81,8 @@ export function useConversationMessages(conversationId: string | null, enabled: 
       return mergeFetchedMessages(mapped, cached);
     },
     enabled,
-    // Keep prior messages only when switching between real conversations.
-    // Carrying them into the draft (null) key after delete causes an empty-state flicker.
-    placeholderData: conversationId ? (previous) => previous : undefined,
+    // Prefer this conversation's cache — never show another chat's messages while switching.
+    placeholderData: () => readCachedMessages(queryClient, conversationId),
     refetchOnWindowFocus: false,
     staleTime: 30_000,
   });

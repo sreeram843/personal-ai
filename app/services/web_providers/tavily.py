@@ -17,9 +17,16 @@ async def tavily_search(
     max_results: int = 5,
     timeout: float = 15.0,
 ) -> List[Dict[str, Any]]:
+    # Collapse whitespace and cap length — Tavily returns 400 on huge prompts.
+    cleaned = " ".join((query or "").split())
+    if len(cleaned) > 280:
+        cleaned = cleaned[:279].rsplit(" ", 1)[0].strip()
+    if not cleaned:
+        return []
+
     payload = {
         "api_key": api_key,
-        "query": query,
+        "query": cleaned,
         "max_results": max_results,
         "include_answer": False,
         "search_depth": "basic",
@@ -30,7 +37,7 @@ async def tavily_search(
             response.raise_for_status()
             body = response.json()
     except Exception as exc:
-        logger.warning("Tavily search failed for %r: %s", query, exc)
+        logger.warning("Tavily search failed for %r: %s", cleaned[:120], exc)
         return []
 
     results: List[Dict[str, Any]] = []

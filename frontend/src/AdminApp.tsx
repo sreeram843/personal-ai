@@ -593,6 +593,18 @@ const PROVIDER_PRESETS = [
     base_url: 'https://api.deepseek.com',
     modelHint: 'deepseek-v4-flash',
   },
+  {
+    name: 'kimi',
+    display_name: 'Kimi (Moonshot)',
+    base_url: 'https://api.moonshot.ai/v1',
+    modelHint: 'kimi-k2.6',
+  },
+  {
+    name: 'qwen',
+    display_name: 'Qwen',
+    base_url: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+    modelHint: 'qwen-plus',
+  },
 ] as const;
 
 function ProvidersPanel() {

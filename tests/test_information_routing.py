@@ -3,11 +3,14 @@
 import pytest
 
 from app.services.information_routing import (
+    clip_search_query,
     decompose_research_queries,
     is_corpus_overview_query,
     is_document_grounded_query,
     is_external_web_lookup_query,
+    is_oversized_research_prompt,
     is_quick_social_utterance,
+    is_simple_direct_chat,
     is_trivial_chitchat,
     prefers_tool_agent_for_query,
     should_route_chat_toward_orchestrated,
@@ -73,6 +76,10 @@ def test_smart_workflow_tiering(query: str, expect_workflow: bool) -> None:
 def test_chat_execution_tiering() -> None:
     assert should_route_chat_toward_tools("What is NVDA trading at today?") is True
     assert should_route_chat_toward_orchestrated("What is NVDA trading at today?") is False
+    assert is_simple_direct_chat("hello in a sentence") is True
+    assert should_route_chat_toward_tools("hello in a sentence") is False
+    assert is_simple_direct_chat("Explain quantum computing") is True
+    assert should_route_chat_toward_tools("Explain quantum computing") is False
     complex_query = "Compare three deployment strategies for multi-tenant RAG and recommend trade-offs"
     assert should_route_chat_toward_orchestrated(complex_query) is True
     assert should_route_chat_toward_tools(complex_query) is False
@@ -101,3 +108,39 @@ def test_decompose_research_queries_splits_comparisons() -> None:
     assert len(parts) >= 2
     assert any("Austin" in part for part in parts)
     assert any("Dallas" in part for part in parts)
+
+
+def test_oversized_eval_prompt_skips_web_research() -> None:
+    prompt = """
+### 2) Provider scorecard
+rows = providers (Gemini, Qwen, Kimi, Groq, DeepSeek) and columns =
+Latency | Reasoning | Long-form writing | Tool/JSON reliability | Rate-limit friendliness | Best stage(s)
+Score each cell 1–5 and add a one-line justification under the table.
+
+### 3) Recommended routing
+Propose a concrete routing table:
+
+| Stage | Provider | Model ID | Why |
+|---|---|---|---|
+| Default |  |  |  |
+| Planner |  |  |  |
+| Reviewer |  |  |  |
+| Synthesizer |  |  |  |
+| Writer |  |  |  |
+
+Then give a fallback routing if the primary writer provider returns 429.
+
+### 4) Hard trade-off analysis
+Argue both sides of putting everything on one cheap fast model versus splitting stages.
+"""
+    assert is_oversized_research_prompt(prompt) is True
+    assert should_run_web_research(prompt, has_internal_hits=False) is False
+    assert decompose_research_queries(prompt) == []
+
+
+def test_clip_search_query_caps_length() -> None:
+    long_query = "word " * 100
+    clipped = clip_search_query(long_query)
+    assert len(clipped) <= 280
+    assert "word" in clipped
+

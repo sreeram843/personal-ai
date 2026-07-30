@@ -87,18 +87,41 @@ export default function App({ authConfig, user }: AppProps) {
   const [sidebarWidth, setSidebarWidth] = useLocalStorage<number>('personal-ai-sidebar-width', 270);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [editingUserMessageId, setEditingUserMessageId] = useState<string | null>(null);
-  const controllerRef = useRef<AbortController | null>(null);
-  const sendInFlightRef = useRef(false);
-  const messageCacheConversationIdRef = useRef<string | null>(null);
+  /** Per-conversation abort controllers so switching chats does not cancel in-flight replies. */
+  const controllersByConversationRef = useRef<Map<string, AbortController>>(new Map());
+  const inflightConversationIdsRef = useRef<Set<string>>(new Set());
+  const [inflightVersion, setInflightVersion] = useState(0);
+  const viewedConversationIdRef = useRef<string | null>(null);
   const messageLogRef = useRef<HTMLDivElement | null>(null);
   const chatInputRef = useRef<ChatInputHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const bumpInflight = (conversationKey: string, active: boolean) => {
+    const set = inflightConversationIdsRef.current;
+    if (active) {
+      set.add(conversationKey);
+    } else {
+      set.delete(conversationKey);
+    }
+    setInflightVersion((value) => value + 1);
+  };
+
+  const abortConversationRequest = (conversationKey: string | null | undefined) => {
+    if (!conversationKey) {
+      return;
+    }
+    const controller = controllersByConversationRef.current.get(conversationKey);
+    if (controller) {
+      controller.abort();
+      controllersByConversationRef.current.delete(conversationKey);
+    }
+    bumpInflight(conversationKey, false);
+  };
 
   const authReady = true;
   useEffect(() => {
@@ -129,6 +152,10 @@ export default function App({ authConfig, user }: AppProps) {
 
   const conversations = conversationsQuery.data ?? [];
   const messages = messagesQuery.data ?? [];
+  // inflightVersion forces re-render when background chats start/finish generating.
+  void inflightVersion;
+  const isLoading =
+    conversationId != null && inflightConversationIdsRef.current.has(conversationId);
   const lastMessage = messages[messages.length - 1];
   const { showJumpToLatest, jumpToLatest, isNearBottom } = useMessageLogScroll(messageLogRef, [
     messages.length,
@@ -176,6 +203,10 @@ export default function App({ authConfig, user }: AppProps) {
     document.documentElement.removeAttribute('data-phosphor');
   }, []);
 
+  useEffect(() => {
+    viewedConversationIdRef.current = conversationId;
+  }, [conversationId]);
+
   const showToast = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
@@ -191,14 +222,27 @@ export default function App({ authConfig, user }: AppProps) {
       approvedToolIds?: string[];
     },
   ) => {
-    if (!text.trim() || isBootstrapping || sendInFlightRef.current) {
+    if (!text.trim() || isBootstrapping) {
+      return;
+    }
+
+    const draftLock = '__draft__';
+    const startingId = conversationId;
+    const lockKey = startingId ?? draftLock;
+    if (inflightConversationIdsRef.current.has(lockKey)) {
       return;
     }
 
     setEditingUserMessageId(null);
-    sendInFlightRef.current = true;
-    controllerRef.current?.abort();
-    setIsLoading(true);
+    bumpInflight(lockKey, true);
+    // Only cancel an in-flight request for *this* conversation (regenerate / resend).
+    if (startingId) {
+      const prior = controllersByConversationRef.current.get(startingId);
+      if (prior) {
+        prior.abort();
+        controllersByConversationRef.current.delete(startingId);
+      }
+    }
 
     let activeConversationId = conversationId;
     if (!activeConversationId) {
@@ -213,16 +257,27 @@ export default function App({ authConfig, user }: AppProps) {
           writeCachedMessages(queryClient, created.id, draft);
           queryClient.removeQueries({ queryKey: messageQueryKey(null) });
         }
+        bumpInflight(draftLock, false);
+        bumpInflight(created.id, true);
         setConversationId(created.id);
       } catch (error) {
-        sendInFlightRef.current = false;
-        setIsLoading(false);
+        bumpInflight(draftLock, false);
         const message = error instanceof Error ? error.message : 'Failed to start a new conversation';
         showToast(message);
         return;
       }
     }
-    messageCacheConversationIdRef.current = activeConversationId;
+
+    let targetConversationId = activeConversationId;
+    // IDs that still count as "this send" when the server remaps conversation_id
+    // (e.g. create returns new-conversation-id, stream later emits conv-1).
+    const originConversationIds = new Set<string>(
+      [startingId, activeConversationId].filter((id): id is string => Boolean(id)),
+    );
+    const isViewingOrigin = () => {
+      const viewed = viewedConversationIdRef.current;
+      return viewed === null || originConversationIds.has(viewed) || viewed === targetConversationId;
+    };
 
     const isRegenerate = Boolean(options?.regeneratePrefix);
     const isEditResend = Boolean(options?.editResendPrefix);
@@ -236,7 +291,7 @@ export default function App({ authConfig, user }: AppProps) {
     let requestHistory: ChatMessage[];
     if (isRegenerate && options?.regeneratePrefix) {
       requestHistory = options.regeneratePrefix;
-      writeCachedMessages(queryClient, activeConversationId, [...requestHistory, assistantMessage]);
+      writeCachedMessages(queryClient, targetConversationId, [...requestHistory, assistantMessage]);
     } else if (isEditResend && options?.editResendPrefix) {
       const userMessage: ChatMessage = {
         id: createId(),
@@ -245,7 +300,7 @@ export default function App({ authConfig, user }: AppProps) {
         createdAt: Date.now(),
       };
       requestHistory = [...options.editResendPrefix, userMessage];
-      writeCachedMessages(queryClient, activeConversationId, [...requestHistory, assistantMessage]);
+      writeCachedMessages(queryClient, targetConversationId, [...requestHistory, assistantMessage]);
     } else {
       const userMessage: ChatMessage = {
         id: createId(),
@@ -255,38 +310,62 @@ export default function App({ authConfig, user }: AppProps) {
       };
       requestHistory = appendOptimisticSend(
         queryClient,
-        activeConversationId,
+        targetConversationId,
         userMessage,
         assistantMessage,
       );
     }
 
     const controller = new AbortController();
-    controllerRef.current = controller;
+    controllersByConversationRef.current.set(targetConversationId, controller);
     const startedAt = performance.now();
 
-    try {
-      const cacheConversationId = () => messageCacheConversationIdRef.current ?? activeConversationId;
+    const remountController = (fromId: string, toId: string) => {
+      const owned = controllersByConversationRef.current.get(fromId);
+      if (owned === controller) {
+        controllersByConversationRef.current.delete(fromId);
+        controllersByConversationRef.current.set(toId, controller);
+      }
+      if (inflightConversationIdsRef.current.has(fromId)) {
+        bumpInflight(fromId, false);
+        bumpInflight(toId, true);
+      }
+    };
 
+    const adoptConversationId = (nextId: string) => {
+      if (targetConversationId === nextId) {
+        return;
+      }
+      const fromId = targetConversationId;
+      const pending = readCachedMessages(queryClient, fromId);
+      if (pending.length > 0) {
+        writeCachedMessages(queryClient, nextId, pending);
+      }
+      promoteDraftMessages(queryClient, nextId);
+      remountController(fromId, nextId);
+      originConversationIds.add(fromId);
+      originConversationIds.add(nextId);
+      targetConversationId = nextId;
+      if (isViewingOrigin()) {
+        setConversationId(nextId);
+      }
+    };
+
+    try {
       const response = await sendMessage(
         mode,
         text,
         requestHistory,
-        activeConversationId,
+        targetConversationId,
         controller.signal,
         (event: WorkflowEventPayload) => {
         if (event.type === 'conversation' && event.conversation_id) {
-          const nextId = event.conversation_id;
-          if (cacheConversationId() !== nextId) {
-            promoteDraftMessages(queryClient, nextId);
-            messageCacheConversationIdRef.current = nextId;
-            setConversationId(nextId);
-          }
+          adoptConversationId(event.conversation_id);
           return;
         }
 
         if (event.type === 'workflow' && event.workflow) {
-          updateCachedMessage(queryClient, cacheConversationId(), assistantMessage.id, (msg) => ({
+          updateCachedMessage(queryClient, targetConversationId, assistantMessage.id, (msg) => ({
             ...msg,
             workflow: event.workflow,
           }));
@@ -296,7 +375,7 @@ export default function App({ authConfig, user }: AppProps) {
         if (event.type === 'memory' && event.summary && event.phase) {
           const phase = event.phase;
           const summary = event.summary;
-          updateCachedMessage(queryClient, cacheConversationId(), assistantMessage.id, (msg) => ({
+          updateCachedMessage(queryClient, targetConversationId, assistantMessage.id, (msg) => ({
             ...msg,
             workflowMemoryEvents: [
               ...(msg.workflowMemoryEvents ?? []),
@@ -313,7 +392,7 @@ export default function App({ authConfig, user }: AppProps) {
           const stepId = event.step_id;
           const agent = event.agent;
           const sourceCount = event.sources.length;
-          updateCachedMessage(queryClient, cacheConversationId(), assistantMessage.id, (msg) => ({
+          updateCachedMessage(queryClient, targetConversationId, assistantMessage.id, (msg) => ({
             ...msg,
             workflowSourceEvents: [
               ...(msg.workflowSourceEvents ?? []),
@@ -327,7 +406,7 @@ export default function App({ authConfig, user }: AppProps) {
         }
 
         if (event.type === 'block' && event.block) {
-          updateCachedMessage(queryClient, cacheConversationId(), assistantMessage.id, (msg) => ({
+          updateCachedMessage(queryClient, targetConversationId, assistantMessage.id, (msg) => ({
             ...msg,
             showLiveSkeleton: false,
             blocks: [...(msg.blocks ?? []), event.block!],
@@ -343,13 +422,11 @@ export default function App({ authConfig, user }: AppProps) {
       const elapsed = performance.now() - startedAt;
 
       const finalMessage = response.message;
-      let nextConversationId = response.conversation_id ?? cacheConversationId();
+      let nextConversationId = response.conversation_id ?? targetConversationId;
 
-      if (response.conversation_id && cacheConversationId() !== response.conversation_id) {
-        promoteDraftMessages(queryClient, response.conversation_id);
+      if (response.conversation_id) {
+        adoptConversationId(response.conversation_id);
         nextConversationId = response.conversation_id;
-        messageCacheConversationIdRef.current = response.conversation_id;
-        setConversationId(response.conversation_id);
       }
 
       updateCachedMessage(queryClient, nextConversationId, assistantMessage.id, (msg) => ({
@@ -378,7 +455,7 @@ export default function App({ authConfig, user }: AppProps) {
 
       invalidateAfterSend(nextConversationId);
     } catch (error) {
-      const cacheId = messageCacheConversationIdRef.current ?? activeConversationId;
+      const cacheId = targetConversationId;
       if (isAbortError(error)) {
         writeCachedMessages(queryClient, cacheId, requestHistory);
         return;
@@ -395,18 +472,21 @@ export default function App({ authConfig, user }: AppProps) {
         },
       ]);
     } finally {
-      setIsLoading(false);
-      sendInFlightRef.current = false;
-      controllerRef.current = null;
-      messageCacheConversationIdRef.current = null;
-      requestAnimationFrame(() => {
-        chatInputRef.current?.focus();
-      });
+      if (controllersByConversationRef.current.get(targetConversationId) === controller) {
+        controllersByConversationRef.current.delete(targetConversationId);
+      }
+      bumpInflight(targetConversationId, false);
+      bumpInflight(draftLock, false);
+      if (viewedConversationIdRef.current === targetConversationId) {
+        requestAnimationFrame(() => {
+          chatInputRef.current?.focus();
+        });
+      }
     }
   };
 
   const handleNewChat = async () => {
-    controllerRef.current?.abort();
+    abortConversationRequest(conversationId);
     writeCachedMessages(queryClient, null, []);
 
     try {
@@ -434,7 +514,7 @@ export default function App({ authConfig, user }: AppProps) {
   };
 
   const handleSelectConversation = (id: string) => {
-    controllerRef.current?.abort();
+    // Do not abort — let the previous chat finish in the background.
     setConversationId(id);
     setMobileSidebarOpen(false);
   };
@@ -455,11 +535,9 @@ export default function App({ authConfig, user }: AppProps) {
   }, [conversationId, conversations, messages]);
 
   const handleDeleteConversation = async (id: string) => {
+    abortConversationRequest(id);
     const deletingActive = conversationId === id;
     if (deletingActive) {
-      controllerRef.current?.abort();
-      sendInFlightRef.current = false;
-      setIsLoading(false);
       writeCachedMessages(queryClient, null, []);
       setConversationId(null);
     }
@@ -493,7 +571,9 @@ export default function App({ authConfig, user }: AppProps) {
   };
 
   const handleLogout = () => {
-    controllerRef.current?.abort();
+    for (const id of [...controllersByConversationRef.current.keys()]) {
+      abortConversationRequest(id);
+    }
     setConversationId(null);
     setAboutOpen(false);
     logout();
@@ -596,7 +676,7 @@ export default function App({ authConfig, user }: AppProps) {
   };
 
   const handleStop = () => {
-    controllerRef.current?.abort();
+    abortConversationRequest(conversationId);
   };
 
   const handleRetry = (assistantMessage: ChatMessage) => {

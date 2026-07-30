@@ -74,6 +74,14 @@ def test_normalize_provider_model_retired_groq_aliases() -> None:
     assert normalize_provider_model("deepseek", "llama-3.3-70b-versatile") == "deepseek-v4-flash"
 
 
+def test_normalize_provider_model_kimi_aliases() -> None:
+    assert normalize_provider_model("kimi", "kimi-k2.5") == "kimi-k2.6"
+    assert normalize_provider_model("moonshot", "kimi-k2.5") == "kimi-k2.6"
+    assert normalize_provider_model("kimi", "kimi-k2.6") == "kimi-k2.6"
+    assert normalize_provider_model("kimi", "kimi-latest") == "kimi-k3"
+    assert normalize_provider_model("groq", "kimi-k2.5") == "kimi-k2.6"
+
+
 def test_llm_gateway_falls_back_to_default_provider() -> None:
     default = _RecordingAdapter("groq")
     gateway = LLMGateway(adapters={"groq": default}, default_provider="groq")

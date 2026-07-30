@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronDown, CircleDashed, Loader2, MinusCircle, XCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { WorkflowStep, WorkflowTrace } from '../types';
+import { parseReasoningSections } from '../utils/parseReasoningSections';
 
 interface Props {
   reasoning?: string;
@@ -31,8 +32,23 @@ const STATUS_COLOR: Record<WorkflowStep['status'], string> = {
   skipped: 'text-[var(--phosphor-dim)]',
 };
 
+const STAGE_ACCENT: Record<string, string> = {
+  planner: 'border-[rgba(96,165,250,0.35)] bg-[rgba(96,165,250,0.12)] text-[#93c5fd]',
+  synthesizer: 'border-[rgba(224,164,70,0.4)] bg-[rgba(224,164,70,0.12)] text-[#e0a446]',
+  reviewer: 'border-[rgba(52,211,153,0.35)] bg-[rgba(52,211,153,0.12)] text-[#6ee7b7]',
+  writer: 'border-[rgba(125,211,252,0.35)] bg-[rgba(125,211,252,0.12)] text-[#7dd3fc]',
+};
+
 function stepLine(step: WorkflowStep): string {
   return step.title || step.summary || step.id;
+}
+
+function stageBadgeClass(title: string): string {
+  const key = title.trim().toLowerCase();
+  return (
+    STAGE_ACCENT[key] ??
+    'border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] text-[var(--phosphor)]'
+  );
 }
 
 /**
@@ -47,7 +63,11 @@ function stepLine(step: WorkflowStep): string {
 export function ReasoningPanel({ reasoning, workflow }: Props) {
   const [open, setOpen] = useState(false);
   const steps = workflow?.steps ?? [];
-  const hasReasoning = Boolean(reasoning && reasoning.trim());
+  const sections = useMemo(
+    () => (reasoning ? parseReasoningSections(reasoning) : []),
+    [reasoning],
+  );
+  const hasReasoning = sections.length > 0;
   if (!steps.length && !hasReasoning) {
     return null;
   }
@@ -100,10 +120,23 @@ export function ReasoningPanel({ reasoning, workflow }: Props) {
             <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.07em] text-[var(--phosphor-dim)]">
               Model reasoning
             </div>
-            <div className="max-h-56 overflow-y-auto rounded-lg bg-[var(--ui-bg)] px-2.5 py-2">
-              <p className="whitespace-pre-line text-[11.5px] leading-[1.6] text-[var(--phosphor-dim)]">
-                {reasoning}
-              </p>
+            <div className="max-h-56 space-y-2.5 overflow-y-auto rounded-lg bg-[var(--ui-bg)] px-2.5 py-2">
+              {sections.map((section, index) => (
+                <div key={`${section.title ?? 'note'}-${index}`} className="space-y-1.5">
+                  {section.title ? (
+                    <span
+                      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${stageBadgeClass(section.title)}`}
+                    >
+                      {section.title}
+                    </span>
+                  ) : null}
+                  {section.body ? (
+                    <p className="whitespace-pre-line text-[11.5px] leading-[1.6] text-[var(--phosphor-dim)]">
+                      {section.body}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
             </div>
           </div>
         ) : null}

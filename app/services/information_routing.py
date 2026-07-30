@@ -87,16 +87,50 @@ def prefers_tool_agent_for_query(user_query: str) -> bool:
     return is_external_web_lookup_query(user_query)
 
 
+# Tavily and similar APIs reject oversized / malformed query payloads (HTTP 400).
+_MAX_SEARCH_QUERY_CHARS: Final[int] = 280
+
+
+def clip_search_query(query: str, *, max_chars: int = _MAX_SEARCH_QUERY_CHARS) -> str:
+    """Collapse whitespace and truncate to a search-API-safe length."""
+    cleaned = " ".join((query or "").split())
+    if len(cleaned) <= max_chars:
+        return cleaned
+    truncated = cleaned[: max_chars - 1]
+    if " " in truncated:
+        truncated = truncated.rsplit(" ", 1)[0]
+    return truncated.strip()
+
+
+def is_oversized_research_prompt(user_query: str) -> bool:
+    """True for long multi-section / memo prompts that should not be web-searched verbatim."""
+    text = (user_query or "").strip()
+    if not text:
+        return False
+    if len(text) >= 900:
+        return True
+    if len(text.split()) >= 150:
+        return True
+    if text.count("###") >= 2:
+        return True
+    if text.count("|---") >= 1 or text.count("| ---") >= 1:
+        return True
+    return False
+
+
 def decompose_research_queries(user_query: str, *, max_queries: int = 4) -> List[str]:
     """Split multi-part comparison prompts into focused web search queries."""
     query = user_query.strip()
     if not query:
         return []
+    if is_oversized_research_prompt(query):
+        return []
 
     lowered = query.lower()
     comparison_markers = ("compare", "versus", " vs ", " vs.", "winner", "better than")
     if not any(marker in lowered for marker in comparison_markers):
-        return [query]
+        clipped = clip_search_query(query)
+        return [clipped] if clipped else []
 
     segments = re.split(
         r"\b(?:compare|versus|vs\.?|and then|winner|with)\b",
@@ -111,11 +145,14 @@ def decompose_research_queries(user_query: str, *, max_queries: int = 4) -> List
         if cleaned.lower().startswith(("that with", "it with", "them with")):
             cleaned = cleaned.split(" ", 1)[-1].strip()
         if len(cleaned.split()) >= 3:
-            focused.append(cleaned)
+            clipped = clip_search_query(cleaned)
+            if clipped:
+                focused.append(clipped)
 
     if len(focused) >= 2:
         return focused[:max_queries]
-    return [query]
+    clipped = clip_search_query(query)
+    return [clipped] if clipped else []
 
 
 def should_run_web_research(user_query: str, has_internal_hits: bool) -> bool:
@@ -130,6 +167,8 @@ def should_run_web_research(user_query: str, has_internal_hits: bool) -> bool:
     thresholds).
     """
     if is_trivial_chitchat(user_query):
+        return False
+    if is_oversized_research_prompt(user_query):
         return False
     if is_external_web_lookup_query(user_query):
         return True
@@ -350,11 +389,42 @@ def should_route_chat_toward_orchestrated(user_query: str) -> bool:
     return False
 
 
+def is_simple_direct_chat(user_query: str) -> bool:
+    """
+    Short conversational / creative prompts that should be one LLM call.
+
+    Examples: "hello in a sentence", "write a haiku about rain", "explain gravity simply".
+    Excludes live data, local lookups, document grounding, and deep multi-step asks.
+    """
+    query = (user_query or "").strip()
+    if not query:
+        return True
+    if is_trivial_chitchat(query):
+        return True
+    if prefers_tool_agent_for_query(query):
+        return False
+    if should_route_chat_toward_orchestrated(query):
+        return False
+    if is_document_grounded_query(query) or is_corpus_overview_query(query):
+        return False
+    if should_prioritize_fresh_web_data(query):
+        return False
+    words = query.split()
+    # Keep "quick chat" on the fast path for ordinary short prompts.
+    return len(words) <= 16
+
+
 def should_route_chat_toward_tools(user_query: str) -> bool:
-    """Route to the tool agent for factual, on-demand retrieval without full workflow."""
-    if is_trivial_chitchat(user_query):
+    """Route to the tool agent only when tools are likely needed (not a catch-all)."""
+    if is_trivial_chitchat(user_query) or is_simple_direct_chat(user_query):
         return False
     if should_route_chat_toward_orchestrated(user_query):
         return False
-    return True
+    if prefers_tool_agent_for_query(user_query):
+        return True
+    if should_prioritize_fresh_web_data(user_query):
+        return True
+    if is_document_grounded_query(user_query) or is_corpus_overview_query(user_query):
+        return True
+    return False
 

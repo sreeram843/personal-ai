@@ -171,6 +171,21 @@ _PROVIDER_MODEL_ALIASES: Dict[str, Dict[str, str]] = {
         "gpt-oss-20b": "openai/gpt-oss-20b",
         "gpt-oss-120b": "openai/gpt-oss-120b",
     },
+    # Moonshot/Kimi: kimi-k2.5 is unavailable to new accounts (sunset Aug 2026).
+    "kimi": {
+        "kimi-k2.5": "kimi-k2.6",
+        "kimi-latest": "kimi-k3",
+        "moonshot-v1-8k": "kimi-k2.6",
+        "moonshot-v1-32k": "kimi-k2.6",
+        "moonshot-v1-128k": "kimi-k2.6",
+    },
+    "moonshot": {
+        "kimi-k2.5": "kimi-k2.6",
+        "kimi-latest": "kimi-k3",
+        "moonshot-v1-8k": "kimi-k2.6",
+        "moonshot-v1-32k": "kimi-k2.6",
+        "moonshot-v1-128k": "kimi-k2.6",
+    },
 }
 
 # Remap by model id alone for Groq-only retired ids when the Admin provider
@@ -179,6 +194,8 @@ _GLOBAL_MODEL_ALIASES: Dict[str, str] = {
     "meta-llama/llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
     "llama-4-scout-17b-16e-instruct": "openai/gpt-oss-20b",
     "qwen/qwen3-32b": "openai/gpt-oss-20b",
+    "kimi-k2.5": "kimi-k2.6",
+    "kimi-latest": "kimi-k3",
 }
 
 
