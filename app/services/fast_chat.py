@@ -57,11 +57,14 @@ async def run_fast_chat(
     if max_output_tokens is not None and max_output_tokens > 0:
         options["max_tokens"] = max_output_tokens
 
+    from app.services.settings_store import resolve_chat_default_route
+
+    provider, model = resolve_chat_default_route(settings)
     result = await llm_gateway.generate_with_meta(
         messages=messages,
-        model=settings.llm_default_model,
+        model=model,
         options=options,
-        provider=settings.llm_default_provider,
+        provider=provider,
     )
     sentiment = detect_sentiment(query) if settings.enable_sentiment_tone else None
     return ChatResponse(

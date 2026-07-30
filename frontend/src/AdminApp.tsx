@@ -28,6 +28,11 @@ import { fetchAuthConfig, ensureAuthToken, type AuthConfig, type CurrentUser } f
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useTheme } from './hooks/useTheme';
 import { userInitials, userLabel } from './utils/userDisplay';
+import {
+  defaultModelForProvider,
+  modelsForProvider,
+  modelSelectOptions,
+} from './adminProviderModels';
 
 type Tab = 'users' | 'invites' | 'providers' | 'routing' | 'usage' | 'access';
 
@@ -567,43 +572,36 @@ const PROVIDER_PRESETS = [
     name: 'groq',
     display_name: 'Groq',
     base_url: 'https://api.groq.com/openai',
-    modelHint: 'openai/gpt-oss-20b',
   },
   {
     name: 'perplexity',
     display_name: 'Perplexity',
     base_url: 'https://api.perplexity.ai',
-    modelHint: 'sonar-pro',
   },
   {
     name: 'gemini',
     display_name: 'Google Gemini',
     base_url: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    modelHint: 'gemini-flash-latest',
   },
   {
     name: 'openai',
     display_name: 'OpenAI',
     base_url: 'https://api.openai.com',
-    modelHint: 'gpt-4o-mini',
   },
   {
     name: 'deepseek',
     display_name: 'DeepSeek',
     base_url: 'https://api.deepseek.com',
-    modelHint: 'deepseek-v4-flash',
   },
   {
     name: 'kimi',
     display_name: 'Kimi (Moonshot)',
     base_url: 'https://api.moonshot.ai/v1',
-    modelHint: 'kimi-k2.6',
   },
   {
     name: 'qwen',
     display_name: 'Qwen',
     base_url: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
-    modelHint: 'qwen-plus',
   },
 ] as const;
 
@@ -615,8 +613,9 @@ function ProvidersPanel() {
     base_url: 'https://api.groq.com/openai',
     api_key: '',
   });
-  const [modelHint, setModelHint] = useState('openai/gpt-oss-20b');
   const [error, setError] = useState<string | null>(null);
+  const modelOptions = modelsForProvider(form.name);
+  const modelHint = defaultModelForProvider(form.name);
 
   const load = useCallback(async () => {
     setProviders(await fetchAdminProviders());
@@ -633,7 +632,6 @@ function ProvidersPanel() {
       base_url: preset.base_url,
       api_key: form.api_key,
     });
-    setModelHint(preset.modelHint);
     setError(null);
   };
 
@@ -698,9 +696,26 @@ function ProvidersPanel() {
           onChange={(e) => setForm({ ...form, api_key: e.target.value })}
         />
         <p className="sm:col-span-2 text-[12px] text-[var(--phosphor-dim)]">
-          Suggested routing model id: <span className="font-mono text-[var(--ui-accent)]">{modelHint}</span>
+          {modelOptions.length > 0 ? (
+            <>
+              Routing models:{' '}
+              <span className="font-mono text-[var(--ui-accent)]">{modelOptions.join(', ')}</span>
+              {modelHint ? (
+                <>
+                  {' '}
+                  · default <span className="font-mono text-[var(--ui-accent)]">{modelHint}</span>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <>No curated models for this provider name — Routing will show an empty model list.</>
+          )}
           {form.name === 'perplexity' && (
-            <> · Note: <span className="font-mono">PERPLEXITY_API_KEY</span> in env is still used for web search; this provider is for Sonar chat.</>
+            <>
+              {' '}
+              · Note: <span className="font-mono">PERPLEXITY_API_KEY</span> in env is still used for web
+              search; this provider is for Sonar chat.
+            </>
           )}
         </p>
         {error && <p className="sm:col-span-2 text-[12.5px] text-red-400">{error}</p>}
@@ -790,34 +805,64 @@ function RoutingPanel() {
       }}
     >
       <p className="text-[12.5px] text-[var(--phosphor-dim)]">
-        Each stage can use a different enabled provider. Model ids must match that vendor (e.g. Groq{' '}
-        <span className="font-mono">openai/gpt-oss-20b</span>).
+        Each stage can use a different enabled provider. Pick a model from that vendor&apos;s available
+        list (e.g. Groq <span className="font-mono">openai/gpt-oss-20b</span>).
       </p>
-      {rows.map((row) => (
-        <div key={row.label} className="admin-panel flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{row.label}</div>
-          <div className="flex flex-wrap items-center gap-2 font-mono text-[12.5px] text-[var(--phosphor-dim)]">
-            <select
-              className="admin-input min-w-[140px] py-1.5"
-              value={routing[row.providerKey]}
-              onChange={(e) => setRouting({ ...routing, [row.providerKey]: e.target.value })}
-            >
-              {providerOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <span>/</span>
-            <input
-              className="admin-input min-w-[180px] py-1.5"
-              value={routing[row.modelKey]}
-              onChange={(e) => setRouting({ ...routing, [row.modelKey]: e.target.value })}
-              placeholder="model id"
-            />
+      {rows.map((row) => {
+        const provider = String(routing[row.providerKey] ?? '');
+        const model = String(routing[row.modelKey] ?? '');
+        const options = modelSelectOptions(provider, model);
+        const hasCatalog = modelsForProvider(provider).length > 0;
+        return (
+          <div
+            key={row.label}
+            className="admin-panel flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{row.label}</div>
+            <div className="flex flex-wrap items-center gap-2 font-mono text-[12.5px] text-[var(--phosphor-dim)]">
+              <select
+                className="admin-input min-w-[140px] py-1.5"
+                value={provider}
+                onChange={(e) => {
+                  const nextProvider = e.target.value;
+                  const nextModels = modelsForProvider(nextProvider);
+                  const nextModel =
+                    nextModels.includes(model) ? model : defaultModelForProvider(nextProvider);
+                  setRouting({
+                    ...routing,
+                    [row.providerKey]: nextProvider,
+                    [row.modelKey]: nextModel,
+                  });
+                }}
+              >
+                {providerOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <span>/</span>
+              <select
+                className="admin-input min-w-[220px] py-1.5"
+                value={options.includes(model) ? model : options[0] ?? ''}
+                disabled={options.length === 0}
+                onChange={(e) => setRouting({ ...routing, [row.modelKey]: e.target.value })}
+              >
+                {options.length === 0 ? (
+                  <option value="">No models for provider</option>
+                ) : (
+                  options.map((id) => (
+                    <option key={id} value={id}>
+                      {id}
+                      {!hasCatalog || !modelsForProvider(provider).includes(id) ? ' (current)' : ''}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
       {error && <p className="text-[12.5px] text-red-400">{error}</p>}
       <button type="submit" className="admin-btn-primary self-start">
         {saved ? 'Saved' : 'Save routing'}

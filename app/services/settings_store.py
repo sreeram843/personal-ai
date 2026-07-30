@@ -180,6 +180,25 @@ def get_effective_routing(db: Session, settings: Optional[Settings] = None) -> E
     return _cached("routing", load)
 
 
+def resolve_chat_default_route(settings: Optional[Settings] = None) -> tuple[str, str]:
+    """Provider/model for single-call Chat paths — prefer Admin Default routing."""
+    cfg = settings or get_settings()
+    try:
+        from app.db.session import get_session_factory
+
+        db = get_session_factory()()
+        try:
+            routing = get_effective_routing(db, cfg)
+            provider = (routing.default_provider or "").strip() or cfg.llm_default_provider
+            model = (routing.default_model or "").strip() or cfg.llm_default_model
+            return provider, model
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("Failed to resolve Admin default routing; using env LLM defaults")
+        return cfg.llm_default_provider, cfg.llm_default_model
+
+
 __all__ = [
     "EffectiveOpenAIConfig",
     "EffectiveRouting",
@@ -189,5 +208,6 @@ __all__ = [
     "get_effective_routing",
     "get_signup_mode",
     "list_enabled_provider_configs",
+    "resolve_chat_default_route",
     "set_signup_mode",
 ]
