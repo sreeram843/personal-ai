@@ -674,7 +674,7 @@ async def chat(
     live_data: LiveDataManager = Depends(get_live_data_manager),
     workflow_memory: WorkflowMemoryStore = Depends(get_workflow_memory_store),
 ) -> ChatResponse:
-    """Direct chat — fast path without smart auto-routing to RAG/workflow."""
+    """Direct chat — single-call (or tools for live data); multi-agent is Smart/workflow only."""
     set_usage_context(user_id=user.id, route="chat")
 
     async def handler(request: ChatRequest, _conversation: Conversation) -> ChatResponse:

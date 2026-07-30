@@ -37,12 +37,20 @@ def skip_live_short_circuit(monkeypatch: pytest.MonkeyPatch) -> None:
         ("Explain quantum computing", True, True, "fast", "orchestrated"),
         ("Explain quantum computing", True, False, "fast", "orchestrated"),
         ("Explain quantum computing", True, False, "fast", "fast"),
+        # Complex prompts used to escalate Chat → multi-agent; Chat stays fast now.
         (
             "Compare three deployment strategies for multi-tenant RAG and recommend trade-offs",
             True,
             True,
+            "fast",
             "orchestrated",
-            "orchestrated",
+        ),
+        (
+            "Compare three deployment strategies for multi-tenant RAG and recommend trade-offs",
+            True,
+            True,
+            "fast",
+            "fast",
         ),
         ("ok", True, False, "fast", "orchestrated"),
     ],
@@ -61,6 +69,17 @@ def test_resolve_chat_execution_strategy(
     )
     assert resolve_chat_execution_strategy(query, settings) == expected
 
+
+def test_force_strategy_still_allows_orchestrated() -> None:
+    settings = Settings(enable_fast_chat=True, enable_tool_agent=True, chat_fallback_strategy="fast")
+    assert (
+        resolve_chat_execution_strategy(
+            "Compare three deployment strategies",
+            settings,
+            {"force_strategy": "orchestrated"},
+        )
+        == "orchestrated"
+    )
 
 def test_list_tools_endpoint(client: TestClient) -> None:
     response = client.get("/tools")

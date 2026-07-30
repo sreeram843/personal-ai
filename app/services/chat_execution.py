@@ -16,7 +16,6 @@ from app.services.information_routing import (
     is_simple_direct_chat,
     is_trivial_chitchat,
     prefers_tool_agent_for_query,
-    should_route_chat_toward_orchestrated,
     should_route_chat_toward_tools,
 )
 from app.services.tool_agent import run_tool_agent
@@ -53,7 +52,12 @@ def resolve_chat_execution_strategy(
     settings: Settings | None = None,
     options: dict | None = None,
 ) -> ChatExecutionStrategy:
-    """Pick the cheapest path that can answer the user well."""
+    """Pick the cheapest Chat path: fast single-call or tools.
+
+    Multi-agent orchestration is reserved for Smart /workflow_chat — Chat mode
+    must not escalate into planner/synthesizer/reviewer/writer by default.
+    Pass options.force_strategy=\"orchestrated\" only for explicit tests/overrides.
+    """
     forced = str((options or {}).get("force_strategy") or "").strip().lower()
     if forced in {"fast", "tools", "orchestrated"}:
         return forced  # type: ignore[return-value]
@@ -63,17 +67,20 @@ def resolve_chat_execution_strategy(
         return "fast"
     if cfg.enable_tool_agent and prefers_tool_agent_for_query(query):
         return "tools"
-    if should_route_chat_toward_orchestrated(query):
-        return "orchestrated"
     if cfg.enable_tool_agent and should_route_chat_toward_tools(query):
         return "tools"
+
     fallback = str(cfg.chat_fallback_strategy or "fast").strip().lower()
-    if fallback not in {"fast", "tools", "orchestrated"}:
+    # Never auto-escalate Chat into multi-agent synthesizer stages.
+    if fallback == "orchestrated":
+        fallback = "fast"
+    if fallback not in {"fast", "tools"}:
         fallback = "fast"
     if fallback == "tools" and not cfg.enable_tool_agent:
         fallback = "fast"
     if fallback == "fast" and not cfg.enable_fast_chat:
-        fallback = "orchestrated"
+        # Fast disabled — tools if available, else explicit orchestrated only via force.
+        return "tools" if cfg.enable_tool_agent else "orchestrated"
     return fallback  # type: ignore[return-value]
 
 

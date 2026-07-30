@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     llm_openai_base_url: Optional[str] = None
     llm_openai_api_key: Optional[str] = None
     llm_openai_timeout: float = 60.0
+    # Per-stage timeout for Smart / workflow multi-agent LLM calls (Kimi / DeepSeek pro).
+    llm_orchestrated_timeout: float = 300.0
     llm_planner_provider: str = "ollama"
     llm_planner_model: str = "qwen2.5:3b"
     llm_synthesizer_provider: str = "ollama"

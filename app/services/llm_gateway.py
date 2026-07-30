@@ -144,8 +144,8 @@ def _format_openai_provider_error(exc: httpx.HTTPError) -> str:
     if isinstance(exc, httpx.ReadTimeout):
         return (
             "OpenAI-compatible provider request timed out waiting for a response. "
-            "Increase LLM_CLOUD_TIMEOUT / LLM_OPENAI_TIMEOUT (e.g. 180 for DeepSeek v4-pro "
-            "in orchestrated workflow mode)."
+            "Increase LLM_OPENAI_TIMEOUT for Chat, or LLM_ORCHESTRATED_TIMEOUT "
+            "(e.g. 300–600) for Smart / workflow stages with slow models like Kimi or DeepSeek v4-pro."
         )
     return f"OpenAI-compatible provider request failed: {exc}"
 
@@ -269,6 +269,14 @@ class OpenAICompatibleLLMAdapter:
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
 
+        request_timeout = self._timeout
+        raw_timeout = options.get("timeout")
+        if raw_timeout is not None:
+            try:
+                request_timeout = float(raw_timeout)
+            except (TypeError, ValueError):
+                request_timeout = self._timeout
+
         payload: Dict[str, Any] = {
             "model": model,
             "messages": _normalize_openai_messages(messages),
@@ -277,7 +285,7 @@ class OpenAICompatibleLLMAdapter:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=self._timeout) as client:
+            async with httpx.AsyncClient(timeout=request_timeout) as client:
                 response = await client.post(
                     openai_compatible_chat_completions_url(self._base_url),
                     json=payload,

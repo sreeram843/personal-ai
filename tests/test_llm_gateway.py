@@ -55,6 +55,7 @@ def test_format_openai_provider_error_read_timeout_message() -> None:
     message = _format_openai_provider_error(httpx.ReadTimeout("timed out"))
     assert "timed out" in message.lower()
     assert "LLM_OPENAI_TIMEOUT" in message
+    assert "LLM_ORCHESTRATED_TIMEOUT" in message
 
 
 def test_normalize_provider_model_deepseek_aliases() -> None:

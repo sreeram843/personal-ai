@@ -318,6 +318,13 @@ export default function App({ authConfig, user }: AppProps) {
 
     const controller = new AbortController();
     controllersByConversationRef.current.set(targetConversationId, controller);
+    // Smart / multi-agent can run several slow stages; allow up to 10 minutes.
+    const smartTimeoutId =
+      mode === 'smart'
+        ? window.setTimeout(() => {
+            controller.abort();
+          }, 600_000)
+        : undefined;
     const startedAt = performance.now();
 
     const remountController = (fromId: string, toId: string) => {
@@ -472,6 +479,9 @@ export default function App({ authConfig, user }: AppProps) {
         },
       ]);
     } finally {
+      if (smartTimeoutId !== undefined) {
+        window.clearTimeout(smartTimeoutId);
+      }
       if (controllersByConversationRef.current.get(targetConversationId) === controller) {
         controllersByConversationRef.current.delete(targetConversationId);
       }

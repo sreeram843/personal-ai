@@ -667,11 +667,16 @@ class OrchestratedChatService:
         state: Optional[Dict[str, Any]] = None,
     ) -> str:
         stage_config = getattr(self._model_profile, stage)
+        call_options = dict(options)
+        if "timeout" not in call_options:
+            from app.core.config import get_settings
+
+            call_options["timeout"] = get_settings().llm_orchestrated_timeout
         result = await self._llm_gateway.generate_with_meta(
             messages=messages,
             model=stage_config.model,
             provider=stage_config.provider,
-            options=options,
+            options=call_options,
         )
         if state is not None and result.reasoning_content:
             parts = state.setdefault("reasoning_parts", [])
