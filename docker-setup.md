@@ -1,6 +1,6 @@
 # Docker Setup Guide
 
-This file is now a quick pointer to the current container workflow. The detailed operational steps live in `docs/ops-runbook.md`, which tracks the actual stack in `docker-compose.yml`.
+This file is now a quick pointer to the current container workflow. The detailed operational steps live in `docs/runbooks/ops-runbook.md`, which tracks the actual stack in `docker-compose.yml`.
 
 ## Current Compose Topology
 
@@ -42,11 +42,11 @@ docker compose ps
 - Documentation index: `docs/README.md`
 - Architecture: `docs/architecture.md`
 - Live data path: `docs/live-data-flow.md`
-- Operations and troubleshooting: `docs/ops-runbook.md`
+- Operations and troubleshooting: `docs/runbooks/ops-runbook.md`
 - Remote inference (Mac Mini): `docs/compose-profiles.md` + `.env.remote.example`
 - Benchmarks: `docs/model-stress-testing.md`, `docs/results/`
 - Native mobile: `frontend/CAPACITOR.md`
-- Release readiness: `docs/deployment-checklist.md`
+- Release readiness: `docs/runbooks/deployment-checklist.md`
 
 ## Remote inference quick start
 

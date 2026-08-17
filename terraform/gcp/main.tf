@@ -16,7 +16,7 @@ provider "google" {
 }
 
 # Wire: GKE cluster, Cloud SQL Postgres, Memorystore Redis, Secret Manager.
-# See terraform/aws for the reference layout and docs/cloud-deploy-aws.md for Helm steps.
+# See terraform/aws for the reference layout and docs/runbooks/cloud-deploy-aws.md for Helm steps.
 
 output "next_steps" {
   value = "Complete GKE + Cloud SQL modules, then deploy helm/personal-ai with managed service URLs."

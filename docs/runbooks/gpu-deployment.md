@@ -50,4 +50,4 @@ For live LLM quality checks, run scripted prompts against **`POST /chat`** or **
 - `/rag_chat` returns sources with document paths
 - tenant isolation via `tests/test_workflow_run_scoping.py`
 
-See also [compose-profiles.md](compose-profiles.md).
+See also [compose-profiles.md](../compose-profiles.md).

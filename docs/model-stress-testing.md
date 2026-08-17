@@ -170,6 +170,6 @@ JSON artifacts:
 - [README.md](./README.md) — documentation index
 - [testing-accuracy.md](./testing-accuracy.md) — accuracy smoke, routing evals
 - [compose-profiles.md](./compose-profiles.md) — local vs cloud vs remote inference
-- [ops-runbook.md](./ops-runbook.md) — deploy and prod troubleshooting
+- [ops-runbook.md](./runbooks/ops-runbook.md) — deploy and prod troubleshooting
 - [../frontend/CAPACITOR.md](../frontend/CAPACITOR.md) — mobile UI and simulator
 - [results/README.md](./results/README.md) — JSON artifact index

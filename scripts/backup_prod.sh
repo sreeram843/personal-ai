@@ -6,7 +6,7 @@
 #   ./scripts/backup_prod.sh
 #   BACKUP_DIR=/var/backups/personal-ai ./scripts/backup_prod.sh
 #
-# Restore notes: docs/ops-runbook.md (Backup and restore)
+# Restore notes: docs/runbooks/ops-runbook.md (Backup and restore)
 
 set -euo pipefail
 
@@ -76,7 +76,7 @@ Personal AI backup ${STAMP}
 - qdrant_storage.tar.gz : Qdrant storage volume (if present)
 - qdrant-snapshot.json : API snapshot metadata (if present)
 
-Restore: see docs/ops-runbook.md
+Restore: see docs/runbooks/ops-runbook.md
 EOF
 
 if command -v find >/dev/null 2>&1; then

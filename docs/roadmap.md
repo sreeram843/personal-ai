@@ -117,7 +117,7 @@ flowchart LR
 - [x] `GET /health` + `GET /ready` used as K8s probes (Helm templates)
 - [x] Helm chart (app, worker, env templates)
 - [x] Compose profiles: `local`, `cloud-chat`, `gpu-vllm`
-- [x] Document GPU deployment: vLLM/TGI for chat, Ollama for embeds (`docs/gpu-deployment.md`)
+- [x] Document GPU deployment: vLLM/TGI for chat, Ollama for embeds (`docs/runbooks/gpu-deployment.md`)
 
 ### Exit criteria
 
@@ -167,12 +167,12 @@ Update this table as phases complete.
 ## Related docs
 
 - [architecture.md](architecture.md) — current system design
-- [gpu-deployment.md](gpu-deployment.md) — GPU vLLM + Helm probes
+- [gpu-deployment.md](runbooks/gpu-deployment.md) — GPU vLLM + Helm probes
 - [compose-profiles.md](compose-profiles.md) — Docker Compose profile reference
-- [cloud-deploy-aws.md](cloud-deploy-aws.md) — EKS + RDS + Redis + Helm
+- [cloud-deploy-aws.md](runbooks/cloud-deploy-aws.md) — EKS + RDS + Redis + Helm
 - [testing-accuracy.md](testing-accuracy.md) — routing golden set and isolation evals
 - [live-data-flow.md](live-data-flow.md) — live adapter pipeline
-- [deployment-checklist.md](deployment-checklist.md) — pre-release checks
+- [deployment-checklist.md](runbooks/deployment-checklist.md) — pre-release checks
 - [traits.md](traits.md) — seven-trait assistant governance
 
 ---

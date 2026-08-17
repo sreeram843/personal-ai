@@ -17,7 +17,7 @@ Minimal Terraform layouts for deploying Personal AI on managed Kubernetes with e
 
 ## AWS quick start (recommended)
 
-See [docs/cloud-deploy-aws.md](../docs/cloud-deploy-aws.md) for the full walkthrough.
+See [docs/runbooks/cloud-deploy-aws.md](../docs/runbooks/cloud-deploy-aws.md) for the full walkthrough.
 
 ```bash
 cd terraform/aws

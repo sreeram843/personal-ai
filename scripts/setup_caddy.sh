@@ -37,4 +37,4 @@ printf '\nStart / refresh HTTPS stack:\n'
 printf '  docker compose --env-file %s -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml up -d\n' "$ENV_FILE"
 printf '\nOr: ./scripts/deploy_prod.sh\n'
 printf 'Caddyfile: monitoring/caddy/Caddyfile\n'
-printf 'Docs: docs/prod-gcp-vm.md\n'
+printf 'Docs: docs/runbooks/prod-gcp-vm.md\n'

@@ -163,11 +163,11 @@ CADDY_ADMIN_DOMAIN=admin.cura-i.com
 
 5. After changing `.env.cloud`, rebuild the app container (`compose up -d --build`) so env vars reload.
 
-6. **Admin portal** — see [admin-portal.md](./admin-portal.md). Staff sign in at `https://admin.cura-i.com` (same Google OAuth). Invite-only signup is the default; promote yourself via `ADMIN_EMAILS`.
+6. **Admin portal** — see [admin-portal.md](../admin-portal.md). Staff sign in at `https://admin.cura-i.com` (same Google OAuth). Invite-only signup is the default; promote yourself via `ADMIN_EMAILS`.
 
 ## Remote inference (MacBook + Mac Mini)
 
-When using `make up-remote` (see [compose-profiles.md](./compose-profiles.md)):
+When using `make up-remote` (see [compose-profiles.md](../compose-profiles.md)):
 
 | Service | Current dev host | Port |
 |---------|------------------|------|
@@ -207,7 +207,7 @@ AUTH_EMAIL=stress-test@example.com make model-stress-prod
 APP_URL=https://app.cura-i.com ./scripts/verify_prod_auth.sh
 ```
 
-Recorded results: [model-stress-testing.md](./model-stress-testing.md), [results/](./results/).
+Recorded results: [model-stress-testing.md](../model-stress-testing.md), [results/](../results/).
 
 ### Per-message latency in UI
 

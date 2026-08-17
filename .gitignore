@@ -58,9 +58,6 @@ frontend/test-results/
 .opencode.json
 .cursorrules
 .windsurfrules
-AGENTS.md
-CLAUDE.md
-GEMINI.md
 QODER.md
 
 # Testing / coverage

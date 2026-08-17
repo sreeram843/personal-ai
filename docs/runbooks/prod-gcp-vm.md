@@ -90,8 +90,8 @@ For independent nightly/manual verification, see [prod-smoke.md](./prod-smoke.md
 ## Related docs
 
 - [ops-runbook.md](./ops-runbook.md) — day-2 operations
-- [admin-portal.md](./admin-portal.md) — admin host + invites
+- [admin-portal.md](../admin-portal.md) — admin host + invites
 - [monitoring-subdomain.md](./monitoring-subdomain.md) — Grafana HTTPS
 - [deployment-checklist.md](./deployment-checklist.md) — release checklist
-- [marketing-site.md](./marketing-site.md) — marketing/legal domain split and Squarespace copy
+- [marketing-site.md](../marketing-site.md) — marketing/legal domain split and Squarespace copy
 - [prod-smoke.md](./prod-smoke.md) — scheduled production health/auth/chat checks

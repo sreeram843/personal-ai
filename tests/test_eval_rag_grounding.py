@@ -20,11 +20,11 @@ def test_rag_response_preserves_source_metadata_for_citation_accuracy() -> None:
                 id="doc-1",
                 score=0.97,
                 text="Restart the cache before reindexing.",
-                metadata={"name": "ops-runbook.md", "path": "docs/ops-runbook.md"},
+                metadata={"name": "ops-runbook.md", "path": "docs/runbooks/ops-runbook.md"},
             )
         ],
     )
     assert "ops-runbook.md" in response.message
     assert response.sources
-    assert response.sources[0].metadata["path"] == "docs/ops-runbook.md"
+    assert response.sources[0].metadata["path"] == "docs/runbooks/ops-runbook.md"
     assert response.sources[0].score is not None and response.sources[0].score >= 0.9

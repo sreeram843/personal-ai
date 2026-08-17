@@ -208,7 +208,7 @@ model-stress-prod:
 
 prod-deep-smoke:
 	@if [ -z "$$AUTH_TOKEN" ] && [ -z "$$PROD_SMOKE_AUTH_TOKEN" ]; then \
-		echo "ERROR: set AUTH_TOKEN from browser localStorage key personal-ai-auth-token (see docs/prod-smoke.md)"; \
+		echo "ERROR: set AUTH_TOKEN from browser localStorage key personal-ai-auth-token (see docs/runbooks/prod-smoke.md)"; \
 		exit 1; \
 	fi
 	APP_URL=$${APP_URL:-https://app.cura-i.com} bash scripts/prod_deep_smoke.sh

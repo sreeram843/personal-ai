@@ -46,7 +46,7 @@
 - [ ] Assistant messages show response time after completion (when backend deployed).
 - [ ] Mobile drawer and account menu theme toggle (`npm run test:capacitor`).
 - [ ] `make real-api-smoke` passes.
-- [ ] `make model-stress-local` or prod stress with `AUTH_EMAIL` (see [docs/model-stress-testing.md](./model-stress-testing.md)).
+- [ ] `make model-stress-local` or prod stress with `AUTH_EMAIL` (see [../model-stress-testing.md](../model-stress-testing.md)).
 
 ## Production-specific
 

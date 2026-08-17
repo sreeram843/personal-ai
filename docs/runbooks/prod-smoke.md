@@ -65,7 +65,7 @@ Deep smoke covers:
 
 **Mutations:** creates a conversation and several messages under **your** account and consumes provider tokens. Prefer a dedicated low-privilege test user when possible; an admin account is fine for ad-hoc checks. JWT expires with the normal session lifetime.
 
-Do **not** schedule deep smoke in GitHub Actions nightly (cost + personal tokens). Keep Actions on the light [`scripts/prod_smoke.sh`](../scripts/prod_smoke.sh) workflow.
+Do **not** schedule deep smoke in GitHub Actions nightly (cost + personal tokens). Keep Actions on the light [`scripts/prod_smoke.sh`](../../scripts/prod_smoke.sh) workflow.
 
 ## GitHub configuration
 
