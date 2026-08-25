@@ -6,7 +6,6 @@ test.describe('capacitor mobile shell', () => {
   test.use({
     viewport: { width: 390, height: 844 },
     hasTouch: true,
-    isMobile: true,
   });
 
   test.beforeEach(async ({ page }) => {

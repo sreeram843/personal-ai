@@ -109,6 +109,8 @@ test.describe('accessibility', () => {
     await expect(page.getByRole('button', { name: 'Close about panel' })).toBeFocused();
     if (canTab) {
       await page.keyboard.press('Tab');
+      await expect(about.getByRole('link', { name: 'hello@cura-i.com' })).toBeFocused();
+      await page.keyboard.press('Tab');
       await expect(page.getByRole('button', { name: 'Close about panel' })).toBeFocused();
     }
     await page.keyboard.press('Escape');
