@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth import (
@@ -44,6 +44,7 @@ def read_auth_config(
         signup_mode=get_signup_mode(db, settings),
         privacy_policy_url=(settings.privacy_policy_url or "").strip() or None,
         terms_of_service_url=(settings.terms_of_service_url or "").strip() or None,
+        support_email=(settings.support_email or "").strip() or None,
     )
 
 
@@ -119,6 +120,13 @@ def google_sign_in(
     token = create_access_token(user_id=user.id, settings=settings)
     record_audit("auth.sign_in", user_id=str(user.id), detail={"method": "google", "email": user.email})
     return TokenResponse(access_token=token, user_id=str(user.id))
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout_current_user(user: CurrentUser) -> Response:
+    """Record sign-out. JWTs stay stateless; the client drops the token."""
+    record_audit("auth.sign_out", user_id=str(user.id))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me", response_model=UserResponse)

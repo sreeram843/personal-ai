@@ -586,7 +586,7 @@ export default function App({ authConfig, user }: AppProps) {
     }
     setConversationId(null);
     setAboutOpen(false);
-    logout();
+    void logout();
   };
 
   const uploadsInFlight = uploadStatuses.some((item) =>
@@ -606,6 +606,7 @@ export default function App({ authConfig, user }: AppProps) {
       id: createId(),
       name: file.name,
       status: 'uploading',
+      file,
     }));
     setUploadStatuses((prev) => [...items, ...prev]);
 
@@ -807,7 +808,11 @@ export default function App({ authConfig, user }: AppProps) {
         mobileOpen={mobileSidebarOpen}
         onMobileClose={() => setMobileSidebarOpen(false)}
       />
-      <AboutPanel open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <AboutPanel
+        open={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        supportEmail={authConfig.support_email || 'hello@cura-i.com'}
+      />
       <SettingsPanel
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -867,7 +872,15 @@ export default function App({ authConfig, user }: AppProps) {
                 onApproveTools={handleApproveTools}
               />
             )}
-            <UploadStatusList items={uploadStatuses} />
+            <UploadStatusList
+              items={uploadStatuses}
+              onRetry={(item) => {
+                if (item.file) {
+                  setUploadStatuses((prev) => prev.filter((row) => row.id !== item.id));
+                  void onFilesSelected([item.file]);
+                }
+              }}
+            />
           </div>
         </div>
         <div className="composer-dock pointer-events-none absolute inset-x-0 z-20 px-3 pt-10 sm:px-4">

@@ -50,6 +50,7 @@ Compose profiles — see [docs/compose-profiles.md](docs/compose-profiles.md).
 | **Users** (run it) | This README · [docs/compose-profiles.md](docs/compose-profiles.md) |
 | **Contributors** (develop) | [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
 | **Architecture** | [docs/architecture.md](docs/architecture.md) · [docs/adr/](docs/adr/) |
+| **Marketing & legal** | [docs/marketing-site.md](docs/marketing-site.md) (`cura-i.com` vs `app.cura-i.com`) |
 | **API reference** | [docs/api.md](docs/api.md) |
 | **Operations / runbooks** | [docs/runbooks/](docs/runbooks/) |
 | **Testing & benchmarks** | [docs/testing-accuracy.md](docs/testing-accuracy.md) · [docs/model-stress-testing.md](docs/model-stress-testing.md) |

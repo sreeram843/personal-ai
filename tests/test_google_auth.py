@@ -16,6 +16,7 @@ def test_auth_config_when_auth_disabled(client: TestClient) -> None:
     body = response.json()
     assert body["auth_disabled"] is True
     assert body["google_auth_enabled"] is False
+    assert body["support_email"] == "hello@cura-i.com"
 
 
 def test_auth_config_when_google_enabled(db_session, auth_settings: Settings) -> None:

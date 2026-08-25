@@ -39,11 +39,17 @@ Latency is stored in Postgres message metadata (`latency_ms`) and survives reloa
 
 ## Live-data cards
 
-Assistant messages may include structured cards (weather, FX, stocks, news, **nearby places**, etc.) rendered from `content_blocks` in the API response.
+Assistant messages may include structured cards (weather, FX, stocks, news, **nearby places**, etc.) rendered from `content_blocks` in the API response. Card footers show source, local fetch time, and confidence when present.
+
+Weather titles use a geocoded place name (`Austin, Texas, United States`), not raw coordinates.
+
+## Sources
+
+When a RAG reply includes retrieved chunks, `SourcesPanel` lists titles, paths, relevance scores, and a short excerpt under the assistant message.
 
 ## Metadata not shown in bubbles
 
-Sources, workflow trace, and step memory are not rendered inline for a cleaner UI. Workflow data may still exist in API responses for future use.
+Workflow traces stay in the reasoning/trace panel rather than inline in the bubble.
 
 ## Mobile-specific
 

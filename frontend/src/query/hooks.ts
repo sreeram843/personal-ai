@@ -8,6 +8,7 @@ import {
   fetchCurrentUser,
   listConversations,
   mapServerMessage,
+  signOut,
   updateConversation,
 } from '../api';
 import { clearAuthToken, clearSessionNotice, getAuthToken } from '../auth';
@@ -48,7 +49,8 @@ export function useCurrentUser(enabled: boolean) {
 export function useLogout() {
   const queryClient = useQueryClient();
 
-  return () => {
+  return async () => {
+    await signOut();
     clearSessionNotice();
     clearAuthToken();
     queryClient.clear();

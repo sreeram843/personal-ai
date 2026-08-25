@@ -116,7 +116,7 @@ Sensitive actions emit JSON lines on logger `personal_ai.audit` (`audit_event`, 
 {container="personal-ai-app"} |= "audit_event"
 ```
 
-Events include `auth.sign_in`, `account.export`, `account.delete`, `conversation.delete`, `documents.ingest`, `admin.user.update`, `admin.invite.create`.
+Events include `auth.sign_in`, `auth.sign_out`, `account.export`, `account.delete`, `conversation.delete`, `documents.ingest`, `admin.user.update`, `admin.invite.create`. The provisioned **App logs** dashboard has an Audit panel (`|= "audit_event"`).
 
 **Compose profiles:** `app` depends on `ollama`, which is only defined with `--profile cloud-chat`. Plain `docker compose logs app` fails with “undefined service ollama”. Use container names or the full compose invocation:
 

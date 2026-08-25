@@ -198,6 +198,7 @@ export interface UploadStatus {
   name: string;
   status: 'idle' | 'uploading' | 'queued' | 'processing' | 'success' | 'error';
   error?: string;
+  file?: File;
 }
 
 export interface DemoConfig {

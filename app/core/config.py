@@ -130,6 +130,7 @@ class Settings(BaseSettings):
     # Optional public legal URLs (OAuth consent + login footer).
     privacy_policy_url: Optional[str] = None
     terms_of_service_url: Optional[str] = None
+    support_email: str = "hello@cura-i.com"
 
     workflow_memory_path: str = "memory/workflow_sessions.json"
     workflow_memory_max_entries: int = 24

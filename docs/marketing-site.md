@@ -43,7 +43,7 @@ Use the transparent CurieAI mark from `frontend/public/curai-favicon.svg` and th
    - Privacy → `/privacy`
    - Terms → `/terms`
    - Product → `https://app.cura-i.com`
-   - Support contact once issue #25 is completed
+   - Support → `mailto:hello@cura-i.com`
 
 ## Publishing checklist
 

@@ -77,6 +77,23 @@
           "refId": "A"
         }
       ]
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 5,
+      "title": "Top failing live-data domains (24h)",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "topk(8, sum by (domain) (increase(live_adapter_requests_total{status=\"error\"}[24h])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{domain}}",
+          "refId": "A"
+        }
+      ]
     }
   ],
   "refresh": "30s",

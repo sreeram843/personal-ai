@@ -477,6 +477,7 @@ Normal chat (`POST /chat/stream`) runs in the API process. Rebuild the app image
 - `live_adapter_latency_seconds` — provider latency histogram.
 - Prometheus scrapes both itself and the app.
 - Grafana is provisioned against the internal `http://prometheus:9090` compose address.
+- Live-data failures: Grafana dashboard **Personal AI — Live Data** (`live-data.json`) charts adapter errors by domain and a 24h top-failing-domains table.
 
 ---
 

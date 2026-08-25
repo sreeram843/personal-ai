@@ -7,6 +7,10 @@ test.describe('public legal pages', () => {
     await expect(page.getByRole('heading', { name: 'Privacy Policy' })).toBeVisible();
     await expect(page.getByText('Information we process')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+    await expect(page.getByRole('link', { name: 'hello@cura-i.com' }).first()).toHaveAttribute(
+      'href',
+      'mailto:hello@cura-i.com',
+    );
   });
 
   test('terms are public and link back to CurieAI', async ({ page }) => {

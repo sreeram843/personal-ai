@@ -15,6 +15,19 @@ curl -s -X POST http://localhost:8000/auth/token \
 Conversation and message APIs are scoped per user. RAG ingest and search filter
 Qdrant by `user_id`.
 
+## Auth
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /auth/config` | Public login config (Google client id, legal URLs, `support_email`) |
+| `POST /auth/google` | Exchange a Google ID token for a JWT |
+| `POST /auth/logout` | Audit `auth.sign_out` (JWT remains stateless; client drops the token) |
+| `GET /auth/me` | Current user |
+| `GET /auth/me/export` | Account data export |
+| `DELETE /auth/me` | Delete account |
+
+Support contact defaults to `hello@cura-i.com` (`SUPPORT_EMAIL`). Public legal pages: `/privacy`, `/terms`. Domain split: [marketing-site.md](./marketing-site.md).
+
 ## Chat
 
 | Endpoint | Description |

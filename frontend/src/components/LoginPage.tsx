@@ -27,6 +27,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
   const isAdmin = variant === 'admin';
   const privacyUrl = authConfig.privacy_policy_url || '/privacy';
   const termsUrl = authConfig.terms_of_service_url || '/terms';
+  const supportEmail = authConfig.support_email || 'hello@cura-i.com';
 
   useEffect(() => {
     if (useNativeGoogle) {
@@ -186,6 +187,13 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
             href={termsUrl}
           >
             Terms
+          </a>
+          {' · '}
+          <a
+            className="underline decoration-[var(--ui-border)] underline-offset-2 hover:text-[var(--phosphor)]"
+            href={`mailto:${supportEmail}`}
+          >
+            {supportEmail}
           </a>
         </p>
       </div>

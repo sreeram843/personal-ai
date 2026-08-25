@@ -55,7 +55,10 @@ Fill at least:
    - `https://admin.cura-i.com`
 3. Redirect URIs are not required for `@react-oauth/google` button / One Tap
 4. [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent):
-   - App name, support email, privacy/terms links
+   - App name: CurieAI
+   - Support email: `hello@cura-i.com` (or `SUPPORT_EMAIL`)
+   - Privacy: `https://app.cura-i.com/privacy` (or `PRIVACY_POLICY_URL`)
+   - Terms: `https://app.cura-i.com/terms` (or `TERMS_OF_SERVICE_URL`)
    - Publishing status **In production** for public sign-in (or Testing + Test users for private beta)
 5. Redeploy after changing `.env.cloud`
 

@@ -1,9 +1,17 @@
-import { expect, test } from '@playwright/test';
-import { prepareAuthenticatedPage, mockConversationMessages } from './utils/apiMocks';
+import { expect, test, type Page } from '@playwright/test';
+import { mockConversationMessages, mockIngestFiles, mockSseStream, prepareAuthenticatedPage } from './utils/apiMocks';
 import { assertQaGuards, installQaGuards } from './utils/qaGuards';
 
-async function preparePage(page: import('@playwright/test').Page, mode?: 'chat' | 'smart') {
+async function preparePage(page: Page, mode?: 'chat' | 'smart') {
   await prepareAuthenticatedPage(page, { mode });
+}
+
+async function fillComposer(page: Page, text: string) {
+  const input = page.getByRole('textbox', { name: 'Message input' });
+  await input.click();
+  await input.fill(text);
+  await expect(input).toHaveValue(text);
+  await expect(page.getByRole('button', { name: 'Send message' })).toBeEnabled();
 }
 
 test.describe('browser interaction flows', () => {
@@ -21,29 +29,23 @@ test.describe('browser interaction flows', () => {
       { id: 'a1', role: 'assistant', content: 'CACHE PIPELINE VERIFIED' },
     ]);
 
-    await page.route('**/chat/stream', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        body: [
-          `data: ${JSON.stringify({ type: 'conversation', conversation_id: 'conv-1' })}`,
-          `data: ${JSON.stringify({
-            type: 'final',
-            response: {
-              message: 'CACHE PIPELINE VERIFIED',
-              conversation_id: 'conv-1',
-            },
-          })}`,
-        ].join('\n\n') + '\n\n',
-      });
-    });
+    await mockSseStream(
+      page,
+      '/chat/stream',
+      [
+        `data: ${JSON.stringify({ type: 'conversation', conversation_id: 'conv-1' })}`,
+        `data: ${JSON.stringify({
+          type: 'final',
+          response: {
+            message: 'CACHE PIPELINE VERIFIED',
+            conversation_id: 'conv-1',
+          },
+        })}`,
+      ].join('\n\n') + '\n\n',
+    );
 
     await preparePage(page, 'chat');
-    await page.getByPlaceholder(/Message/).fill('Explain the cache path');
+    await fillComposer(page, 'Explain the cache path');
     await page.getByRole('button', { name: 'Send message' }).click();
 
     await expect(page.getByRole('log').getByText('Explain the cache path', { exact: true })).toBeVisible();
@@ -76,36 +78,30 @@ test.describe('browser interaction flows', () => {
       },
     ]);
 
-    await page.route('**/smart_chat/stream', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        body: `data: ${JSON.stringify({
-          type: 'final',
-          response: {
-            message: 'SMART RESPONSE READY',
-            conversation_id: 'conv-smart-1',
-            sources: [
-              {
-                id: 'doc-1',
-                score: 0.982,
-                metadata: {
-                  name: 'ops-runbook.md',
-                  path: 'docs/ops-runbook.md',
-                },
+    await mockSseStream(
+      page,
+      '/smart_chat/stream',
+      `data: ${JSON.stringify({
+        type: 'final',
+        response: {
+          message: 'SMART RESPONSE READY',
+          conversation_id: 'conv-smart-1',
+          sources: [
+            {
+              id: 'doc-1',
+              score: 0.982,
+              metadata: {
+                name: 'ops-runbook.md',
+                path: 'docs/ops-runbook.md',
               },
-            ],
-          },
-        })}\n\n`,
-      });
-    });
+            },
+          ],
+        },
+      })}\n\n`,
+    );
 
     await preparePage(page);
-    await page.getByPlaceholder(/Message/).fill('Summarize the ops guidance');
+    await fillComposer(page, 'Summarize the ops guidance');
     await page.getByRole('button', { name: 'Send message' }).click();
 
     await expect(page.getByText('SMART RESPONSE READY')).toBeVisible();
@@ -116,17 +112,7 @@ test.describe('browser interaction flows', () => {
   });
 
   test('document upload shows a success status', async ({ page }) => {
-    await page.route('**/ingest/files', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ count: 1 }),
-      });
-    });
+    await mockIngestFiles(page, { count: 1 });
 
     await preparePage(page);
     // Set files directly on the hidden input — avoids Firefox headless crashes from native picker on Linux CI.
@@ -155,48 +141,32 @@ test.describe('browser interaction flows', () => {
       },
     ]);
 
-    await page.route('**/ingest/files', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ count: 2 }),
-      });
-    });
+    await mockIngestFiles(page, { count: 2 });
 
-    await page.route('**/smart_chat/stream', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      await route.fulfill({
-        status: 200,
-        contentType: 'text/event-stream',
-        body: [
-          `data: ${JSON.stringify({ type: 'conversation', conversation_id: 'conv-upload-1' })}`,
-          `data: ${JSON.stringify({
-            type: 'final',
-            response: {
-              message: 'According to [sample-notes.md], the upload pipeline is verified.',
-              conversation_id: 'conv-upload-1',
-              sources: [
-                {
-                  id: 'doc-upload-1',
-                  score: 0.991,
-                  metadata: {
-                    name: 'sample-notes.md',
-                    path: 'sample-notes.md',
-                  },
+    await mockSseStream(
+      page,
+      '/smart_chat/stream',
+      [
+        `data: ${JSON.stringify({ type: 'conversation', conversation_id: 'conv-upload-1' })}`,
+        `data: ${JSON.stringify({
+          type: 'final',
+          response: {
+            message: 'According to [sample-notes.md], the upload pipeline is verified.',
+            conversation_id: 'conv-upload-1',
+            sources: [
+              {
+                id: 'doc-upload-1',
+                score: 0.991,
+                metadata: {
+                  name: 'sample-notes.md',
+                  path: 'sample-notes.md',
                 },
-              ],
-            },
-          })}`,
-        ].join('\n\n') + '\n\n',
-      });
-    });
+              },
+            ],
+          },
+        })}`,
+      ].join('\n\n') + '\n\n',
+    );
 
     await preparePage(page);
     await page.locator('input[type="file"]').setInputFiles({
@@ -204,9 +174,9 @@ test.describe('browser interaction flows', () => {
       mimeType: 'text/markdown',
       buffer: Buffer.from('# Sample\n\nUpload pipeline verified.\n', 'utf-8'),
     });
-    await expect(page.getByText('SUCCESS')).toBeVisible();
+    await expect(page.getByText('SUCCESS', { exact: true })).toBeVisible();
 
-    await page.getByPlaceholder(/Message/).fill('Summarize my uploaded notes');
+    await fillComposer(page, 'Summarize my uploaded notes');
     await page.getByRole('button', { name: 'Send message' }).click();
 
     await expect(page.getByRole('log')).toContainText('upload pipeline is verified');

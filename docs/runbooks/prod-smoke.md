@@ -84,6 +84,6 @@ The workflow also supports **Actions → Production Smoke → Run workflow**, wh
 
 ## Failure notification
 
-A failed check fails the workflow and writes the target URL to the GitHub Actions job summary. Enable GitHub notification emails for failed Actions runs (GitHub Settings → Notifications → Actions) or connect the repository’s Actions failures to the team’s incident channel.
+A failed check fails the workflow, writes the target URL to the GitHub Actions job summary, and opens or comments on a **Production smoke failing** issue so a broken deploy is visible without watching Actions. Enable GitHub notification emails for failed Actions runs (GitHub Settings → Notifications → Actions) or connect the repository’s Actions failures to the team’s incident channel.
 
 Use the deployment logs and [ops runbook](./ops-runbook.md) for triage.
