@@ -79,7 +79,7 @@ _OVERPASS_ENDPOINTS: tuple[str, ...] = (
 )
 
 _HTTP_HEADERS = {
-    "User-Agent": "CurAI/1.0 (https://github.com/sreeram843/personal-ai)",
+    "User-Agent": "CurieAI/1.0 (https://github.com/sreeram843/personal-ai)",
 }
 
 _NOMINATIM_CATEGORY_QUERIES = {

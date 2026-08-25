@@ -171,6 +171,25 @@ export function SettingsPanel({
     }
   }, [open, tab]);
 
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+      // Nested confirm dialogs (e.g. delete account) own Escape first.
+      if (document.querySelector('[role="alertdialog"]')) {
+        return;
+      }
+      event.preventDefault();
+      onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
+
   if (!open) {
     return null;
   }

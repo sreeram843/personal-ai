@@ -180,16 +180,50 @@ export async function mockConversationMessages(
 
 export async function prepareAuthenticatedPage(
   page: Page,
-  options: { mode?: 'chat' | 'smart' } = {},
+  options: {
+    mode?: 'chat' | 'smart';
+    conversations?: Array<{
+      id: string;
+      title: string;
+      mode?: string;
+      message_count?: number;
+      pinned?: boolean;
+    }>;
+  } = {},
 ): Promise<void> {
   await installApiBootstrapMocks(page);
+  if (options.conversations) {
+    const conversations = options.conversations;
+    await page.route('**/conversations', async (route) => {
+      if (route.request().method() !== 'GET') {
+        await route.fallback();
+        return;
+      }
+      const now = nowIso();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          conversations: conversations.map((conversation) => ({
+            id: conversation.id,
+            title: conversation.title,
+            mode: conversation.mode ?? 'smart',
+            message_count: conversation.message_count ?? 0,
+            pinned: conversation.pinned ?? false,
+            created_at: now,
+            updated_at: now,
+          })),
+        }),
+      });
+    });
+  }
   await page.addInitScript(({ mode }) => {
     localStorage.clear();
     localStorage.setItem('personal-ai-auth-token', 'playwright-test-token');
     if (mode) {
       localStorage.setItem('personal-ai-mode', JSON.stringify(mode));
     }
-  }, options);
+  }, { mode: options.mode });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   const readyText =
     options.mode === 'chat' ? 'Start a direct model conversation' : 'Start a smart-routed conversation';

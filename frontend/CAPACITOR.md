@@ -1,6 +1,6 @@
 # Capacitor native apps
 
-CurAI ships as a cross-platform mobile app via [Capacitor](https://capacitorjs.com/). The React/Vite web build is copied into native iOS and Android shells.
+CurieAI ships as a cross-platform mobile app via [Capacitor](https://capacitorjs.com/). The React/Vite web build is copied into native iOS and Android shells.
 
 ## Prerequisites
 

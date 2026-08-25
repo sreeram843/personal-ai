@@ -175,7 +175,7 @@ function CuraiLogoMark({
   );
 }
 
-/** CurAI mark — SVG bulb behind orbits; electrons travel fixed paths. */
+/** CurieAI mark — SVG bulb behind orbits; electrons travel fixed paths. */
 export function CuraiLogo({ state = 'idle', size = 32, className, title }: CuraiLogoProps) {
   const gradientId = `curai-bulb-${useId().replace(/:/g, '')}`;
   const prefersReducedMotion = usePrefersReducedMotion();

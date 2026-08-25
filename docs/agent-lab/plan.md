@@ -89,6 +89,8 @@ have seen the agent self-correct from at least one real traceback.
 **Done when:** you can say, with traces, where reflection helped and where it
 just doubled cost.
 
+**Write-up:** [phase-5.md](./phase-5.md) — drafter+critic vs `/workflow_chat`.
+
 ## Phase 6 — Memory + evals (~1 week, capstone)
 
 **Goal:** the two things that separate demos from real agent products.
@@ -100,6 +102,8 @@ just doubled cost.
 3. Re-score everything from Phases 1–4; change a prompt, re-run, watch scores.
 
 **Done when:** a prompt change can be *measured* instead of eyeballed.
+
+**Write-up:** [phase-6.md](./phase-6.md) — memory-forming agent + opt-in eval harness.
 
 ## Phase 7 (optional) — Tool-building agent
 

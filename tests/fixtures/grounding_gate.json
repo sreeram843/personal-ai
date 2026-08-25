@@ -1,0 +1,88 @@
+{
+  "cases": [
+    {
+      "id": "ungrounded-numeric-acme",
+      "text": "Acme Corp reported $4.2 million in Q3 2023.",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": false
+    },
+    {
+      "id": "ungrounded-kubernetes-window",
+      "text": "Kubernetes 1.29 requires a 12-minute drain window before rollout.",
+      "evidence_ids": ["doc-k8s"],
+      "registry_paths": ["docs/k8s-rollout.md"],
+      "expect_pass": false
+    },
+    {
+      "id": "ungrounded-invalid-marker",
+      "text": "Acme Corp grew 12% last year [[evidence:other-id]].",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": false
+    },
+    {
+      "id": "ungrounded-mixed-second-sentence",
+      "text": "Restart the cache first [[evidence:doc-1]]. Acme Corp hired 400 engineers in Austin.",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/ops-runbook.md"],
+      "expect_pass": false
+    },
+    {
+      "id": "ungrounded-path-mismatch",
+      "text": "According to [docs/unrelated.md], revenue was $9 million.",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": false
+    },
+    {
+      "id": "grounded-evidence-marker",
+      "text": "Acme Corp reported $4.2 million in Q3 2023 [[evidence:doc-1]].",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": true
+    },
+    {
+      "id": "grounded-path-citation",
+      "text": "According to [docs/ops-runbook.md], restart the cache first.",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/ops-runbook.md"],
+      "expect_pass": true
+    },
+    {
+      "id": "grounded-basename-citation",
+      "text": "Restart the cache before reindexing [ops-runbook.md].",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/ops-runbook.md"],
+      "expect_pass": true
+    },
+    {
+      "id": "hedge-cannot-verify",
+      "text": "I cannot verify the Q3 revenue figure from the available evidence.",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": true
+    },
+    {
+      "id": "hedge-cannot-confirm",
+      "text": "I cannot confirm that Acme Corp hired 400 engineers.",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": true
+    },
+    {
+      "id": "question-not-claim",
+      "text": "What was Acme Corp revenue in Q3 2023?",
+      "evidence_ids": ["doc-1"],
+      "registry_paths": ["docs/finance.md"],
+      "expect_pass": true
+    },
+    {
+      "id": "empty-evidence-passthrough",
+      "text": "Acme Corp reported $4.2 million in Q3 2023.",
+      "evidence_ids": [],
+      "registry_paths": [],
+      "expect_pass": true
+    }
+  ]
+}

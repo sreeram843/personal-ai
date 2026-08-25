@@ -108,6 +108,7 @@ async def retrieve_user_documents(
             candidates,
             settings=settings,
             pack_limit=pack_limit,
+            user_id=user_id,
         )
     elif settings.retrieval_rerank_enabled:
         ce_scores = await score_with_cross_encoder(query, candidates, settings=settings)
@@ -119,6 +120,7 @@ async def retrieve_user_documents(
             summary_boost=settings.retrieval_summary_boost,
             cross_encoder_scores=ce_scores,
             cross_encoder_weight=settings.retrieval_cross_encoder_weight,
+            user_id=user_id,
         )
     else:
         sources = sorted(candidates, key=lambda item: item.score, reverse=True)[:pack_limit]

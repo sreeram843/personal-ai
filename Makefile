@@ -1,4 +1,4 @@
-.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod prod-deep-smoke security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval check-remote-inference
+.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod prod-deep-smoke backup-prod restore-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval eval-workflow check-remote-inference
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
 COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
@@ -32,6 +32,8 @@ help:
 	@echo "make model-stress-local   - Concurrent chat stress test (local remote inference)"
 	@echo "make model-stress-prod    - Lighter chat stress test (needs AUTH_TOKEN, app.cura-i.com)"
 	@echo "make prod-deep-smoke      - Deep prod smoke (needs AUTH_TOKEN JWT from browser)"
+	@echo "make backup-prod          - Dump Postgres + Qdrant volume to backups/<UTC-stamp>"
+	@echo "make restore-prod         - Restore from BACKUP_PATH or BACKUP_STAMP (overwrites live data)"
 	@echo "make test-frontend  - Run Playwright browser suite"
 	@echo "make security-check - Run lightweight security checks"
 	@echo "make compose-validate - Validate docker compose config"
@@ -46,6 +48,7 @@ help:
 	@echo "make eggplant-eval-live - Offline eval + live /chat smoke (LM Studio via up-remote)"
 	@echo "make eggplant-eval-live-full - Live chat + indirect RAG injection + workflow + connectivity"
 	@echo "make test-eval          - Run all test_eval_* golden pytest modules"
+	@echo "make eval-workflow      - Opt-in /workflow_chat LLM-as-judge eval (RUN_EVAL_WORKFLOW=1)"
 	@echo "make check-remote-inference - Curl LM Studio + Ollama before live tests"
 
 build:
@@ -213,6 +216,16 @@ prod-deep-smoke:
 	fi
 	APP_URL=$${APP_URL:-https://app.cura-i.com} bash scripts/prod_deep_smoke.sh
 
+backup-prod:
+	bash scripts/backup_prod.sh
+
+restore-prod:
+	@if [ -z "$$BACKUP_PATH" ] && [ -z "$$BACKUP_STAMP" ]; then \
+		echo "ERROR: set BACKUP_PATH or BACKUP_STAMP (e.g. make restore-prod BACKUP_PATH=backups/20260101T000000Z)"; \
+		exit 1; \
+	fi
+	bash scripts/restore_prod.sh $${BACKUP_PATH:-$$BACKUP_STAMP}
+
 security-check:
 	python scripts/security_checks.py
 
@@ -259,7 +272,10 @@ eggplant-eval-live-full:
 	bash eggplant/scripts/run_eval.sh --live-full
 
 test-eval:
-	.venv/bin/python -m pytest tests/test_eval_routing_accuracy.py tests/test_eval_rag_grounding.py tests/test_eval_tenant_isolation.py tests/test_eval_retrieval_accuracy.py tests/test_eval_tool_routing.py tests/test_eval_workflow_routing.py -q --no-cov
+	.venv/bin/python -m pytest tests/test_eval_routing_accuracy.py tests/test_eval_rag_grounding.py tests/test_eval_tenant_isolation.py tests/test_eval_retrieval_accuracy.py tests/test_eval_tool_routing.py tests/test_eval_workflow_routing.py tests/test_eval_grounding_gate.py tests/test_eval_context_compression.py -q --no-cov
+
+eval-workflow:
+	RUN_EVAL_WORKFLOW=1 .venv/bin/python -m app.services.learn_agents.workflow_eval
 
 check-remote-inference:
 	bash scripts/check_remote_inference.sh

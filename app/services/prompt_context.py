@@ -28,7 +28,15 @@ def augment_system_prompt(
         if tone:
             parts.append(tone)
     if settings.enable_user_memory and user_id and user_memory_store is not None:
-        memory_block = user_memory_store.get_memory_block(user_id)
+        consolidation = None
+        if settings.enable_memory_consolidation:
+            from app.core.deps import get_memory_consolidation_service
+
+            consolidation = get_memory_consolidation_service()
+        memory_block = user_memory_store.get_memory_block(
+            user_id,
+            consolidation_service=consolidation,
+        )
         if memory_block:
             parts.append(memory_block)
     return "\n\n".join(parts)

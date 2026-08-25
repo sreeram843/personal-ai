@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Post-deploy smoke checks against a running CurAI deployment.
+# Post-deploy smoke checks against a running CurieAI deployment.
 #
 # Usage:
 #   ./scripts/verify_prod.sh

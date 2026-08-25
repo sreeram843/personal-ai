@@ -1,5 +1,9 @@
 # MCP servers (remote-first)
 
+This document is **Cursor IDE** MCP (`.cursor/mcp.json`). For **in-app**
+connectors that inject tools into CurieAI chat, see
+[mcp-runtime.md](./mcp-runtime.md).
+
 Cursor reads **`.cursor/mcp.json`** (gitignored). Copy the template and add your tokens:
 
 ```bash

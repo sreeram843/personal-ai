@@ -2,11 +2,16 @@
 Memory consolidation and quality management service.
 
 Handles memory tiering, consolidation, freshness decay, and retrieval ranking.
+Entries are keyed by user_id and persisted as JSON (same pattern as UserMemoryStore).
 """
 
+from __future__ import annotations
+
+import json
 import logging
-import math
+import uuid
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from app.schemas.memory import MemoryConsolidationJob, MemoryEntry, MemoryQualityMetrics, MemoryTier
@@ -18,20 +23,58 @@ logger = logging.getLogger(__name__)
 class MemoryConsolidationService:
     """Manages memory quality, consolidation, and tiering."""
 
-    def __init__(self):
-        """Initialize consolidation service."""
-        self._entries: Dict[str, List[MemoryEntry]] = {}
+    def __init__(self, file_path: Optional[str] = None):
+        """Initialize consolidation service. Load persisted entries when file_path is set."""
+        self._path = Path(file_path) if file_path else None
         self._jobs: List[MemoryConsolidationJob] = []
+        self._entries: Dict[str, List[MemoryEntry]] = self._load()
 
     def add_entry(self, entry: MemoryEntry, conversation_id: str) -> None:
-        """Add entry to memory store."""
-        if conversation_id not in self._entries:
-            self._entries[conversation_id] = []
-        self._entries[conversation_id].append(entry)
+        """Add entry. Second argument is the store key (user_id)."""
+        self.add_entry_for_user(entry, conversation_id)
+
+    def add_entry_for_user(self, entry: MemoryEntry, user_id: str) -> None:
+        """Add entry to the per-user memory store."""
+        if not user_id:
+            return
+        if user_id not in self._entries:
+            self._entries[user_id] = []
+        self._entries[user_id].append(entry)
+        self._persist()
+
+    def record_turn(
+        self,
+        user_id: str,
+        *,
+        user_message: str,
+        assistant_message: str = "",
+    ) -> None:
+        """Store a durable summary of a completed turn and run consolidation for that user."""
+        if not user_id:
+            return
+        user_text = " ".join((user_message or "").split())[:200]
+        if not user_text:
+            return
+        assistant_text = " ".join((assistant_message or "").split())[:160]
+        content = f"User: {user_text}"
+        if assistant_text:
+            content = f"{content} Assistant: {assistant_text}"
+        entry = MemoryEntry(
+            id=uuid.uuid4().hex[:16],
+            tier=MemoryTier.DURABLE,
+            content=content,
+            confidence=0.8,
+            freshness=1.0,
+            access_count=2,
+            category="conversation",
+        )
+        self.add_entry_for_user(entry, user_id)
+        job = self.schedule_consolidation(user_id)
+        self.run_consolidation(job.job_id)
 
     def retrieve_relevant(
         self,
-        conversation_id: str,
+        user_id: str,
         query: Optional[str] = None,
         tier: Optional[MemoryTier] = None,
         limit: int = 10,
@@ -41,10 +84,10 @@ class MemoryConsolidationService:
 
         Scoring: 0.5 * recency_score + 0.3 * confidence + 0.2 * freshness
         """
-        if conversation_id not in self._entries:
+        if user_id not in self._entries:
             return []
 
-        entries = self._entries[conversation_id]
+        entries = self._entries[user_id]
 
         # Filter by tier if specified
         if tier:
@@ -69,9 +112,13 @@ class MemoryConsolidationService:
         # Return top entries
         return [e for _, e in scored[:limit]]
 
-    def schedule_consolidation(self, conversation_id: str) -> MemoryConsolidationJob:
+    def schedule_consolidation(self, user_id: str, conversation_id: str = "") -> MemoryConsolidationJob:
         """Schedule a consolidation job."""
-        job = MemoryConsolidationJob(conversation_id=conversation_id, status="pending")
+        job = MemoryConsolidationJob(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            status="pending",
+        )
         self._jobs.append(job)
         return job
 
@@ -87,9 +134,10 @@ class MemoryConsolidationService:
             return False
 
         job.status = "running"
+        store_key = job.user_id or job.conversation_id
 
         try:
-            entries = self._entries.get(job.conversation_id, [])
+            entries = self._entries.get(store_key, [])
 
             # 1. Decay freshness
             for entry in entries:
@@ -115,10 +163,11 @@ class MemoryConsolidationService:
                 else:
                     job.entries_merged += 1
 
-            self._entries[job.conversation_id] = unique_entries
+            self._entries[store_key] = unique_entries
             job.entries_processed = len(unique_entries)
             job.status = "completed"
             job.summary = f"Processed {job.entries_processed}, merged {job.entries_merged}, pruned {job.entries_pruned}"
+            self._persist()
 
             return True
         except Exception as e:
@@ -127,9 +176,9 @@ class MemoryConsolidationService:
             job.summary = str(e)
             return False
 
-    def get_metrics(self, conversation_id: str) -> MemoryQualityMetrics:
+    def get_metrics(self, user_id: str) -> MemoryQualityMetrics:
         """Get memory store health metrics."""
-        entries = self._entries.get(conversation_id, [])
+        entries = self._entries.get(user_id, [])
 
         by_tier = {}
         stale_count = 0
@@ -149,13 +198,16 @@ class MemoryConsolidationService:
 
         avg_conf = total_conf / len(entries) if entries else 0.5
 
+        def _job_user(job: MemoryConsolidationJob) -> str:
+            return job.user_id or job.conversation_id
+
         # Count pending jobs
-        pending = sum(1 for j in self._jobs if j.conversation_id == conversation_id and j.status == "pending")
+        pending = sum(1 for j in self._jobs if _job_user(j) == user_id and j.status == "pending")
 
         # Find last consolidation
         last_consolidation = None
         for job in self._jobs:
-            if job.conversation_id == conversation_id and job.status == "completed":
+            if _job_user(job) == user_id and job.status == "completed":
                 if last_consolidation is None or job.created_at > last_consolidation:
                     last_consolidation = job.created_at
 
@@ -168,3 +220,47 @@ class MemoryConsolidationService:
             last_consolidation=last_consolidation,
             consolidation_jobs_pending=pending,
         )
+
+    def _load(self) -> Dict[str, List[MemoryEntry]]:
+        if not self._path or not self._path.exists():
+            return {}
+        try:
+            raw = json.loads(self._path.read_text(encoding="utf-8"))
+        except Exception:
+            logger.warning("Failed to read consolidation store at %s", self._path)
+            return {}
+        if not isinstance(raw, dict):
+            return {}
+        loaded: Dict[str, List[MemoryEntry]] = {}
+        for user_id, bucket in raw.items():
+            if isinstance(bucket, list):
+                items = bucket
+            elif isinstance(bucket, dict):
+                items = bucket.get("entries") or []
+            else:
+                continue
+            entries: List[MemoryEntry] = []
+            for item in items:
+                try:
+                    entries.append(MemoryEntry.model_validate(item))
+                except Exception:
+                    continue
+            loaded[str(user_id)] = entries
+        return loaded
+
+    def _persist(self) -> None:
+        if not self._path:
+            return
+        data = {
+            user_id: {"entries": [entry.model_dump(mode="json") for entry in entries]}
+            for user_id, entries in self._entries.items()
+        }
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def build_memory_consolidation_service(*, file_path: str) -> MemoryConsolidationService:
+    return MemoryConsolidationService(file_path=file_path)
+
+
+__all__ = ["MemoryConsolidationService", "build_memory_consolidation_service"]

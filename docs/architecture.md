@@ -131,8 +131,14 @@ Response header on streams: **`X-Chat-Route`** (`chat`, `rag`, or `workflow`).
 | `app/services/orchestrated_chat.py` | Shared orchestration engine for chat, RAG, and workflow modes |
 | `app/services/workflow_roles.py` | Per-agent role instructions: coordinator, retriever, researcher, synthesizer, reviewer, writer |
 | `app/services/workflow_memory.py` | Conversation-scoped workflow memory (disk or Redis) |
+| `app/services/user_memory.py` | Per-user rolling chat notes and facts for prompt continuity |
+| `app/services/memory_consolidation.py` | Per-user durable memory entries, freshness decay, JSON persistence |
+| `app/services/grounding_gate.py` | Deterministic check that writer claims resolve to `[[evidence:id]]` or a registry path |
+| `app/services/retrieval_trust.py` | Per-user accept/reject weights from reviewer notes, applied in rerank |
+| `app/services/skill_implicit.py` | Per-user trigger-match counts that break ties in `SkillCatalog.resolve` |
 | `app/services/task_queue.py` | Enqueues ingest and background workflows via ARQ or inline fallback |
 | `app/workers/tasks.py` | ARQ worker jobs: async ingest, background workflow, scheduled reports cron |
+| `app/services/alert_governance.py` | Refractory window + informational/actionable tiers so scheduled reports do not spam |
 | `app/services/ollama.py` | Async client wrapping Ollama chat and embed endpoints |
 | `app/services/llm_gateway.py` | Adapter layer supporting Ollama and OpenAI-compatible backends |
 | `app/services/vector_store.py` | Qdrant wrapper for storing and searching embedded chunks |
@@ -216,6 +222,7 @@ sequenceDiagram
         LLM-->>Orch: review notes
         Orch->>LLM: writer(draft + review_notes)
         LLM-->>Orch: final answer
+        Orch->>Orch: grounding_gate (retry once, else cannot-verify)
         Orch-->>Routes: ChatResponse {message, sources}
         Routes-->>Browser: JSON response with plain `message` + `sources`
     end
@@ -235,13 +242,13 @@ flowchart TD
     Plan --> Budget[Apply token budget policy\ntrim low-priority stages]
     Budget --> Loop{Pending tasks?}
     Loop -- yes --> Ready[Find tasks with resolved deps]
-    Ready --> RunTask[Execute task agent]
+    Ready --> RunWave[Run ready-set concurrently\ncap RUNTIME_MAX_PARALLEL=8]
 
-    RunTask --> Retriever["retriever:\nQdrant vector search\n(internal docs)"]
-    RunTask --> Researcher["researcher:\nDuckDuckGo web search\n(fresh context)"]
-    RunTask --> Synthesizer["synthesizer:\nBuild draft + evidence markers\n[[evidence:id]]"]
-    RunTask --> Reviewer["reviewer (quorum):\nIndependent critique passes"]
-    RunTask --> Writer["writer:\nFinal user-facing answer\nllama3:8b"]
+    RunWave --> Retriever["retriever:\nQdrant vector search\n(internal docs)"]
+    RunWave --> Researcher["researcher:\nDuckDuckGo web search\n(fresh context)"]
+    RunWave --> Synthesizer["synthesizer:\nBuild draft + evidence markers\n[[evidence:id]]"]
+    RunWave --> Reviewer["reviewer (quorum):\nIndependent critique passes"]
+    RunWave --> Writer["writer:\nFinal user-facing answer\nthen grounding_gate"]
 
     Retriever --> Loop
     Researcher --> Loop
@@ -251,6 +258,8 @@ flowchart TD
     Loop -- done --> WriteMemory[Append to WorkflowMemoryStore]
     WriteMemory --> Respond([ChatResponse\n+ WorkflowTrace + sources])
 ```
+
+Ready-set tasks run concurrently via `asyncio.gather`, capped at `RUNTIME_MAX_PARALLEL` (8) in `orchestrated_chat.py` — a runtime concurrency limit, distinct from `plan_linter.MAX_FANOUT` (plan structure). Dependent tasks still wait for the prior wave. Each task runs on a shallow-copied `state`; after the wave, outputs are merged (retriever `retrieval_context`, researcher `web_context`, unioned evidence, added token counters). SSE yields one `in_progress` event for the wave, then per-task `sources` and completion traces in ready-list order.
 
 ---
 
@@ -455,7 +464,7 @@ Redis is always available in the Docker Compose stack. Usage depends on env:
 |------|---------|
 | `ingest_documents_task` | Large `POST /ingest` (≥5 docs or ≥32KB) |
 | `run_workflow_task` | `POST /workflow_chat/background` |
-| `scheduled_reports_tick` | Cron every 15 minutes |
+| `scheduled_reports_tick` | Cron every 15 minutes. Before enqueue, `alert_governance` suppresses the same `user:schedule:prompt` condition inside `ALERT_REFRACTORY_MINUTES` (informational tier: 2×). Suppressed items still call `mark_run` so they leave the due set. |
 
 Normal chat (`POST /chat/stream`) runs in the API process. Rebuild the app image after UI changes (`make build`) — the frontend is baked into `Dockerfile.backend`.
 
@@ -474,6 +483,8 @@ Normal chat (`POST /chat/stream`) runs in the API process. Rebuild the app image
 ## Quality Gate
 
 The repo-level gate is `scripts/quality_gate.sh`. It validates compose config, runs security checks, compiles Python, runs pytest, lints the frontend, builds the frontend, runs Playwright flow and visual tests, and builds the backend image.
+
+`make eval-workflow` (`RUN_EVAL_WORKFLOW=1`) is an opt-in LLM-as-judge score of `/workflow_chat` and is **not** part of that gate. Sibling MCP wrappers (stock-pred-model) are documented in [mcp-tool-federation.md](./mcp-tool-federation.md).
 
 ---
 

@@ -104,7 +104,7 @@ async def run_orchestrated_mode(
         skill_addendum=skill_match.skill.system_addendum if skill_match else None,
         skill_name=skill_match.skill.name if skill_match else None,
     )
-    return await service.run_mode(
+    response = await service.run_mode(
         mode=mode,
         query=query,
         system_prompt=system_prompt,
@@ -118,4 +118,32 @@ async def run_orchestrated_mode(
         include_trace=workflow.include_trace if workflow else mode == "workflow",
         persist_memory=workflow.persist_memory if workflow else mode == "workflow",
         max_steps=workflow.max_steps if workflow else 6,
+    )
+    _record_orchestrated_consolidation(
+        user_id=user_id,
+        user_message=query,
+        assistant_message=response.message,
+        workflow_status=response.workflow.status if response.workflow else None,
+    )
+    return response
+
+
+def _record_orchestrated_consolidation(
+    *,
+    user_id: str,
+    user_message: str,
+    assistant_message: str,
+    workflow_status: str | None,
+) -> None:
+    settings = get_settings()
+    if not settings.enable_memory_consolidation or not user_id:
+        return
+    if workflow_status == "failed":
+        return
+    from app.core.deps import get_memory_consolidation_service
+
+    get_memory_consolidation_service().record_turn(
+        user_id,
+        user_message=user_message,
+        assistant_message=assistant_message,
     )

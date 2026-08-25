@@ -206,6 +206,7 @@ def _pack_merged_sources(
     pack_limit: int,
     score_threshold: Optional[float],
     cross_encoder_scores: Optional[Sequence[float]] = None,
+    user_id: Optional[str] = None,
 ) -> List[RetrievedChunk]:
     candidates = list(sources)
     if not candidates:
@@ -217,6 +218,7 @@ def _pack_merged_sources(
             candidates,
             settings=settings,
             pack_limit=pack_limit,
+            user_id=user_id,
         )
     elif settings.retrieval_rerank_enabled:
         packed = rerank_and_pack(
@@ -227,6 +229,7 @@ def _pack_merged_sources(
             summary_boost=settings.retrieval_summary_boost,
             cross_encoder_scores=cross_encoder_scores,
             cross_encoder_weight=settings.retrieval_cross_encoder_weight,
+            user_id=user_id,
         )
     else:
         packed = sorted(candidates, key=lambda item: item.score, reverse=True)[:pack_limit]
@@ -327,6 +330,7 @@ async def retrieve_user_documents_with_self_rag(
         pack_limit=pack_limit,
         score_threshold=score_threshold,
         cross_encoder_scores=ce_scores,
+        user_id=user_id,
     )
     return DocumentRetrievalResult(
         sources=sources,

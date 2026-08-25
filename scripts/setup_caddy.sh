@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepare / document Caddy HTTPS for CurAI on the prod VM.
+# Prepare / document Caddy HTTPS for CurieAI on the prod VM.
 # Default production path uses Docker Compose + docker-compose.caddy.yml
 # (see monitoring/caddy/Caddyfile). This script validates env and prints next steps.
 #
@@ -26,7 +26,7 @@ set +a
 : "${CADDY_APP_DOMAIN:?Set CADDY_APP_DOMAIN in $ENV_FILE}"
 : "${CADDY_ACME_EMAIL:?Set CADDY_ACME_EMAIL in $ENV_FILE}"
 
-printf 'Caddy (Docker) setup for CurAI\n'
+printf 'Caddy (Docker) setup for CurieAI\n'
 printf '  App domain:     %s\n' "$CADDY_APP_DOMAIN"
 printf '  Admin domain:   %s\n' "${CADDY_ADMIN_DOMAIN:-"(unset)"}"
 printf '  Grafana domain: %s\n' "${CADDY_GRAFANA_DOMAIN:-"(unset)"}"

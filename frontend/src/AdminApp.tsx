@@ -163,7 +163,7 @@ export function AdminApp() {
       <AdminShell>
         <div className="admin-panel flex w-full max-w-md flex-col items-center p-8 text-center">
           <CuraiLogo state="thinking" size={48} className="mb-4" />
-          <p className="text-sm text-[var(--phosphor-dim)]">Loading CurAI Admin…</p>
+          <p className="text-sm text-[var(--phosphor-dim)]">Loading CurieAI Admin…</p>
         </div>
       </AdminShell>
     );
@@ -204,7 +204,7 @@ export function AdminApp() {
         <div className="admin-panel w-full max-w-md p-6 sm:p-8">
           <div className="mb-6 flex flex-col items-center text-center">
             <CuraiLogo state="error" size={48} className="mb-4" />
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">CurAI Admin</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">CurieAI Admin</h1>
             <p className="mt-2 text-sm font-medium text-[var(--phosphor-bright)]">Access denied</p>
             <p className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">{error}</p>
           </div>
@@ -255,7 +255,7 @@ export function AdminApp() {
       <aside className="admin-sidebar">
         <div className="mb-[22px] flex items-center gap-[9px] px-1.5">
           <CuraiLogo state="idle" size={26} />
-          <span className="text-[15px] font-bold text-[var(--text-primary)]">CurAI</span>
+          <span className="text-[15px] font-bold text-[var(--text-primary)]">CurieAI</span>
           <span className="ml-auto rounded-md bg-[rgba(224,164,70,0.14)] px-[7px] py-0.5 text-[10px] font-bold tracking-[0.06em] text-[var(--ui-accent)]">
             ADMIN
           </span>

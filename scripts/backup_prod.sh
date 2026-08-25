@@ -6,6 +6,7 @@
 #   ./scripts/backup_prod.sh
 #   BACKUP_DIR=/var/backups/personal-ai ./scripts/backup_prod.sh
 #
+# Restore: ./scripts/restore_prod.sh backups/<UTC-stamp>
 # Restore notes: docs/runbooks/ops-runbook.md (Backup and restore)
 
 set -euo pipefail

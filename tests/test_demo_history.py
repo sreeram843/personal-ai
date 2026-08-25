@@ -11,7 +11,7 @@ def test_is_demo_intro_message_matches_default_intro():
     intro = default_demo_intro(5)
     assert _is_demo_intro_message(intro, intro) is True
     assert _is_demo_intro_message("What teams do you play for?", intro) is False
-    assert _is_demo_intro_message("Try CurAI — custom override text", intro) is True
+    assert _is_demo_intro_message("Try CurieAI — custom override text", intro) is True
 
 
 def test_is_demo_intro_message_rejects_unrelated():

@@ -143,8 +143,15 @@ class Settings(BaseSettings):
     mcp_connect_timeout: float = 20.0
     bundled_skills_path: str = "skills"
     user_skills_path: str = "memory/user_skills.json"
+    skill_implicit_path: str = "memory/skill_implicit.json"
     agent_tasks_path: str = "memory/agent_tasks.json"
     agent_tasks_max_per_user: int = 40
+    retrieval_trust_path: str = "memory/retrieval_trust.json"
+    enable_retrieval_trust: bool = True
+    memory_consolidation_path: str = "memory/consolidation.json"
+    enable_memory_consolidation: bool = True
+    alert_governance_path: str = "memory/alert_governance.json"
+    alert_refractory_minutes: int = 60
     enable_sentiment_tone: bool = True
     calendar_ics_url: Optional[str] = None
     scheduled_reports_path: str = "memory/scheduled_reports.json"

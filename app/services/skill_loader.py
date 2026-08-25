@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from app.core.config import get_settings
+from app.services.skill_implicit import SkillImplicitStore
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -249,10 +252,25 @@ class ResolvedSkill:
 
 
 class SkillCatalog:
-    def __init__(self, *, bundled_root: str, store: SkillStore) -> None:
+    def __init__(
+        self,
+        *,
+        bundled_root: str,
+        store: SkillStore,
+        implicit: Optional[SkillImplicitStore] = None,
+    ) -> None:
         self._bundled_root = Path(bundled_root)
         self._store = store
+        self._implicit = implicit
         self._bundled = load_bundled_skills(self._bundled_root)
+
+    def _implicit_store(self) -> SkillImplicitStore:
+        if self._implicit is None:
+            self._implicit = SkillImplicitStore(file_path=get_settings().skill_implicit_path)
+        return self._implicit
+
+    def record_implicit_use(self, user_id: str, skill_id: str) -> None:
+        self._implicit_store().record(user_id, skill_id)
 
     def list_for_user(self, user_id: str) -> List[SkillRecord]:
         user_skills = self._store.list_for_user(user_id)
@@ -279,17 +297,32 @@ class SkillCatalog:
         if slash.startswith("/"):
             slash = slash[1:].split(maxsplit=1)[0].strip()
 
-        for skill in self.list_for_user(user_id):
-            if not skill.enabled:
-                continue
-            if skill.pick_only:
-                continue
+        candidates = [
+            skill
+            for skill in self.list_for_user(user_id)
+            if skill.enabled and not skill.pick_only
+        ]
+
+        for skill in candidates:
             if slash and (skill.id.lower() == slash or skill.name.lower().replace(" ", "-") == slash):
                 return ResolvedSkill(skill=skill, matched_by=f"/{slash}")
+
+        matches: List[ResolvedSkill] = []
+        for skill in candidates:
             for trigger in skill.triggers:
                 if trigger and trigger in lowered:
-                    return ResolvedSkill(skill=skill, matched_by=trigger)
-        return None
+                    matches.append(ResolvedSkill(skill=skill, matched_by=trigger))
+                    break
+        if not matches:
+            return None
+        if len(matches) == 1:
+            return matches[0]
+        preferred_id = self._implicit_store().preferred_among(user_id, [item.skill.id for item in matches])
+        if preferred_id:
+            for item in matches:
+                if item.skill.id == preferred_id:
+                    return item
+        return matches[0]
 
     def get_by_id(self, user_id: str, skill_id: str) -> Optional[SkillRecord]:
         needle = skill_id.strip()
@@ -305,8 +338,13 @@ def build_skill_store(*, file_path: str) -> SkillStore:
     return SkillStore(file_path=file_path)
 
 
-def build_skill_catalog(*, bundled_root: str, store: SkillStore) -> SkillCatalog:
-    return SkillCatalog(bundled_root=bundled_root, store=store)
+def build_skill_catalog(
+    *,
+    bundled_root: str,
+    store: SkillStore,
+    implicit: Optional[SkillImplicitStore] = None,
+) -> SkillCatalog:
+    return SkillCatalog(bundled_root=bundled_root, store=store, implicit=implicit)
 
 
 __all__ = [

@@ -43,7 +43,7 @@ def test_detect_demo_live_intent_prefers_weather_when_both_match() -> None:
 
 def test_default_demo_intro_is_honest() -> None:
     intro = default_demo_intro(5)
-    assert intro.startswith("Try CurAI —")
+    assert intro.startswith("Try CurieAI —")
     assert "tool calling" not in intro.lower()
     assert "5 free questions" in intro
     assert "weather" in intro.lower() or "fx" in intro.lower()

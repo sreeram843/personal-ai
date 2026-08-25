@@ -1,6 +1,6 @@
 # About Sriram Mentey (portfolio demo knowledge)
 
-You are CurAI on Sriram Mentey's portfolio demo. Answer questions about Sriram professionally, academically, and in cricket using **only** the facts in this document.
+You are CurieAI on Sriram Mentey's portfolio demo. Answer questions about Sriram professionally, academically, and in cricket using **only** the facts in this document.
 
 Rules:
 - Speak in third person when describing Sriram ("He is…", "Sriram led…").
@@ -25,7 +25,7 @@ Sriram publishes engineering essays on **Medium** ([@menteysriram43](https://med
 
 ### Recent Medium articles
 
-- [Designing My Own Personal AI System](https://medium.com/@menteysriram43/designing-my-own-personal-ai-system-what-building-the-stack-taught-me-b8cc94b3e610) — CurAI / personal AI stack (Mar 2026)
+- [Designing My Own Personal AI System](https://medium.com/@menteysriram43/designing-my-own-personal-ai-system-what-building-the-stack-taught-me-b8cc94b3e610) — CurieAI / personal AI stack (Mar 2026)
 - [What Running Out of AI Credits Taught Me About Local Models](https://medium.com/@menteysriram43/what-running-out-of-ai-credits-taught-me-about-local-models-3f5986928e13) — local vs cloud LLM (Apr 2026)
 - [When AI Becomes a System of Models](https://medium.com/@menteysriram43/when-ai-becomes-a-system-of-models-52395e534b2a) — multi-model orchestration (Apr 2026)
 - [The Real Bottleneck in AI Workflows Isn't the Agent](https://medium.com/@menteysriram43/the-real-bottleneck-in-ai-workflows-isnt-the-agent-4c38f6fe9ee3) — context quality (Apr 2026)
@@ -38,7 +38,7 @@ Sriram publishes engineering essays on **Medium** ([@menteysriram43](https://med
 ### GitHub ([sreeram843](https://github.com/sreeram843)) — 11 public repositories
 
 **Professional / recent:**
-- **[personal-ai](https://github.com/sreeram843/personal-ai)** — CurAI personal assistant (Python/FastAPI/React); production at app.cura-i.com
+- **[personal-ai](https://github.com/sreeram843/personal-ai)** — CurieAI personal assistant (Python/FastAPI/React); production at app.cura-i.com
 - **[ai_in_hit_pm](https://github.com/sreeram843/ai_in_hit_pm)** — *Artificial Intelligence in Healthcare IT Project Management* (academic paper, TeX)
 - **[scheduling-app](https://github.com/sreeram843/scheduling-app)** — Ruby scheduling application experiments
 - **[ruby-app](https://github.com/sreeram843/ruby-app)** — Ruby app sandbox
@@ -148,9 +148,9 @@ English, Hindi (professional working proficiency); Telugu (full professional pro
 
 Full cricket profile is in the **Cricket profile** section below (from CricClubs).
 
-## What Sriram is building (CurAI)
+## What Sriram is building (CurieAI)
 
-CurAI is his personal AI assistant project: grounded chat, live data tools, multi-agent workflows, and a portfolio embed demo.
+CurieAI is his personal AI assistant project: grounded chat, live data tools, multi-agent workflows, and a portfolio embed demo.
 
 - **Live app:** https://app.cura-i.com
 - **Source:** https://github.com/sreeram843/personal-ai

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deep production smoke for CurAI — public health + authenticated workflow matrix.
+# Deep production smoke for CurieAI — public health + authenticated workflow matrix.
 #
 # Requires a Bearer JWT (prod disables email token minting):
 #   1. Sign in at https://app.cura-i.com
@@ -72,12 +72,12 @@ _print_summary() {
   printf 'Totals: pass=%s fail=%s warn=%s\n' "$PASS" "$FAIL" "$WARN"
 }
 
-printf 'CurAI deep production smoke: %s\n' "$APP_URL"
+printf 'CurieAI deep production smoke: %s\n' "$APP_URL"
 
 # ── Phase A: public ──────────────────────────────────────────────────────────
 ROOT_CODE="$(request_code "$TMP_DIR/root.html" "$PUBLIC_TIMEOUT" "$APP_URL/")"
 [[ "$ROOT_CODE" == "200" ]] || fail_hard "app shell returned HTTP $ROOT_CODE"
-grep -qi '<title>CurAI</title>' "$TMP_DIR/root.html" || fail_hard "app shell is missing CurAI title"
+grep -qi '<title>CurieAI</title>' "$TMP_DIR/root.html" || fail_hard "app shell is missing CurieAI title"
 pass "app shell"
 
 HEALTH_CODE="$(request_code "$TMP_DIR/health.json" "$PUBLIC_TIMEOUT" "$APP_URL/health")"

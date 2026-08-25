@@ -79,7 +79,7 @@ def demo_suggested_prompts() -> List[str]:
 
 def default_demo_intro(max_questions: int) -> str:
     return (
-        "Try CurAI — ask about Sriram's work, academics, or cricket. "
+        "Try CurieAI — ask about Sriram's work, academics, or cricket. "
         "You can also try a live weather or FX question. "
         f"You have {max_questions} free questions in this demo."
     )

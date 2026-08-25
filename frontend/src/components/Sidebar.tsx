@@ -194,7 +194,7 @@ export function Sidebar({
               <CuraiLogo state="idle" size={19} />
             </div>
             <div className="curai-sidebar-wordmark font-display text-[16.5px] font-semibold tracking-[0.2px] text-[var(--phosphor-bright)]">
-              CurAI
+              CurieAI
             </div>
             <button
               type="button"

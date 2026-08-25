@@ -1,6 +1,6 @@
 # Portfolio embed demo
 
-Embed a **5-question CurAI preview** on your portfolio site. Visitors can try the assistant without signing in; after the limit they are prompted to open the full app.
+Embed a **5-question CurieAI preview** on your portfolio site. Visitors can try the assistant without signing in; after the limit they are prompted to open the full app.
 
 ## Enable on the server
 
@@ -35,7 +35,7 @@ Add an iframe pointing at the demo route:
 ```html
 <iframe
   src="https://app.cura-i.com/demo"
-  title="CurAI demo"
+  title="CurieAI demo"
   width="100%"
   height="560"
   style="border: 0; border-radius: 12px; max-width: 720px;"
@@ -50,7 +50,7 @@ Adjust `height` to match your layout (minimum ~480px recommended).
 
 If the browser blocks embedding, set `DEMO_EMBED_ALLOWED_ORIGINS` to your portfolio origin(s). The API adds a `Content-Security-Policy: frame-ancestors` header on `/demo` responses.
 
-Your portfolio does **not** need to be listed in `CORS_ORIGINS` — the iframe loads CurAI same-origin; chat calls go to the same host.
+Your portfolio does **not** need to be listed in `CORS_ORIGINS` — the iframe loads CurieAI same-origin; chat calls go to the same host.
 
 ## Local development
 

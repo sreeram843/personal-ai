@@ -46,14 +46,21 @@ class UserMemoryStore:
         bucket["updated_at"] = _utc_now()
         self._write_all(data)
 
-    def get_memory_block(self, user_id: Optional[str], *, limit: int = 5) -> str:
+    def get_memory_block(
+        self,
+        user_id: Optional[str],
+        *,
+        limit: int = 5,
+        consolidation_service: Optional[Any] = None,
+    ) -> str:
         if not user_id:
             return ""
         data = self._read_all()
         bucket = data.get(user_id) or {}
         entries = bucket.get("entries") or []
         facts = bucket.get("facts") or []
-        if not entries and not facts:
+        consolidation_lines = _consolidation_fact_lines(consolidation_service, user_id)
+        if not entries and not facts and not consolidation_lines:
             return ""
         lines = ["## User memory (cross-session continuity)"]
         for fact in facts[-4:]:
@@ -67,6 +74,7 @@ class UserMemoryStore:
                 lines.append(f"- User asked: {user_line}")
             if assistant_line:
                 lines.append(f"  Assistant replied: {assistant_line}")
+        lines.extend(consolidation_lines)
         lines.append("Use for continuity only; prioritize the latest message.")
         return "\n".join(lines)
 
@@ -98,6 +106,22 @@ class UserMemoryStore:
 
 def build_user_memory_store(*, file_path: str, max_entries: int) -> UserMemoryStore:
     return UserMemoryStore(file_path=file_path, max_entries_per_user=max_entries)
+
+
+def _consolidation_fact_lines(consolidation_service: Optional[Any], user_id: str) -> List[str]:
+    if consolidation_service is None:
+        return []
+    lines: List[str] = []
+    for entry in consolidation_service.retrieve_relevant(user_id, limit=4):
+        freshness = float(getattr(entry, "freshness", 1.0) or 0.0)
+        confidence = float(getattr(entry, "confidence", 0.0) or 0.0)
+        is_stale = bool(entry.is_stale()) if hasattr(entry, "is_stale") else False
+        if freshness < 0.2 or confidence < 0.3 or is_stale:
+            continue
+        text = str(getattr(entry, "content", "") or "").strip()
+        if text:
+            lines.append(f"- {text} (confidence {confidence:.2f})")
+    return lines
 
 
 def extract_memory_facts_heuristic(user_message: str, assistant_message: str) -> List[str]:

@@ -199,7 +199,7 @@ export function DemoApp() {
         <div className="flex min-w-0 items-center gap-2">
           <CuraiLogo state={logoState} size={28} />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">CurAI Demo</p>
+            <p className="truncate text-sm font-semibold text-[var(--phosphor-bright)]">CurieAI Demo</p>
             <p className="truncate text-xs text-[var(--phosphor-dim)]">Portfolio preview</p>
           </div>
         </div>

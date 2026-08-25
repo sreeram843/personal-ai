@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build CurAI for iOS and launch on a Simulator (or list available targets).
+# Build CurieAI for iOS and launch on a Simulator (or list available targets).
 #
 # Prerequisites:
 #   - Full Xcode from the Mac App Store (not just Command Line Tools)

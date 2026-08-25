@@ -12,6 +12,7 @@ Map of everything under `docs/`. Recorded benchmark data lives in [results/](./r
 | [live-data-flow.md](./live-data-flow.md) | Live adapters, cache, and guardrails |
 | [compose-profiles.md](./compose-profiles.md) | Docker Compose runtime profiles |
 | [ui-reference.md](./ui-reference.md) | Chat UI layout and mobile behavior |
+| [mcp-runtime.md](./mcp-runtime.md) | In-app runtime MCP connectors (per-user, session tools, security) |
 
 ## Decisions
 
@@ -24,7 +25,7 @@ Map of everything under `docs/`. Recorded benchmark data lives in [results/](./r
 | Doc | Purpose |
 |-----|---------|
 | [runbooks/ops-runbook.md](./runbooks/ops-runbook.md) | Health checks, prod VM, OAuth, backups, troubleshooting |
-| [runbooks/prod-gcp-vm.md](./runbooks/prod-gcp-vm.md) | Fresh GCP VM → HTTPS CurAI (DNS, firewall, Caddy, OAuth) |
+| [runbooks/prod-gcp-vm.md](./runbooks/prod-gcp-vm.md) | Fresh GCP VM → HTTPS CurieAI (DNS, firewall, Caddy, OAuth) |
 | [runbooks/cloud-deploy-aws.md](./runbooks/cloud-deploy-aws.md) | EKS + RDS + Redis + Helm |
 | [runbooks/gpu-deployment.md](./runbooks/gpu-deployment.md) | vLLM on GPU |
 | [runbooks/monitoring-subdomain.md](./runbooks/monitoring-subdomain.md) | Grafana HTTPS subdomain |
@@ -55,6 +56,8 @@ Map of everything under `docs/`. Recorded benchmark data lives in [results/](./r
 
 | Doc | Purpose |
 |-----|---------|
+| [mcp-runtime.md](./mcp-runtime.md) | In-app HTTP MCP connectors for chat tools |
+| [mcp-tool-federation.md](./mcp-tool-federation.md) | Sibling-repo MCP servers (stockpred CLI, FHIR/pipeline follow-ups) |
 | [mcp-servers.md](./mcp-servers.md) | IDE MCP setup (Cursor) |
 | [penpot-mcp.md](./penpot-mcp.md) | Penpot design MCP |
 

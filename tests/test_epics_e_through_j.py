@@ -29,8 +29,8 @@ class TestMemoryConsolidation:
             confidence=0.9,
         )
         
-        service.add_entry(entry, "conv_123")
-        retrieved = service.retrieve_relevant("conv_123")
+        service.add_entry(entry, "user_123")
+        retrieved = service.retrieve_relevant("user_123")
         
         assert len(retrieved) == 1
         assert retrieved[0].content == "User preference: likes technical details"
@@ -49,11 +49,11 @@ class TestMemoryConsolidation:
             content="Persistent user info",
         )
         
-        service.add_entry(ephemeral, "conv_123")
-        service.add_entry(durable, "conv_123")
+        service.add_entry(ephemeral, "user_123")
+        service.add_entry(durable, "user_123")
         
-        ephemeralonly = service.retrieve_relevant("conv_123", tier=MemoryTier.EPHEMERAL)
-        durableonly = service.retrieve_relevant("conv_123", tier=MemoryTier.DURABLE)
+        ephemeralonly = service.retrieve_relevant("user_123", tier=MemoryTier.EPHEMERAL)
+        durableonly = service.retrieve_relevant("user_123", tier=MemoryTier.DURABLE)
         
         assert len(ephemeralonly) == 1
         assert len(durableonly) == 1
@@ -75,10 +75,10 @@ class TestMemoryConsolidation:
             confidence=0.7,
         )
         
-        service.add_entry(old_entry, "conv_123")
-        service.add_entry(new_entry, "conv_123")
+        service.add_entry(old_entry, "user_123")
+        service.add_entry(new_entry, "user_123")
         
-        retrieved = service.retrieve_relevant("conv_123")
+        retrieved = service.retrieve_relevant("user_123")
         
         # New entry should rank higher despite lower confidence
         assert retrieved[0].id == "new"
@@ -97,18 +97,18 @@ class TestMemoryConsolidation:
 
     def test_consolidation_job(self, service):
         """Should schedule and run consolidation jobs."""
-        job = service.schedule_consolidation("conv_123")
+        job = service.schedule_consolidation("user_123")
         
         assert job.status == "pending"
-        assert job.conversation_id == "conv_123"
+        assert job.user_id == "user_123"
         
         # Add entries to consolidate
         entry1 = MemoryEntry(id="e1", tier=MemoryTier.EPHEMERAL, content="Entry 1", confidence=0.2)
         entry2 = MemoryEntry(id="e2", tier=MemoryTier.EPHEMERAL, content="Entry 2", ttl_hours=1)
         entry2.created_at = datetime.utcnow() - timedelta(hours=2)
         
-        service.add_entry(entry1, "conv_123")
-        service.add_entry(entry2, "conv_123")
+        service.add_entry(entry1, "user_123")
+        service.add_entry(entry2, "user_123")
         
         # Run consolidation
         success = service.run_consolidation(job.job_id)
@@ -132,10 +132,10 @@ class TestMemoryConsolidation:
             confidence=0.2,
         )
         
-        service.add_entry(entry1, "conv_123")
-        service.add_entry(entry2, "conv_123")
+        service.add_entry(entry1, "user_123")
+        service.add_entry(entry2, "user_123")
         
-        metrics = service.get_metrics("conv_123")
+        metrics = service.get_metrics("user_123")
         
         assert metrics.total_entries == 2
         assert "conversation" in metrics.by_tier

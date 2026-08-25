@@ -38,7 +38,7 @@ def _is_demo_intro_message(content: str, intro: str) -> bool:
     normalized_intro = intro.strip()
     if normalized_intro and text == normalized_intro:
         return True
-    return text.startswith("Try CurAI —")
+    return text.startswith("Try CurieAI —")
 
 
 def _resolve_demo_intro(settings: Settings) -> str:

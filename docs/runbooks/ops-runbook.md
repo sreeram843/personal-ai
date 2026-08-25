@@ -62,6 +62,7 @@ VM disk loss wipes conversations and embeddings. Take periodic backups:
 cd /opt/personal-ai
 ./scripts/backup_prod.sh
 # optional: BACKUP_DIR=/var/backups/personal-ai BACKUP_RETENTION_DAYS=14 ./scripts/backup_prod.sh
+# or: make backup-prod
 ```
 
 Each run writes `backups/<UTC-stamp>/`:
@@ -73,6 +74,20 @@ Each run writes `backups/<UTC-stamp>/`:
 **Retention:** directories older than `BACKUP_RETENTION_DAYS` (default 14) under the backup root are deleted. Prefer copying backups off-VM (GCS/S3) and encrypt at rest with your storage provider’s CMEK/SSE.
 
 **Restore on a fresh VM** (after `deploy_prod.sh` has created empty volumes):
+
+```bash
+cd /opt/personal-ai
+./scripts/restore_prod.sh backups/<stamp>
+# or: BACKUP_DIR=/var/backups/personal-ai ./scripts/restore_prod.sh <stamp>
+# or: make restore-prod BACKUP_PATH=backups/<stamp>
+# skip the Type RESTORE prompt (automation):
+# RESTORE_CONFIRM=1 ./scripts/restore_prod.sh backups/<stamp>
+./scripts/verify_prod.sh
+```
+
+The restore script overwrites live Postgres (and Qdrant when `qdrant_storage.tar.gz` is present). Interactive runs ask you to type `RESTORE`; set `RESTORE_CONFIRM=1` to skip the prompt.
+
+**Manual fallback** (if the restore script is unavailable):
 
 ```bash
 # 1) Postgres
@@ -91,7 +106,7 @@ docker run --rm \
 docker start personal-ai-qdrant
 ```
 
-Volume name may be `<compose-project>_qdrant_storage` — confirm with `docker volume ls | grep qdrant`.
+Volume name may be `<compose-project>_qdrant_storage` — confirm with `docker volume ls | grep qdrant`. The restore script detects `${COMPOSE_PROJECT_NAME:-$(basename $PWD)}_qdrant_storage` the same way backup does.
 
 ### Audit events (Loki)
 
