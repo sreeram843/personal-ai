@@ -253,9 +253,10 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
     if (!value.trim() || disabled) {
       return;
     }
-    playSendChirp();
-    onSend(value.trim());
+    const message = value.trim();
+    onSend(message);
     setValue('');
+    playSendChirp();
     requestAnimationFrame(() => {
       textRef.current?.focus();
     });
@@ -319,10 +320,11 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
             aria-label="Message input"
             value={value}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
-              if (event.target.value.length > value.length) {
+              const next = event.target.value;
+              setValue(next);
+              if (next.length > value.length) {
                 playKeyClick();
               }
-              setValue(event.target.value);
             }}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}

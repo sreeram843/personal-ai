@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: production-smoke
@@ -49,6 +50,8 @@ jobs:
 
       - name: Report failure
         if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           {
             echo '## Production smoke failed'
@@ -57,3 +60,14 @@ jobs:
             echo
             echo 'Inspect the failed step and deployment logs before the next release.'
           } >> "$GITHUB_STEP_SUMMARY"
+          BODY="$(printf 'Production smoke failed on [%s](%s).\n\nTarget: `%s`\nWorkflow run: %s' \
+            "${GITHUB_SHA:0:7}" \
+            "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}" \
+            "$APP_URL" \
+            "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")"
+          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search 'Production smoke failing in:title' --json number --jq '.[0].number // empty')"
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "$BODY"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "Production smoke failing" --body "$BODY"
+          fi

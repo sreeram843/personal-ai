@@ -17,3 +17,9 @@ def test_format_place_label_prefers_name() -> None:
     )
     assert label.startswith("Austin")
     assert "Texas" in label
+
+
+def test_format_place_label_does_not_keep_raw_coordinates() -> None:
+    label = format_place_label({"name": "30.27,-97.74"}, "30.27,-97.74")
+    assert _parse_lat_lon(label) is None
+    assert label == "Unknown location"

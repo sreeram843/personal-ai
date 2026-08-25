@@ -411,8 +411,21 @@ class WebSearchService:
         except (TypeError, ValueError):
             precipitation = None
 
+        from app.services.geocoding import _parse_lat_lon, format_place_label
+
+        place_geo = {
+            "name": area_name,
+            "admin1": "",
+            "country": "",
+        }
+        if isinstance(area.get("region"), list) and area["region"]:
+            place_geo["admin1"] = str((area["region"][0] or {}).get("value") or "")
+        if isinstance(area.get("country"), list) and area["country"]:
+            place_geo["country"] = str((area["country"][0] or {}).get("value") or "")
+        fallback = place if _parse_lat_lon(place) is None else area_name or "Unknown location"
+
         return {
-            "location": area_name or place,
+            "location": format_place_label(place_geo, fallback),
             "time": str(current.get("localObsDateTime") or ""),
             "temperature": temperature,
             "temperature_unit": "C",

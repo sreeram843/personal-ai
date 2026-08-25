@@ -135,11 +135,16 @@ def format_place_label(geo: Dict[str, Any], fallback: str) -> str:
     """Prefer a human place name over raw coordinates."""
     name = str(geo.get("name") or "").strip()
     if not name or _parse_lat_lon(name) is not None:
-        name = fallback.strip() if fallback.strip() and _parse_lat_lon(fallback) is None else name
-    parts = [part for part in [name, geo.get("admin1"), geo.get("country")] if part]
+        fallback_text = fallback.strip()
+        name = fallback_text if fallback_text and _parse_lat_lon(fallback_text) is None else ""
+    parts = [
+        str(part).strip()
+        for part in [name, geo.get("admin1"), geo.get("country")]
+        if part and _parse_lat_lon(str(part)) is None
+    ]
     if parts:
-        return ", ".join(str(part) for part in parts)
-    return fallback.strip() or "Unknown location"
+        return ", ".join(parts)
+    return "Unknown location"
 
 
 __all__ = ["GeocodingService", "format_place_label"]

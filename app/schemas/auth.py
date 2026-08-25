@@ -43,6 +43,7 @@ class AuthConfigResponse(BaseModel):
     signup_mode: str = "invite"
     privacy_policy_url: Optional[str] = None
     terms_of_service_url: Optional[str] = None
+    support_email: Optional[str] = None
 
 
 class GoogleAuthRequest(BaseModel):

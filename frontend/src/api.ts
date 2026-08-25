@@ -50,6 +50,7 @@ export interface AuthConfig {
   signup_mode?: string;
   privacy_policy_url?: string | null;
   terms_of_service_url?: string | null;
+  support_email?: string | null;
 }
 
 export interface CurrentUser {
@@ -153,6 +154,14 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
     throw new Error(errorText || 'Failed to load auth configuration');
   }
   return (await response.json()) as AuthConfig;
+}
+
+export async function signOut(): Promise<void> {
+  try {
+    await apiFetch('/auth/logout', { method: 'POST' });
+  } catch {
+    // Client still clears the token even if the audit call fails.
+  }
 }
 
 export async function fetchCurrentUser(): Promise<CurrentUser> {

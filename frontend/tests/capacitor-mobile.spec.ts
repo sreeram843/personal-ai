@@ -3,9 +3,14 @@ import { prepareAuthenticatedPage } from './utils/apiMocks';
 import { assertQaGuards, installQaGuards } from './utils/qaGuards';
 
 test.describe('capacitor mobile shell', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+
   test.beforeEach(async ({ page }) => {
     installQaGuards(page);
-    await page.setViewportSize({ width: 390, height: 844 });
   });
 
   test.afterEach(async ({ page }) => {
@@ -37,6 +42,18 @@ test.describe('capacitor mobile shell', () => {
       viewportWidth: window.innerWidth,
     }));
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewportWidth);
+  });
+
+  test('composer attach and mode controls meet 44px touch targets', async ({ page }) => {
+    await prepareAuthenticatedPage(page);
+    const attach = page.getByRole('button', { name: 'Attach file' });
+    const chatMode = page.getByRole('radio', { name: /Chat:/ });
+    await expect(attach).toBeVisible();
+    const attachBox = await attach.boundingBox();
+    const modeBox = await chatMode.boundingBox();
+    expect(attachBox?.height ?? 0).toBeGreaterThanOrEqual(44);
+    expect(attachBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+    expect(modeBox?.height ?? 0).toBeGreaterThanOrEqual(44);
   });
 
   test('toggles theme from settings on mobile', async ({ page }) => {

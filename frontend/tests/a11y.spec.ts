@@ -54,6 +54,7 @@ test.describe('accessibility', () => {
           auth_disabled: false,
           google_client_id: 'playwright-tests.apps.googleusercontent.com',
           google_auth_enabled: true,
+          support_email: 'hello@cura-i.com',
         }),
       });
     });
@@ -101,6 +102,10 @@ test.describe('accessibility', () => {
     await page.getByRole('menuitem', { name: 'About' }).click();
     const about = page.getByRole('dialog', { name: 'About CurieAI' });
     await expect(about).toBeVisible();
+    await expect(about.getByRole('link', { name: 'hello@cura-i.com' })).toHaveAttribute(
+      'href',
+      'mailto:hello@cura-i.com',
+    );
     await expect(page.getByRole('button', { name: 'Close about panel' })).toBeFocused();
     if (canTab) {
       await page.keyboard.press('Tab');

@@ -33,6 +33,7 @@ function PageShell({ title, children }: { title: string; children: ReactNode }) 
         <footer className="mt-12 flex flex-wrap gap-x-5 gap-y-2 border-t border-[var(--ui-border)] pt-6 text-sm text-[var(--phosphor-dim)]">
           <a className="hover:text-[var(--phosphor-bright)]" href="/privacy">Privacy</a>
           <a className="hover:text-[var(--phosphor-bright)]" href="/terms">Terms</a>
+          <a className="hover:text-[var(--phosphor-bright)]" href="mailto:hello@cura-i.com">hello@cura-i.com</a>
           <a className="hover:text-[var(--phosphor-bright)]" href="https://cura-i.com">cura-i.com</a>
         </footer>
       </article>
@@ -113,10 +114,11 @@ function PrivacyPolicy() {
       <Section title="Changes and contact">
         <p>
           We may update this policy as CurieAI changes. The date above identifies the latest version. For
-          privacy questions or requests, contact the CurieAI operator through the public support channel at{' '}
-          <a className="underline underline-offset-2" href="https://github.com/sreeram843/personal-ai/issues">
-            github.com/sreeram843/personal-ai/issues
-          </a>.
+          privacy questions or requests, contact{' '}
+          <a className="underline underline-offset-2" href="mailto:hello@cura-i.com">
+            hello@cura-i.com
+          </a>
+          .
         </p>
       </Section>
     </PageShell>
@@ -187,11 +189,11 @@ function TermsOfService() {
       <Section title="Termination, changes, and contact">
         <p>
           You may stop using CurieAI or delete your account at any time. We may update these Terms, with the
-          date above showing the current version. Questions may be submitted through the public support
-          channel at{' '}
-          <a className="underline underline-offset-2" href="https://github.com/sreeram843/personal-ai/issues">
-            github.com/sreeram843/personal-ai/issues
-          </a>.
+          date above showing the current version. Questions:{' '}
+          <a className="underline underline-offset-2" href="mailto:hello@cura-i.com">
+            hello@cura-i.com
+          </a>
+          .
         </p>
       </Section>
     </PageShell>

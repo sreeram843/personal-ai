@@ -6,9 +6,10 @@ import { CuraiLogo } from './CuraiLogo';
 interface Props {
   open: boolean;
   onClose: () => void;
+  supportEmail?: string;
 }
 
-export function AboutPanel({ open, onClose }: Props) {
+export function AboutPanel({ open, onClose, supportEmail = 'hello@cura-i.com' }: Props) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
@@ -82,6 +83,10 @@ export function AboutPanel({ open, onClose }: Props) {
 
           <div className="rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] px-3 py-2.5 text-xs text-[var(--phosphor-dim)]">
             Built with FastAPI, React, Qdrant, and local or cloud LLM providers.
+            Support:{' '}
+            <a className="underline underline-offset-2 hover:text-[var(--phosphor)]" href={`mailto:${supportEmail}`}>
+              {supportEmail}
+            </a>
           </div>
         </div>
       </div>
