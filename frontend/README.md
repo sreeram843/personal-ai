@@ -1,6 +1,6 @@
 # Personal AI Web UI
 
-React + Vite chat shell for the Personal AI backend (CurAI).
+React + Vite chat shell for the Personal AI backend (CurieAI).
 
 ## Features
 
@@ -11,6 +11,7 @@ React + Vite chat shell for the Personal AI backend (CurAI).
 - Mobile navigation drawer, safe-area + keyboard-aware composer.
 - Voice input (Web Speech API), Playwright UI tests.
 - Capacitor iOS/Android shells — see [CAPACITOR.md](./CAPACITOR.md).
+- **PWA (web):** production registers an online-only service worker and can prompt to install. Native Capacitor builds skip the worker.
 
 UI details: [docs/ui-reference.md](../docs/ui-reference.md).
 
@@ -31,7 +32,7 @@ npm run test:unit      # platform helpers (Vitest)
 npm run test:e2e       # interaction flows
 npm run test:capacitor # mobile drawer + user menu theme
 npm run test:visual    # screenshot baselines
-npm run test:ui        # all Playwright tests (used by quality gate)
+npm run test:ui        # all Playwright tests including axe a11y (used by quality gate)
 ```
 
 ## Capacitor (iOS / Android)

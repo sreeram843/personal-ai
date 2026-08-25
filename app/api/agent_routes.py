@@ -70,7 +70,7 @@ def _assistant_to_response(skill: SkillRecord) -> AssistantResponse:
 
 DEFAULT_ASSISTANT = AssistantResponse(
     id="default",
-    name="CurAI",
+    name="CurieAI",
     description="General assistant with live data, tools, and document search.",
     instructions="",
     triggers=[],

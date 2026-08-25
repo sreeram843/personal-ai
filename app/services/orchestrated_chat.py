@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from dataclasses import dataclass, field
@@ -11,7 +12,9 @@ from app.core.config import get_settings
 from app.services.citations import RAG_CITATION_RULE, ensure_answer_preserves_citations
 from app.services.context_compression import compress_context_block
 from app.services.evidence_cards import extract_cited_evidence_ids, format_writer_evidence_context
+from app.services.grounding_gate import enforce_grounding_gate, ungrounded_claim_spans
 from app.services.retrieval_rerank import lexical_overlap_score
+from app.services.retrieval_trust import record_reviewer_verdict, source_ids_from_registry
 from app.services.ollama import OllamaClient
 from app.services.self_rag import retrieve_user_documents_with_self_rag
 from app.services.vector_store import VectorStore
@@ -24,6 +27,9 @@ from app.services.workflow_roles import DEFAULT_WORKFLOW_ROLES
 
 ModeName = Literal["chat", "rag", "workflow"]
 SUPPORTED_AGENTS = set(DEFAULT_WORKFLOW_ROLES)
+# Runtime cap on concurrent ready-set tasks. Distinct from PlanLinter.MAX_FANOUT,
+# which limits plan structure (how many children a single task may feed).
+RUNTIME_MAX_PARALLEL = 8
 TASK_TOKEN_COST = {
     "retriever": 250,
     "researcher": 350,
@@ -211,18 +217,32 @@ class OrchestratedChatService:
                     yield {"type": "workflow", "workflow": trace.model_dump()}
                 break
 
-            for task in ready:
-                if include_trace:
+            if include_trace:
+                for task in ready:
                     self._update_trace_step(trace, task.id, "in_progress", f"{task.agent} is running.")
-                    yield {"type": "workflow", "workflow": trace.model_dump()}
+                yield {"type": "workflow", "workflow": trace.model_dump()}
 
-                outcome = await self._execute_task(
-                    task=task,
-                    state=state,
-                    top_k=top_k,
-                    score_threshold=score_threshold,
-                    options=options,
-                    use_rag=use_rag,
+            baseline_prompt_tokens = int(state.get("prompt_tokens") or 0)
+            baseline_completion_tokens = int(state.get("completion_tokens") or 0)
+            baseline_reasoning_len = len(state.get("reasoning_parts") or [])
+            task_states = [self._copy_task_state(state) for _ in ready]
+            outcomes = await self._gather_ready_tasks(
+                ready=ready,
+                task_states=task_states,
+                top_k=top_k,
+                score_threshold=score_threshold,
+                options=options,
+                use_rag=use_rag,
+            )
+
+            for task, task_state, outcome in zip(ready, task_states, outcomes):
+                self._merge_task_state(
+                    state,
+                    task,
+                    task_state,
+                    baseline_prompt_tokens=baseline_prompt_tokens,
+                    baseline_completion_tokens=baseline_completion_tokens,
+                    baseline_reasoning_len=baseline_reasoning_len,
                 )
                 pending.pop(task.id, None)
                 completed.add(task.id)
@@ -426,6 +446,86 @@ class OrchestratedChatService:
         )
         return tasks
 
+    def _copy_task_state(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        copied = dict(state)
+        copied["evidence_ids"] = list(state.get("evidence_ids") or [])
+        copied["evidence_registry"] = dict(state.get("evidence_registry") or {})
+        copied["reasoning_parts"] = list(state.get("reasoning_parts") or [])
+        return copied
+
+    def _merge_task_state(
+        self,
+        parent: Dict[str, Any],
+        task: PlannedTask,
+        child: Dict[str, Any],
+        *,
+        baseline_prompt_tokens: int,
+        baseline_completion_tokens: int,
+        baseline_reasoning_len: int,
+    ) -> None:
+        agent = task.agent
+        if agent == "retriever":
+            parent["retrieval_context"] = child.get("retrieval_context") or ""
+        elif agent == "researcher":
+            parent["web_context"] = child.get("web_context") or ""
+        elif agent == "synthesizer":
+            parent["draft"] = child.get("draft") or ""
+        elif agent == "reviewer":
+            parent["review_notes"] = child.get("review_notes") or ""
+        elif agent == "writer":
+            parent["final_answer"] = child.get("final_answer") or ""
+
+        parent_ids = list(parent.get("evidence_ids") or [])
+        seen = set(parent_ids)
+        for evidence_id in child.get("evidence_ids") or []:
+            if evidence_id not in seen:
+                parent_ids.append(evidence_id)
+                seen.add(evidence_id)
+        parent["evidence_ids"] = parent_ids
+
+        registry = dict(parent.get("evidence_registry") or {})
+        registry.update(child.get("evidence_registry") or {})
+        parent["evidence_registry"] = registry
+
+        parent["prompt_tokens"] = int(parent.get("prompt_tokens") or 0) + (
+            int(child.get("prompt_tokens") or 0) - baseline_prompt_tokens
+        )
+        parent["completion_tokens"] = int(parent.get("completion_tokens") or 0) + (
+            int(child.get("completion_tokens") or 0) - baseline_completion_tokens
+        )
+
+        parent_parts = list(parent.get("reasoning_parts") or [])
+        child_parts = list(child.get("reasoning_parts") or [])
+        parent["reasoning_parts"] = parent_parts + child_parts[baseline_reasoning_len:]
+
+    async def _gather_ready_tasks(
+        self,
+        *,
+        ready: List[PlannedTask],
+        task_states: List[Dict[str, Any]],
+        top_k: int,
+        score_threshold: Optional[float],
+        options: Dict[str, Any],
+        use_rag: bool,
+    ) -> List[TaskOutcome]:
+        semaphore = asyncio.Semaphore(RUNTIME_MAX_PARALLEL)
+
+        async def _run(task: PlannedTask, task_state: Dict[str, Any]) -> TaskOutcome:
+            async with semaphore:
+                return await self._execute_task(
+                    task=task,
+                    state=task_state,
+                    top_k=top_k,
+                    score_threshold=score_threshold,
+                    options=options,
+                    use_rag=use_rag,
+                )
+
+        gathered = await asyncio.gather(
+            *[_run(task, task_state) for task, task_state in zip(ready, task_states)]
+        )
+        return list(gathered)
+
     async def _execute_task(
         self,
         *,
@@ -623,6 +723,16 @@ class OrchestratedChatService:
             reviews.append(review)
         review_text = "\n\n".join(f"Reviewer {idx + 1}: {text}" for idx, text in enumerate(reviews))
         state["review_notes"] = review_text
+        settings = get_settings()
+        user_id = state.get("user_id")
+        evidence_ids = list(state.get("evidence_ids") or [])
+        if settings.enable_retrieval_trust and user_id and evidence_ids:
+            registry = dict(state.get("evidence_registry") or {})
+            record_reviewer_verdict(
+                str(user_id),
+                source_ids_from_registry(evidence_ids, registry),
+                review_text,
+            )
         return TaskOutcome(
             status="completed",
             summary=f"Reviewed the draft with quorum={quorum} and produced revision notes.",
@@ -631,32 +741,98 @@ class OrchestratedChatService:
 
     async def _run_writer(self, state: Dict[str, Any], options: Dict[str, Any]) -> TaskOutcome:
         final_answer = await self._chat_text(
-            [
-                {"role": "system", "content": state["system_prompt"]},
-                {"role": "system", "content": DEFAULT_WORKFLOW_ROLES["writer"].instruction},
-                {
-                    "role": "system",
-                    "content": (
-                        f"{RAG_CITATION_RULE} "
-                        "Preserve every [[evidence:<id>]] marker from the draft that supports a claim, "
-                        "or convert each marker into a matching [path]/style citation."
-                    ),
-                },
-                {"role": "user", "content": self._build_final_prompt(state)},
-            ],
+            self._build_writer_messages(state),
             options,
             stage="writer",
             state=state,
         )
-        final_answer = ensure_answer_preserves_citations(
+        final_answer = self._apply_citation_preservation(final_answer, state)
+        evidence_ids = list(state.get("evidence_ids") or [])
+        if bool(state.get("require_evidence_markers", True)) and evidence_ids:
+            registry_paths = self._registry_citation_paths(state)
+            ok, _reason = enforce_grounding_gate(
+                writer_text=final_answer,
+                evidence_ids=evidence_ids,
+                registry_paths=registry_paths,
+            )
+            if not ok:
+                ungrounded = ungrounded_claim_spans(
+                    final_answer,
+                    evidence_ids,
+                    registry_paths=registry_paths,
+                )
+                retry_messages = self._build_writer_messages(state)
+                retry_messages.insert(
+                    -1,
+                    {
+                        "role": "system",
+                        "content": self._grounding_retry_note(ungrounded, evidence_ids),
+                    },
+                )
+                final_answer = await self._chat_text(
+                    retry_messages,
+                    options,
+                    stage="writer",
+                    state=state,
+                )
+                final_answer = self._apply_citation_preservation(final_answer, state)
+                ok, _reason = enforce_grounding_gate(
+                    writer_text=final_answer,
+                    evidence_ids=evidence_ids,
+                    registry_paths=registry_paths,
+                )
+                if not ok:
+                    final_answer = (
+                        "I cannot verify key claims from the available evidence. "
+                        "Please review the cited sources or broaden retrieval before finalizing."
+                    )
+        state["final_answer"] = final_answer
+        return TaskOutcome(status="completed", summary="Produced the final answer.", output=final_answer)
+
+    def _build_writer_messages(self, state: Dict[str, Any]) -> List[Dict[str, str]]:
+        return [
+            {"role": "system", "content": state["system_prompt"]},
+            {"role": "system", "content": DEFAULT_WORKFLOW_ROLES["writer"].instruction},
+            {
+                "role": "system",
+                "content": (
+                    f"{RAG_CITATION_RULE} "
+                    "Preserve every [[evidence:<id>]] marker from the draft that supports a claim, "
+                    "or convert each marker into a matching [path]/style citation."
+                ),
+            },
+            {"role": "user", "content": self._build_final_prompt(state)},
+        ]
+
+    def _apply_citation_preservation(self, final_answer: str, state: Dict[str, Any]) -> str:
+        return ensure_answer_preserves_citations(
             final_answer=final_answer,
             draft=str(state.get("draft") or ""),
             registry=dict(state.get("evidence_registry") or {}),
             evidence_ids=list(state.get("evidence_ids") or []),
             require_markers=bool(state.get("require_evidence_markers", True)),
         )
-        state["final_answer"] = final_answer
-        return TaskOutcome(status="completed", summary="Produced the final answer.", output=final_answer)
+
+    def _registry_citation_paths(self, state: Dict[str, Any]) -> List[str]:
+        paths: List[str] = []
+        registry = state.get("evidence_registry") or {}
+        for source in registry.values():
+            metadata = getattr(source, "metadata", None) or {}
+            for key in ("path", "name", "title", "filename"):
+                value = metadata.get(key)
+                if isinstance(value, str) and value.strip():
+                    paths.append(value.strip())
+        return paths
+
+    def _grounding_retry_note(self, ungrounded: Sequence[str], evidence_ids: Sequence[str]) -> str:
+        spans = "\n".join(f"- {span}" for span in ungrounded) or "- (no spans extracted)"
+        ids = "\n".join(f"- {evidence_id}" for evidence_id in evidence_ids)
+        return (
+            "Grounding gate failed. Cite available evidence or say you cannot verify. "
+            "Do not invent facts.\n\n"
+            f"Ungrounded claims:\n{spans}\n\n"
+            f"Available evidence IDs:\n{ids}"
+        )
 
     async def _chat_text(
         self,
@@ -885,4 +1061,4 @@ class OrchestratedChatService:
         return selected
 
 
-__all__ = ["OrchestratedChatService"]
+__all__ = ["OrchestratedChatService", "RUNTIME_MAX_PARALLEL"]

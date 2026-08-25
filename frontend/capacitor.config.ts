@@ -4,7 +4,7 @@ const devServerUrl = process.env.CAPACITOR_SERVER_URL?.trim();
 
 const config: CapacitorConfig = {
   appId: 'com.curai.app',
-  appName: 'CurAI',
+  appName: 'CurieAI',
   webDir: 'dist',
   server: devServerUrl
     ? {

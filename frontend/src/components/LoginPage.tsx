@@ -89,7 +89,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
   };
 
   return (
-    <div
+    <main
       className="classic-font flex min-h-[100dvh] items-center justify-center bg-[var(--ui-bg)] px-4 py-10 text-[var(--phosphor)]"
       style={{
         paddingTop: 'max(2.5rem, var(--safe-area-top))',
@@ -100,7 +100,7 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
         <div className="mb-6 flex flex-col items-center text-center">
           <CuraiLogo state={isSubmitting ? 'thinking' : error ? 'error' : 'idle'} size={48} className="mb-4" />
           <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--phosphor-bright)]">
-            {isAdmin ? 'CurAI Admin' : 'CurAI'}
+            {isAdmin ? 'CurieAI Admin' : 'CurieAI'}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-[var(--phosphor-dim)]">
             {isAdmin
@@ -189,6 +189,6 @@ export function LoginPage({ authConfig, onAuthenticated, variant = 'app' }: Prop
           </a>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

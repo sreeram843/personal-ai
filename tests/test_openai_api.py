@@ -59,7 +59,7 @@ def test_openai_api_disabled(disabled_openai_client: TestClient) -> None:
 
 
 def test_chat_completions(client: TestClient) -> None:
-    fake_response = ChatResponse(message="Hello from CurAI", sources=[], workflow=None)
+    fake_response = ChatResponse(message="Hello from CurieAI", sources=[], workflow=None)
 
     with patch("app.api.openai_routes.run_persisted_chat", new_callable=AsyncMock) as mock_chat:
         mock_chat.return_value = fake_response
@@ -74,5 +74,5 @@ def test_chat_completions(client: TestClient) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["object"] == "chat.completion"
-    assert body["choices"][0]["message"]["content"] == "Hello from CurAI"
+    assert body["choices"][0]["message"]["content"] == "Hello from CurieAI"
     mock_chat.assert_awaited_once()

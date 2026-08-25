@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
-  CurAI Final design system — warm amber charcoal
+  CurieAI Final design system — warm amber charcoal
   Accent: #e0a446 · Dark surfaces: #18140f / #1d1712 · Light: #faf8f4 / #f3efe7
 */
 
@@ -1370,7 +1370,7 @@ html.capacitor-native #root {
   background: var(--ui-panel-strong);
 }
 
-/* CurAI logo — fixed orbit rings, electrons travel paths, bulb nucleus static */
+/* CurieAI logo — fixed orbit rings, electrons travel paths, bulb nucleus static */
 .curai-logo {
   line-height: 0;
   --curai-logo-stroke: #1c1710;
@@ -1520,7 +1520,7 @@ html.dark .curai-logo__bulb-thread {
   }
 }
 
-/* —— CurAI Admin portal (matches CurAI Admin Portal.dc.html) —— */
+/* —— CurieAI Admin portal (matches CurieAI Admin Portal.dc.html) —— */
 .admin-app {
   display: flex;
   min-height: 100dvh;

@@ -533,7 +533,7 @@ export default function App({ authConfig, user }: AppProps) {
     const active = conversations.find((item) => item.id === conversationId);
     const assistantId = active?.assistantId ?? selectedAssistantId;
     const match = assistants.find((item) => item.id === (assistantId || 'default'));
-    return match?.name ?? 'CurAI';
+    return match?.name ?? 'CurieAI';
   }, [assistants, conversationId, conversations, selectedAssistantId]);
 
   const activeConversationTitle = useMemo(() => {

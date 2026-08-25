@@ -2,6 +2,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { useEffect, useState } from 'react';
 import App from './App';
 import { BootstrapScreen } from './components/BootstrapScreen';
+import { InstallPrompt } from './components/InstallPrompt';
 import { LoginPage } from './components/LoginPage';
 import { DemoApp } from './DemoApp';
 import type { AuthConfig } from './api';
@@ -11,14 +12,19 @@ import { useAuthBootstrap, useAuthConfig, useCurrentUser } from './query/hooks';
 
 export function AppRoot({ demoMode = false }: { demoMode?: boolean }) {
   if (demoMode) {
-    return <DemoApp />;
+    return (
+      <>
+        <InstallPrompt />
+        <DemoApp />
+      </>
+    );
   }
 
   return <AuthenticatedAppRoot />;
 }
 
 function AuthenticatedAppRoot() {
-  // Apply theme before auth so login/bootstrap match CurAI Final dark shell.
+  // Apply theme before auth so login/bootstrap match CurieAI Final dark shell.
   useTheme();
   const configQuery = useAuthConfig();
 
@@ -109,5 +115,10 @@ function AuthenticatedGate({ authConfig }: { authConfig: AuthConfig }) {
     return <BootstrapScreen />;
   }
 
-  return <App authConfig={authConfig} user={currentUserQuery.data} />;
+  return (
+    <>
+      <InstallPrompt />
+      <App authConfig={authConfig} user={currentUserQuery.data} />
+    </>
+  );
 }

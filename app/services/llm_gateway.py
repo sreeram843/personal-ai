@@ -264,7 +264,7 @@ class OpenAICompatibleLLMAdapter:
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "CurAI/1.0",
+            "User-Agent": "CurieAI/1.0",
         }
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"

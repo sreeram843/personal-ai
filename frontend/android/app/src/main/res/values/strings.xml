@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">CurAI</string>
-    <string name="title_activity_main">CurAI</string>
+    <string name="app_name">CurieAI</string>
+    <string name="title_activity_main">CurieAI</string>
     <string name="package_name">com.curai.app</string>
     <string name="custom_url_scheme">com.curai.app</string>
 </resources>

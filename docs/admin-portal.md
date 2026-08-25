@@ -1,6 +1,6 @@
 # Admin portal (`admin.cura-i.com`)
 
-Platform admin for CurAI: providers/models, users/invites, token usage, signup mode.
+Platform admin for CurieAI: providers/models, users/invites, token usage, signup mode.
 
 ## URLs
 

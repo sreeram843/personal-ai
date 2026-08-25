@@ -51,6 +51,7 @@ Sources, workflow trace, and step memory are not rendered inline for a cleaner U
 - Touch targets ≥ 44px on action buttons
 - `.message-log` scroll container; body scroll locked on Capacitor native
 - Bottom sheets for About and Settings on small screens
+- Web PWA: install banner after login/chat (`beforeinstallprompt`, or an iOS Add to Home Screen hint). Service worker is online-only and is not registered in Capacitor native.
 
 See [CAPACITOR.md](../frontend/CAPACITOR.md) for native build and simulator steps.
 

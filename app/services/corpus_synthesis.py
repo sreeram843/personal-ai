@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from app.core.config import Settings
 from app.schemas.chat import RetrievedChunk
@@ -42,6 +42,7 @@ def pack_corpus_synthesis(
     *,
     settings: Settings,
     pack_limit: int,
+    user_id: Optional[str] = None,
 ) -> List[RetrievedChunk]:
     """
     RAPTOR-style pack: one summary per document, graph-linked expansion, optional detail chunk.
@@ -60,6 +61,7 @@ def pack_corpus_synthesis(
             limit=min(pack_limit, len(candidates)),
             prefer_document_summaries=True,
             summary_boost=settings.retrieval_summary_boost,
+            user_id=user_id,
         )
 
     ranked_summaries = sorted(

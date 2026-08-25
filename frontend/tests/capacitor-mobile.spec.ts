@@ -29,6 +29,16 @@ test.describe('capacitor mobile shell', () => {
     await expect(page.getByTitle('Close navigation')).not.toBeVisible();
   });
 
+  test('chat shell does not scroll horizontally', async ({ page }) => {
+    await prepareAuthenticatedPage(page);
+    await expect(page.getByPlaceholder(/Message/)).toBeVisible();
+    const metrics = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }));
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewportWidth);
+  });
+
   test('toggles theme from settings on mobile', async ({ page }) => {
     await prepareAuthenticatedPage(page);
     await page.getByRole('button', { name: 'Open navigation' }).click();

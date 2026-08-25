@@ -29,7 +29,10 @@ def resolve_active_skill(
         if skill is not None and skill.enabled:
             return ResolvedSkill(skill=skill, matched_by="assistant")
         return None
-    return catalog.resolve(query, user_id=user_id)
+    resolved = catalog.resolve(query, user_id=user_id)
+    if resolved is not None:
+        catalog.record_implicit_use(user_id, resolved.skill.id)
+    return resolved
 
 
 def resolve_skill_for_request(

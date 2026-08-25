@@ -129,7 +129,7 @@ export function ProfilePanel({ user, authConfig, onAccountDeleted }: Props) {
       <ConfirmDialog
         open={confirmDelete}
         title="Delete account?"
-        message="This permanently deletes your CurAI account, conversations, and uploaded documents. This cannot be undone."
+        message="This permanently deletes your CurieAI account, conversations, and uploaded documents. This cannot be undone."
         confirmLabel={busy === 'delete' ? 'Deleting…' : 'Delete account'}
         tone="danger"
         loading={busy === 'delete'}

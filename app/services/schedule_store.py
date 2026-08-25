@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -38,9 +38,17 @@ class ScheduledReport:
     last_run_at: Optional[str] = None
     next_run_at: Optional[str] = None
     last_run_id: Optional[str] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "ScheduledReport":
+        metadata = raw.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        else:
+            metadata = dict(metadata)
+        if "tier" in raw and "tier" not in metadata:
+            metadata["tier"] = raw["tier"]
         return cls(
             id=str(raw.get("id") or ""),
             user_id=str(raw.get("user_id") or ""),
@@ -51,6 +59,7 @@ class ScheduledReport:
             last_run_at=raw.get("last_run_at"),
             next_run_at=raw.get("next_run_at"),
             last_run_id=raw.get("last_run_id"),
+            metadata=metadata,
         )
 
 

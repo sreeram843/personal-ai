@@ -53,7 +53,7 @@ function stageBadgeClass(title: string): string {
 
 /**
  * Collapsible "Reasoning & workflow trace" panel — mirrors the mockup in
- * CurAI Designs/CurAI Chat Content.dc.html: a workflow-steps list
+ * CurieAI Designs/CurieAI Chat Content.dc.html: a workflow-steps list
  * (agent · status) plus the model's own reasoning text underneath.
  *
  * Sized and colored as secondary/debug content — smaller and dimmer than the

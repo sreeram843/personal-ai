@@ -8,6 +8,7 @@ from typing import List, Optional, Sequence, Set
 from app.schemas.chat import RetrievedChunk
 from app.services.document_summary import DOCUMENT_SUMMARY_CHUNK_TYPE
 from app.services.cross_encoder_rerank import blend_cross_encoder_scores
+from app.services.retrieval_trust import source_id_for_chunk, trust_multiplier
 
 _TOKEN_RE = re.compile(r"[a-z0-9]{2,}", re.IGNORECASE)
 
@@ -122,11 +123,14 @@ def hybrid_rerank_score(
     lexical_weight: float = 0.55,
     prefer_document_summaries: bool = False,
     summary_boost: float = 0.12,
+    user_id: Optional[str] = None,
 ) -> float:
     lexical = lexical_overlap_score(query, chunk.text)
     score = (vector_weight * normalized_vector_score) + (lexical_weight * lexical)
     if prefer_document_summaries and (chunk.metadata or {}).get("chunk_type") == DOCUMENT_SUMMARY_CHUNK_TYPE:
         score += summary_boost
+    if user_id:
+        score *= trust_multiplier(user_id, source_id_for_chunk(chunk))
     return score
 
 
@@ -145,6 +149,7 @@ def rerank_and_pack(
     summary_boost: float = 0.12,
     cross_encoder_scores: Optional[Sequence[float]] = None,
     cross_encoder_weight: float = 0.6,
+    user_id: Optional[str] = None,
 ) -> List[RetrievedChunk]:
     """
     Rerank vector hits with hybrid scores (optionally blended with a cross-encoder),
@@ -154,7 +159,12 @@ def rerank_and_pack(
     """
     if limit <= 0 or not candidates:
         return []
-    if len(candidates) <= limit and not prefer_document_summaries and cross_encoder_scores is None:
+    if (
+        len(candidates) <= limit
+        and not prefer_document_summaries
+        and cross_encoder_scores is None
+        and not user_id
+    ):
         return list(candidates)
 
     summary_candidates = [
@@ -187,6 +197,7 @@ def rerank_and_pack(
             summary_boost=summary_boost,
             cross_encoder_by_id=ce_by_id,
             cross_encoder_weight=cross_encoder_weight,
+            user_id=user_id,
         )
         remaining = limit - len(summary_packed)
         chunk_packed = (
@@ -201,6 +212,7 @@ def rerank_and_pack(
                 summary_boost=summary_boost,
                 cross_encoder_by_id=ce_by_id,
                 cross_encoder_weight=cross_encoder_weight,
+                user_id=user_id,
             )
             if remaining > 0
             else []
@@ -218,6 +230,7 @@ def rerank_and_pack(
         summary_boost=summary_boost,
         cross_encoder_by_id=ce_by_id,
         cross_encoder_weight=cross_encoder_weight,
+        user_id=user_id,
     )
 
 
@@ -233,10 +246,11 @@ def _rerank_candidates(
     summary_boost: float,
     cross_encoder_by_id: Optional[dict[str, float]] = None,
     cross_encoder_weight: float = 0.6,
+    user_id: Optional[str] = None,
 ) -> List[RetrievedChunk]:
     if limit <= 0 or not candidates:
         return []
-    if len(candidates) <= limit and not cross_encoder_by_id:
+    if len(candidates) <= limit and not cross_encoder_by_id and not user_id:
         return list(candidates)
 
     normalized_vectors = _normalize_scores([candidate.score for candidate in candidates])
@@ -249,6 +263,7 @@ def _rerank_candidates(
             lexical_weight=lexical_weight,
             prefer_document_summaries=prefer_document_summaries,
             summary_boost=summary_boost,
+            user_id=user_id,
         )
         for index, candidate in enumerate(candidates)
     ]

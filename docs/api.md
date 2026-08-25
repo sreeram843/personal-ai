@@ -1,6 +1,6 @@
 # API reference
 
-CurAI exposes a JSON HTTP API plus a subset of the OpenAI Chat Completions API.
+CurieAI exposes a JSON HTTP API plus a subset of the OpenAI Chat Completions API.
 Auth is JWT (`Authorization: Bearer <token>`) when `AUTH_DISABLED=false`; local dev
 defaults to `AUTH_DISABLED=true` with a dev user injected automatically.
 
@@ -45,7 +45,7 @@ assistant messages in Postgres metadata for history reload.
 | `DELETE /conversations/{id}` | Delete conversation |
 
 Create with an optional `assistant_id` to bind a skill/assistant for the whole
-thread. Use `"default"` or omit for the general CurAI assistant.
+thread. Use `"default"` or omit for the general CurieAI assistant.
 
 ## Assistants & agent settings
 
@@ -58,6 +58,13 @@ thread. Use `"default"` or omit for the general CurAI assistant.
 
 In the UI, pick an assistant from the sidebar before starting a conversation, or
 manage them under **Agent settings → Assistants**.
+
+When a message matches more than one skill trigger, CurieAI prefers the skill
+this user has used most often (implicit counts in `memory/skill_implicit.json`,
+separate from explicit enable/disable `_pref_` records). An explicit assistant
+pick (`assistant_id`) does not update those counts. Disabled bundled skills are
+never selected. On a count tie or with no history, bundled first-match order
+is kept.
 
 ## OpenAI-compatible API (`/v1`)
 
@@ -81,8 +88,21 @@ curl -s -X POST http://localhost:8000/v1/chat/completions \
   | python3 -m json.tool
 ```
 
-Point any OpenAI SDK at your CurAI host via `base_url`, supplying a bearer token when
+Point any OpenAI SDK at your CurieAI host via `base_url`, supplying a bearer token when
 auth is enabled.
+
+## Runtime MCP
+
+Per-user HTTP MCP connectors (design and security:
+[mcp-runtime.md](./mcp-runtime.md)). Gated by `ENABLE_RUNTIME_MCP`.
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /mcp/servers` | List current user's connectors (`header_keys` only) |
+| `POST /mcp/servers` | Register HTTP MCP URL + optional headers |
+| `PATCH /mcp/servers/{server_id}` | Update name, url, enabled, or headers |
+| `DELETE /mcp/servers/{server_id}` | Remove connector |
+| `POST /mcp/servers/{server_id}/test` | `tools/list` (up to 40 names) |
 
 ## Tools, workflow runs, jobs
 

@@ -60,13 +60,18 @@ class MemoryConsolidationJob(BaseModel):
     """Background consolidation job configuration."""
 
     job_id: str = Field(default_factory=lambda: __import__('uuid').uuid4().hex[:16])
-    conversation_id: str = Field(...)
+    user_id: str = Field(default="")
+    conversation_id: str = Field(default="")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     status: str = Field(default="pending")  # pending, running, completed, failed
     entries_processed: int = Field(default=0)
     entries_merged: int = Field(default=0)
     entries_pruned: int = Field(default=0)
     summary: str = Field(default="")
+
+    def model_post_init(self, __context: object) -> None:
+        if not self.user_id and self.conversation_id:
+            self.user_id = self.conversation_id
 
 
 class MemoryQualityMetrics(BaseModel):

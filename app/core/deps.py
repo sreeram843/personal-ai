@@ -22,9 +22,14 @@ from app.services.vector_store import VectorStore
 from app.services.web_search import WebSearchService
 from app.services.workflow_memory import WorkflowMemoryStore, build_workflow_memory_store
 from app.services.user_memory import UserMemoryStore, build_user_memory_store
+from app.services.memory_consolidation import (
+    MemoryConsolidationService,
+    build_memory_consolidation_service,
+)
 from app.services.schedule_store import ScheduleStore, build_schedule_store
 from app.services.mcp_store import McpServerStore, build_mcp_server_store
 from app.services.skill_loader import SkillCatalog, SkillStore, build_skill_catalog, build_skill_store
+from app.services.skill_implicit import SkillImplicitStore, build_skill_implicit_store
 from app.services.agent_task_store import AgentTaskStore, build_agent_task_store
 from app.services.job_store import JobStore
 from app.db.session import get_db
@@ -104,6 +109,12 @@ def get_user_memory_store() -> UserMemoryStore:
 
 
 @lru_cache
+def get_memory_consolidation_service() -> MemoryConsolidationService:
+    settings = get_settings()
+    return build_memory_consolidation_service(file_path=settings.memory_consolidation_path)
+
+
+@lru_cache
 def get_schedule_store() -> ScheduleStore:
     settings = get_settings()
     return build_schedule_store(file_path=settings.scheduled_reports_path)
@@ -122,9 +133,19 @@ def get_skill_store() -> SkillStore:
 
 
 @lru_cache
+def get_skill_implicit_store() -> SkillImplicitStore:
+    settings = get_settings()
+    return build_skill_implicit_store(file_path=settings.skill_implicit_path)
+
+
+@lru_cache
 def get_skill_catalog() -> SkillCatalog:
     settings = get_settings()
-    return build_skill_catalog(bundled_root=settings.bundled_skills_path, store=get_skill_store())
+    return build_skill_catalog(
+        bundled_root=settings.bundled_skills_path,
+        store=get_skill_store(),
+        implicit=get_skill_implicit_store(),
+    )
 
 
 @lru_cache
@@ -287,6 +308,7 @@ __all__ = [
     "get_live_data_manager",
     "get_workflow_memory_store",
     "get_user_memory_store",
+    "get_memory_consolidation_service",
     "get_schedule_store",
     "get_mcp_server_store",
     "get_skill_store",

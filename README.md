@@ -1,4 +1,4 @@
-# CurAI (Personal AI)
+# CurieAI (Personal AI)
 
 A **multi-user**, retrieval-augmented assistant with live data, tool calling, and
 optional multi-agent workflows. FastAPI + PostgreSQL + Qdrant + Redis backend;
@@ -53,6 +53,7 @@ Compose profiles — see [docs/compose-profiles.md](docs/compose-profiles.md).
 | **API reference** | [docs/api.md](docs/api.md) |
 | **Operations / runbooks** | [docs/runbooks/](docs/runbooks/) |
 | **Testing & benchmarks** | [docs/testing-accuracy.md](docs/testing-accuracy.md) · [docs/model-stress-testing.md](docs/model-stress-testing.md) |
+| **MCP connectors** | [docs/mcp-runtime.md](docs/mcp-runtime.md) · [docs/mcp-tool-federation.md](docs/mcp-tool-federation.md) |
 | **Assistant behavior** | [docs/traits.md](docs/traits.md) |
 | **Frontend** | [frontend/README.md](frontend/README.md) · [frontend/CAPACITOR.md](frontend/CAPACITOR.md) |
 
@@ -62,10 +63,15 @@ Copy `.env.example` → `.env`. Key flags:
 
 ```bash
 ENABLE_FAST_CHAT=true    # fast single-call path for trivial prompts
-ENABLE_TOOL_AGENT=true   # tool-calling agent (default strategy)
+ENABLE_TOOL_AGENT=true   # local default; keep false on cloud (see below)
 ENABLE_OPENAI_API=true   # OpenAI-compatible /v1 endpoint
 AUTH_DISABLED=true       # local dev only (no token required)
 ```
+
+Cloud (`make up-cloud` / `.env.cloud`): `ENABLE_TOOL_AGENT=false` and
+`ENABLE_FAST_CHAT=true`. Groq tool-loops are unreliable; **Chat** is the fast
+direct path and **Smart** still does RAG/workflow without the tool agent.
+UI copy on the composer toggle matches that split.
 
 Full variable list: `.env.example`, `.env.cloud.example`, `.env.remote.example`.
 

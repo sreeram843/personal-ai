@@ -14,6 +14,7 @@ Each record has four sections: **Status**, **Context**, **Decision**,
 | [0004](0004-multi-provider-llm-gateway.md) | Multi-provider LLM gateway with per-stage routing | Accepted |
 | [0005](0005-per-user-tenant-isolation.md) | Per-user tenant isolation | Accepted |
 | [0006](0006-compose-profiles-for-runtime-switching.md) | Compose profiles for runtime switching | Accepted |
+| [0007](0007-runtime-mcp-connectors.md) | Per-user runtime MCP connectors | Accepted |
 
 ## Template
 

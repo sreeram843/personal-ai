@@ -406,14 +406,23 @@ def record_post_chat_memory(
     assistant_message: str,
 ) -> None:
     settings = get_settings()
-    if not settings.enable_user_memory or not user_id:
+    if not user_id:
         return
-    from app.core.deps import get_user_memory_store
+    if settings.enable_user_memory:
+        from app.core.deps import get_user_memory_store
 
-    store = get_user_memory_store()
-    store.record_turn(user_id=user_id, user_message=user_message, assistant_message=assistant_message)
-    for fact in extract_memory_facts_heuristic(user_message, assistant_message):
-        store.record_fact(user_id=user_id, fact=fact)
+        store = get_user_memory_store()
+        store.record_turn(user_id=user_id, user_message=user_message, assistant_message=assistant_message)
+        for fact in extract_memory_facts_heuristic(user_message, assistant_message):
+            store.record_fact(user_id=user_id, fact=fact)
+    if settings.enable_memory_consolidation:
+        from app.core.deps import get_memory_consolidation_service
+
+        get_memory_consolidation_service().record_turn(
+            user_id,
+            user_message=user_message,
+            assistant_message=assistant_message,
+        )
 
 
 __all__ = [

@@ -38,14 +38,22 @@ def isolated_json_stores(tmp_path, monkeypatch) -> Generator[None, None, None]:
 
     monkeypatch.setenv("USER_SKILLS_PATH", str(tmp_path / "user_skills.json"))
     monkeypatch.setenv("AGENT_TASKS_PATH", str(tmp_path / "agent_tasks.json"))
+    monkeypatch.setenv("SKILL_IMPLICIT_PATH", str(tmp_path / "skill_implicit.json"))
+    monkeypatch.setenv("RETRIEVAL_TRUST_PATH", str(tmp_path / "retrieval_trust.json"))
+    monkeypatch.setenv("MEMORY_CONSOLIDATION_PATH", str(tmp_path / "consolidation.json"))
+    monkeypatch.setenv("ALERT_GOVERNANCE_PATH", str(tmp_path / "alert_governance.json"))
     get_settings.cache_clear()
     deps.get_skill_store.cache_clear()
     deps.get_skill_catalog.cache_clear()
+    deps.get_skill_implicit_store.cache_clear()
     deps.get_agent_task_store.cache_clear()
+    deps.get_memory_consolidation_service.cache_clear()
     yield
     deps.get_skill_store.cache_clear()
     deps.get_skill_catalog.cache_clear()
+    deps.get_skill_implicit_store.cache_clear()
     deps.get_agent_task_store.cache_clear()
+    deps.get_memory_consolidation_service.cache_clear()
     get_settings.cache_clear()
 
 

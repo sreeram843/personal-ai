@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Production smoke checks for CurAI.
+# Production smoke checks for CurieAI.
 #
 # Required:
 #   APP_URL=https://app.cura-i.com ./scripts/prod_smoke.sh
@@ -38,11 +38,11 @@ expect_code() {
   printf 'OK: %s returned %s\n' "$label" "$actual"
 }
 
-printf 'CurAI production smoke: %s\n' "$APP_URL"
+printf 'CurieAI production smoke: %s\n' "$APP_URL"
 
 ROOT_CODE="$(request_code "$TMP_DIR/root.html" "$APP_URL/")"
 expect_code "$ROOT_CODE" "200" "app shell"
-grep -qi '<title>CurAI</title>' "$TMP_DIR/root.html" || fail "app shell is missing CurAI title"
+grep -qi '<title>CurieAI</title>' "$TMP_DIR/root.html" || fail "app shell is missing CurieAI title"
 
 HEALTH_CODE="$(request_code "$TMP_DIR/health.json" "$APP_URL/health")"
 READY_CODE="$(request_code "$TMP_DIR/ready.json" "$APP_URL/ready")"
@@ -113,7 +113,7 @@ INGEST_CODE="$(request_code "$TMP_DIR/ingest.json" \
   -X POST \
   -H "$AUTH_HEADER" \
   -H 'Content-Type: application/json' \
-  --data '{"documents":[{"text":"CurAI production smoke document. Safe to replace.","metadata":{"path":"prod-smoke.txt","title":"Production smoke"}}]}' \
+  --data '{"documents":[{"text":"CurieAI production smoke document. Safe to replace.","metadata":{"path":"prod-smoke.txt","title":"Production smoke"}}]}' \
   "$APP_URL/ingest")"
 expect_code "$INGEST_CODE" "200" "/ingest"
 python3 - "$TMP_DIR/ingest.json" <<'PY'

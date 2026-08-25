@@ -1,6 +1,6 @@
-# Production GCP VM (CurAI)
+# Production GCP VM (CurieAI)
 
-End-to-end path from a fresh GCP VM to HTTPS CurAI at `app.cura-i.com` (and optional `admin` / `grafana` subdomains).
+End-to-end path from a fresh GCP VM to HTTPS CurieAI at `app.cura-i.com` (and optional `admin` / `grafana` subdomains).
 
 ## Prerequisites
 

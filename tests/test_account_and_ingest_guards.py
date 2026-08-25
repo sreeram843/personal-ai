@@ -92,7 +92,7 @@ def test_ingest_files_accepts_pdf(db_session) -> None:
 2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj
 3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 200] /Contents 4 0 R /Resources<< /Font<< /F1 5 0 R >> >> >>endobj
 4 0 obj<< /Length 68 >>stream
-BT /F1 12 Tf 50 100 Td (CurAI PDF ingest marker) Tj ET
+BT /F1 12 Tf 50 100 Td (CurieAI PDF ingest marker) Tj ET
 endstream
 endobj
 5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj

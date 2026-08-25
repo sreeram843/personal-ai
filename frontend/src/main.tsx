@@ -4,10 +4,21 @@ import './index.css';
 import { AdminApp } from './AdminApp.tsx';
 import { AppRoot } from './AppRoot.tsx';
 import { LegalPage } from './components/LegalPage.tsx';
-import { initCapacitorShell } from './platform/capacitor.ts';
+import { initCapacitorShell, isCapacitorNative } from './platform/capacitor.ts';
 import { QueryProvider } from './providers/QueryProvider.tsx';
 
 void initCapacitorShell();
+
+function registerWebServiceWorker(): void {
+  if (isCapacitorNative() || !import.meta.env.PROD || !('serviceWorker' in navigator)) {
+    return;
+  }
+  window.addEventListener('load', () => {
+    void navigator.serviceWorker.register('/sw.js');
+  });
+}
+
+registerWebServiceWorker();
 
 function isDemoRoute(): boolean {
   const path = window.location.pathname.replace(/\/+$/, '') || '/';

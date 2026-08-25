@@ -16,7 +16,7 @@ Fall back to file tools only when the graph lacks the coverage you need.
 ## What this is
 
 Monorepo: FastAPI + Postgres + Qdrant + Redis backend (`app/`), React 19 + Vite 7
-frontend (`frontend/`). Multi-user RAG assistant ("CurAI"). Chat auto-routes each
+frontend (`frontend/`). Multi-user RAG assistant ("CurieAI"). Chat auto-routes each
 message: live-data short-circuit → `chat` / `rag` / `workflow`.
 
 ## Commands

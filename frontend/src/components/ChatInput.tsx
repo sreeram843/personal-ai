@@ -115,7 +115,7 @@ function ComposerAssistantPicker({
         title="Assistant"
       >
         <Bot className="h-3 w-3 shrink-0" aria-hidden />
-        <span className="max-w-[110px] truncate">{loading ? 'Loading…' : selected?.name ?? 'CurAI'}</span>
+        <span className="max-w-[110px] truncate">{loading ? 'Loading…' : selected?.name ?? 'CurieAI'}</span>
         <ChevronDown className={clsx('h-3 w-3 shrink-0 opacity-70 transition', open ? 'rotate-180' : '')} aria-hidden />
       </button>
       {open ? (
@@ -285,7 +285,7 @@ export const ChatInput = forwardRef<ChatInputHandle, Props>(function ChatInput(
       : [
           {
             id: 'default',
-            name: 'CurAI',
+            name: 'CurieAI',
             triggers: [],
             allowed_tools: [],
             enabled: true,

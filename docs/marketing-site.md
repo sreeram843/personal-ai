@@ -1,4 +1,4 @@
-# CurAI Marketing Site and Domain Architecture
+# CurieAI Marketing Site and Domain Architecture
 
 ## Domain architecture
 
@@ -6,9 +6,9 @@
 |------|---------|-------|
 | `https://cura-i.com` | Public marketing site, product overview, legal navigation | Squarespace |
 | `https://www.cura-i.com` | Redirect to `https://cura-i.com` | Squarespace / DNS |
-| `https://app.cura-i.com` | CurAI product and public `/privacy` + `/terms` fallbacks | CurAI deployment |
-| `https://admin.cura-i.com` | Restricted administration portal | CurAI deployment |
-| `https://grafana.app.cura-i.com` | Restricted operations dashboards | CurAI deployment |
+| `https://app.cura-i.com` | CurieAI product and public `/privacy` + `/terms` fallbacks | CurieAI deployment |
+| `https://admin.cura-i.com` | Restricted administration portal | CurieAI deployment |
+| `https://grafana.app.cura-i.com` | Restricted operations dashboards | CurieAI deployment |
 
 The application includes public legal pages at:
 
@@ -19,13 +19,13 @@ These can be used for Google OAuth verification immediately. The Squarespace sit
 
 ## Squarespace landing-page specification
 
-Use the transparent CurAI mark from `frontend/public/curai-favicon.svg` and the product’s warm amber accent. Keep the page compact:
+Use the transparent CurieAI mark from `frontend/public/curai-favicon.svg` and the product’s warm amber accent. Keep the page compact:
 
 1. **Hero**
    - Eyebrow: `A personal AI that knows when to think deeper`
    - Heading: `Chat fast. Search your knowledge. Work through complex problems.`
-   - Body: `CurAI combines direct AI chat, document-grounded answers, live information, and multi-step workflows in one private workspace.`
-   - Primary CTA: `Open CurAI` → `https://app.cura-i.com`
+   - Body: `CurieAI combines direct AI chat, document-grounded answers, live information, and multi-step workflows in one private workspace.`
+   - Primary CTA: `Open CurieAI` → `https://app.cura-i.com`
    - Secondary CTA: `Learn how it works` → feature section
 2. **Core capabilities**
    - `Direct chat` — Fast answers for everyday questions and writing.
@@ -38,7 +38,7 @@ Use the transparent CurAI mark from `frontend/public/curai-favicon.svg` and the 
    - `Export or delete your account data from settings.`
 4. **Final CTA**
    - Heading: `Bring your questions, documents, and decisions together.`
-   - Button: `Launch CurAI` → `https://app.cura-i.com`
+   - Button: `Launch CurieAI` → `https://app.cura-i.com`
 5. **Footer**
    - Privacy → `/privacy`
    - Terms → `/terms`
@@ -49,7 +49,7 @@ Use the transparent CurAI mark from `frontend/public/curai-favicon.svg` and the 
 
 - [ ] Connect `cura-i.com` and set it as the Squarespace primary domain.
 - [ ] Redirect `www` to the apex domain.
-- [ ] Add the CurAI favicon/logo without an opaque white background.
+- [ ] Add the CurieAI favicon/logo without an opaque white background.
 - [ ] Publish Privacy and Terms pages or redirects.
 - [ ] Link every CTA to `https://app.cura-i.com`.
 - [ ] Verify mobile layout and metadata/social preview.

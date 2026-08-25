@@ -120,20 +120,40 @@ async def scheduled_reports_tick(ctx: dict) -> Dict[str, Any]:
     """ARQ cron hook: enqueue due scheduled workflow reports."""
     settings = get_settings()
     if not settings.enable_background_workers:
-        return {"skipped": True, "processed": 0}
+        return {"skipped": True, "processed": 0, "suppressed": 0}
 
     from app.core.deps import get_run_store, get_schedule_store
+    from app.services.alert_governance import (
+        AlertGovernance,
+        condition_key,
+        schedule_tier,
+    )
     from app.services.task_queue import get_task_queue
 
     store = get_schedule_store()
     due = store.list_due()
     if not due:
-        return {"processed": 0}
+        return {"processed": 0, "suppressed": 0}
 
+    governance = AlertGovernance(
+        file_path=settings.alert_governance_path,
+        refractory_minutes=settings.alert_refractory_minutes,
+    )
     run_store = get_run_store()
     task_queue = get_task_queue()
     processed = 0
     for schedule in due:
+        key = condition_key(
+            user_id=schedule.user_id,
+            schedule_id=schedule.id,
+            prompt=schedule.prompt,
+        )
+        tier = schedule_tier(schedule)
+        if not governance.should_notify(key, tier=tier):
+            # Advance next_run_at so a suppressed item does not stay due forever.
+            store.mark_run(schedule.id, run_id=schedule.last_run_id or "suppressed")
+            processed += 1
+            continue
         run = run_store.create_run(mode="workflow", conversation_id=None, user_id=schedule.user_id)
         payload = {
             "message": schedule.prompt,
@@ -151,8 +171,9 @@ async def scheduled_reports_tick(ctx: dict) -> Dict[str, Any]:
                 user_id=schedule.user_id,
                 payload=payload,
             )
+            governance.record_fire(key, tier=tier)
             store.mark_run(schedule.id, run_id=run.run_id)
             processed += 1
         except Exception:
             logger.exception("Scheduled report %s failed to enqueue", schedule.id)
-    return {"processed": processed}
+    return {"processed": processed, "suppressed": governance.suppressed}

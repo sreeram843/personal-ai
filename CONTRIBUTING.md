@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping build CurAI. This guide is for humans; the agent-facing
+Thanks for helping build CurieAI. This guide is for humans; the agent-facing
 operating manual is [AGENTS.md](AGENTS.md).
 
 ## Before you start
