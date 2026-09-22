@@ -11,8 +11,9 @@ Personal AI uses [Docker Compose profiles](https://docs.docker.com/compose/how-t
 | `gpu-vllm` | Local vLLM on NVIDIA GPU | Ollama (`nomic-embed-text`) | `make up-gpu-vllm` |
 | `remote` | LM Studio on another host (OpenAI API) | Remote Ollama (`nomic-embed-text`) | `make up-remote` |
 | `workers` | (uses app LLM config) | (uses app embed config) | `make up-workers` |
+| `monitoring` | (unchanged) | (unchanged) | `make up-monitoring` |
 
-Core services (Postgres, Redis, Qdrant, app, Prometheus, Grafana) always start. LLM runtime containers are profile-gated.
+Core services (Postgres, Redis, Qdrant, app) always start. LLM runtime containers and the Grafana/Loki/Prometheus stack are profile-gated. Production deploy does **not** enable `monitoring`.
 
 ## Quick start
 
@@ -52,6 +53,9 @@ GitHub Actions and manual SSH deploys use `scripts/deploy_prod.sh` (`make deploy
 
 On the server: `cd /opt/personal-ai && ./scripts/deploy_prod.sh`
 
+Grafana/Loki/Prometheus stay off unless you add `--profile monitoring` (see [monitoring-subdomain.md](./runbooks/monitoring-subdomain.md)).
+
+### GPU vLLM
 
 ```bash
 cp .env.gpu-vllm.example .env.gpu-vllm

@@ -5,17 +5,20 @@
 #   cloud-chat  — Cloud OpenAI-compatible chat + local Ollama embeddings (`make up-cloud`)
 #   gpu-vllm    — vLLM on GPU for chat + local Ollama embeddings (`make up-gpu-vllm`)
 #   workers     — ARQ background worker (`make up-workers`)
+#   monitoring  — Prometheus, Loki, Promtail, Grafana (`make up-monitoring`)
 #
 # Examples:
 #   docker compose --profile local up -d
 #   docker compose --profile cloud-chat -f docker-compose.cloud.yml --env-file .env.cloud up -d
 #   docker compose --profile gpu-vllm -f docker-compose.gpu-vllm.yml up -d
 #   docker compose --profile local --profile workers up -d
+#   docker compose --profile local --profile monitoring up -d
 
 services:
   postgres:
     image: postgres:16-alpine
     container_name: personal-ai-postgres
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -35,6 +38,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: personal-ai-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     volumes:
@@ -47,6 +51,7 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     container_name: personal-ai-qdrant
+    restart: unless-stopped
     ports:
       - "6333:6333"
       - "6334:6334"
@@ -61,6 +66,7 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: personal-ai-ollama
+    restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
@@ -112,6 +118,7 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     container_name: personal-ai-app
+    restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
@@ -211,6 +218,7 @@ services:
         condition: service_started
     networks:
       - personal-ai-network
+    restart: unless-stopped
     command: arq app.workers.settings.WorkerSettings
     profiles:
       - workers
@@ -218,6 +226,9 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: personal-ai-prometheus
+    restart: unless-stopped
+    profiles:
+      - monitoring
     ports:
       - "9090:9090"
     volumes:
@@ -231,6 +242,9 @@ services:
   loki:
     image: grafana/loki:latest
     container_name: personal-ai-loki
+    restart: unless-stopped
+    profiles:
+      - monitoring
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/config.yml
@@ -243,6 +257,9 @@ services:
   promtail:
     image: grafana/promtail:latest
     container_name: personal-ai-promtail
+    restart: unless-stopped
+    profiles:
+      - monitoring
     command: -config.file=/etc/promtail/config.yml
     volumes:
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
@@ -256,6 +273,9 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: personal-ai-grafana
+    restart: unless-stopped
+    profiles:
+      - monitoring
     ports:
       - "3000:3000"
     environment:

@@ -1,4 +1,4 @@
-.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod prod-deep-smoke backup-prod restore-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval eval-workflow check-remote-inference
+.PHONY: help build build-cloud up up-local up-cloud up-gpu-vllm up-remote up-workers up-monitoring up-dmr down logs logs-app logs-worker logs-ollama logs-qdrant restart clean pull-models pull-models-cloud deploy-prod status test-backend test-frontend test-real-api test-real-api-http real-api-smoke model-accuracy-smoke model-stress-local model-stress-prod prod-deep-smoke backup-prod restore-prod security-check compose-validate compose-smoke quality-gate shell-app penpot-mcp db-migrate db-revision eggplant-setup eggplant-download eggplant-eval eggplant-eval-live eggplant-eval-live-full test-eval eval-workflow check-remote-inference
 
 COMPOSE_PROFILES_BASE=--profile local --profile cloud-chat --profile gpu-vllm --profile workers
 COMPOSE_CLOUD=docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml --env-file .env.cloud
@@ -13,6 +13,7 @@ help:
 	@echo "make up-gpu-vllm    - Start stack (profile: gpu-vllm — vLLM chat, local embeds)"
 	@echo "make up-remote      - Start stack (LM Studio + Ollama on Mac Mini, no local Ollama)"
 	@echo "make up-workers     - Start local stack + ARQ background worker"
+	@echo "make up-monitoring  - Start local stack + Prometheus/Loki/Grafana"
 	@echo "make up-dmr         - Start with Docker Model Runner (macOS only)"
 	@echo "make down           - Stop all services"
 	@echo "make restart        - Restart all services"
@@ -131,6 +132,13 @@ up-workers:
 	@echo ""
 	@echo "Services started (profiles: local + workers)"
 
+up-monitoring:
+	docker compose --profile local --profile monitoring up -d
+	@echo ""
+	@echo "Services started (profiles: local + monitoring)"
+	@echo "Prometheus: http://localhost:9090"
+	@echo "Grafana:    http://localhost:3000  (admin / GRAFANA_ADMIN_PASSWORD)"
+
 down:
 	docker compose $(COMPOSE_PROFILES_BASE) down --remove-orphans
 
@@ -236,7 +244,9 @@ compose-validate:
 	@if [ ! -f .env.remote ]; then cp .env.remote.example .env.remote; fi
 	docker compose --env-file .env.remote -f docker-compose.yml -f docker-compose.remote-inference.yml config >/dev/null
 	docker compose --profile local --profile workers config >/dev/null
-	@echo "docker compose profiles validated (local, cloud-chat, gpu-vllm, remote, workers)"
+	docker compose --profile local --profile monitoring config >/dev/null
+	docker compose --profile cloud-chat --profile workers -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml config >/dev/null
+	@echo "docker compose profiles validated (local, cloud-chat, gpu-vllm, remote, workers, monitoring, caddy)"
 
 compose-smoke:
 	bash scripts/compose_smoke.sh

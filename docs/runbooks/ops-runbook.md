@@ -10,15 +10,15 @@ This runbook covers the local stack, observability endpoints, common verificatio
 - Ollama: `http://localhost:11434`
 - Qdrant: `http://localhost:6333`
 - Redis: `redis://localhost:6379/0`
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3000`
-- Loki: `http://localhost:3100` (logs; query via Grafana Explore or **App Logs** dashboard)
+- Prometheus: `http://localhost:9090` (opt-in `--profile monitoring`)
+- Grafana: `http://localhost:3000` (opt-in `--profile monitoring`)
+- Loki: `http://localhost:3100` (opt-in `--profile monitoring`; query via Grafana Explore or **App Logs** dashboard)
 
 ## Start and Stop
 
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose --profile local up --build
 docker compose down
 docker compose down -v
 ```
@@ -30,6 +30,7 @@ docker compose ps
 curl -I http://localhost:8000/metrics
 curl -I http://localhost:6333/collections
 curl -s http://localhost:11434/api/tags
+# With --profile monitoring:
 curl -s http://localhost:9090/-/healthy
 curl -s http://localhost:3000/api/health
 curl -s http://localhost:3100/ready
@@ -41,7 +42,7 @@ Public URL: **https://app.cura-i.com**
 
 **Full setup guide:** [prod-gcp-vm.md](./prod-gcp-vm.md) (DNS, firewall, OAuth Console, Caddy, verify).
 
-Grafana (HTTPS subdomain): **https://grafana.app.cura-i.com** — see [monitoring-subdomain.md](./monitoring-subdomain.md).
+Grafana is **not** running in production (Compose profile `monitoring` is off). Local dashboards: `make up-monitoring`. To restore HTTPS Grafana, see [monitoring-subdomain.md](./monitoring-subdomain.md).
 
 Deploy path is usually `/opt/personal-ai` with `.env.cloud` on the server.
 
@@ -241,13 +242,14 @@ docker compose logs -f app
 docker compose logs -f ollama
 docker compose logs -f qdrant
 docker compose logs -f redis
+# With --profile monitoring:
 docker compose logs -f prometheus
 docker compose logs -f grafana
 docker compose logs -f loki
 docker compose logs -f promtail
 ```
 
-For searchable logs in Grafana (Loki), open **Explore** → datasource **loki**, or the **App Logs** dashboard. See `monitoring/loki-log-queries.md` for LogQL examples.
+For searchable logs in Grafana (Loki), start with `make up-monitoring`, then open **Explore** → datasource **loki**, or the **App Logs** dashboard. See `monitoring/loki-log-queries.md` for LogQL examples. Production uses `docker compose logs` instead.
 
 ## Models
 
@@ -274,10 +276,14 @@ make model-stress-local                 # optional: remote inference load test
 
 ## Metrics and Dashboards
 
+Opt-in (`make up-monitoring` / `--profile monitoring`):
+
 - Prometheus should scrape `app:8000/metrics` from inside compose.
 - Grafana should use `http://prometheus:9090` as its datasource URL.
 - Loki receives container logs via Promtail (`personal-ai-*` containers only); Grafana uses `http://loki:3100`.
 - The default admin user is `admin`; override the password with `GRAFANA_ADMIN_PASSWORD`.
+
+Without the profile, scrape `GET /metrics` on the app directly.
 
 ## Troubleshooting
 
@@ -294,7 +300,7 @@ make model-stress-local                 # optional: remote inference load test
 ### Live queries return deterministic errors
 
 - Cause: provider failure or unsupported live-intent prompt.
-- Fix: inspect `app` logs and Prometheus adapter metrics, then verify the external provider manually.
+- Fix: inspect `app` logs and `GET /metrics` adapter counters, then verify the external provider manually.
 
 ### RAG answers return no useful sources
 

@@ -2,12 +2,14 @@
 #
 # Required env vars (from .env.cloud):
 #   CADDY_APP_DOMAIN      e.g. app.cura-i.com
-#   CADDY_GRAFANA_DOMAIN  e.g. grafana.app.cura-i.com
 #   CADDY_ADMIN_DOMAIN    e.g. admin.cura-i.com (optional)
 #   CADDY_ACME_EMAIL      Let's Encrypt contact email
 #
 # DNS: A records for domains → VM external IP.
-# Auth: Grafana login (GF_SECURITY_ADMIN_*). Prometheus is NOT exposed publicly.
+#
+# Grafana is not proxied by default (monitoring compose profile is off in prod).
+# To expose it again, add `--profile monitoring` and restore:
+#   {$CADDY_GRAFANA_DOMAIN} { reverse_proxy grafana:3000 }
 
 {
 	email {$CADDY_ACME_EMAIL}
@@ -15,10 +17,6 @@
 
 {$CADDY_APP_DOMAIN} {
 	reverse_proxy app:8000
-}
-
-{$CADDY_GRAFANA_DOMAIN} {
-	reverse_proxy grafana:3000
 }
 
 {$CADDY_ADMIN_DOMAIN} {

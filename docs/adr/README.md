@@ -15,6 +15,7 @@ Each record has four sections: **Status**, **Context**, **Decision**,
 | [0005](0005-per-user-tenant-isolation.md) | Per-user tenant isolation | Accepted |
 | [0006](0006-compose-profiles-for-runtime-switching.md) | Compose profiles for runtime switching | Accepted |
 | [0007](0007-runtime-mcp-connectors.md) | Per-user runtime MCP connectors | Accepted |
+| [0008](0008-opt-in-compose-monitoring.md) | Opt-in Compose monitoring profile | Accepted |
 
 ## Template
 

@@ -1,6 +1,6 @@
 # Production GCP VM (CurieAI)
 
-End-to-end path from a fresh GCP VM to HTTPS CurieAI at `app.cura-i.com` (and optional `admin` / `grafana` subdomains).
+End-to-end path from a fresh GCP VM to HTTPS CurieAI at `app.cura-i.com` (and optional `admin` subdomain).
 
 ## Prerequisites
 
@@ -9,7 +9,6 @@ End-to-end path from a fresh GCP VM to HTTPS CurieAI at `app.cura-i.com` (and op
 - DNS A records:
   - `app.cura-i.com` → VM IP
   - `admin.cura-i.com` → VM IP (optional admin portal)
-  - `grafana.app.cura-i.com` → VM IP (optional monitoring)
 
 ## 1. Firewall
 
@@ -42,9 +41,8 @@ Fill at least:
 | `SETTINGS_SECRET_KEY` | Separate Fernet key for encrypted provider secrets |
 | `ADMIN_EMAILS` | Your email for first admin |
 | `CORS_ORIGINS` | `https://app.cura-i.com,https://admin.cura-i.com` (no wildcard, no raw IP in prod) |
-| `CADDY_APP_DOMAIN` / `CADDY_ADMIN_DOMAIN` / `CADDY_GRAFANA_DOMAIN` | Public hostnames |
+| `CADDY_APP_DOMAIN` / `CADDY_ADMIN_DOMAIN` | Public hostnames |
 | `CADDY_ACME_EMAIL` | Let's Encrypt contact |
-| `GRAFANA_ADMIN_PASSWORD` | **Not** `admin` |
 | `PRIVACY_POLICY_URL` / `TERMS_OF_SERVICE_URL` | Public legal URLs; app fallbacks are `/privacy` and `/terms` |
 
 ## 3. Google OAuth Console checklist
@@ -94,7 +92,7 @@ For independent nightly/manual verification, see [prod-smoke.md](./prod-smoke.md
 
 - [ops-runbook.md](./ops-runbook.md) — day-2 operations
 - [admin-portal.md](../admin-portal.md) — admin host + invites
-- [monitoring-subdomain.md](./monitoring-subdomain.md) — Grafana HTTPS
+- [monitoring-subdomain.md](./monitoring-subdomain.md) — optional Grafana (`--profile monitoring`)
 - [deployment-checklist.md](./deployment-checklist.md) — release checklist
 - [marketing-site.md](../marketing-site.md) — marketing/legal domain split and Squarespace copy
 - [prod-smoke.md](./prod-smoke.md) — scheduled production health/auth/chat checks

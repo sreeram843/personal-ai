@@ -1,5 +1,9 @@
 # Grafana HTTPS subdomain (grafana.app.cura-i.com)
 
+**Production does not run this stack.** Grafana, Loki, Promtail, and Prometheus
+are Compose profile `monitoring` (see [ADR 0008](../adr/0008-opt-in-compose-monitoring.md)).
+`deploy_prod.sh` does not enable it. Use this runbook only if you opt back in.
+
 Expose Grafana over **HTTPS** with **Grafana login** — no SSH tunnel, no public Prometheus.
 
 | URL | Auth | Notes |
@@ -49,11 +53,15 @@ GRAFANA_ADMIN_PASSWORD=your-strong-password-here
 
 ```bash
 cd /opt/personal-ai
-git pull   # or deploy via CI
-chmod +x scripts/setup_grafana_subdomain.sh scripts/deploy_prod.sh
-./scripts/setup_grafana_subdomain.sh   # stops host Caddy if it holds :443
-./scripts/deploy_prod.sh
+# Restore the grafana site in monitoring/caddy/Caddyfile:
+#   {$CADDY_GRAFANA_DOMAIN} { reverse_proxy grafana:3000 }
+# Then start with the monitoring profile in addition to cloud-chat + workers.
+docker compose --profile cloud-chat --profile workers --profile monitoring \
+  -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml \
+  --env-file .env.cloud up -d
 ```
+
+`deploy_prod.sh` does **not** enable `monitoring`. Add the profile there (or run the compose command above) if you want Grafana in production again.
 
 ### 4. Open Grafana
 

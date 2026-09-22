@@ -12,7 +12,10 @@ without changing application code.
 
 Use Docker Compose profiles (`local`, `cloud-chat`, `gpu-vllm`, `remote`,
 `workers`) to select the LLM runtime, keeping core services (Postgres, Redis,
-Qdrant, app, observability) always-on and LLM containers profile-gated.
+Qdrant, app) always-on and LLM containers profile-gated.
+
+Observability containers (Prometheus, Loki, Grafana) were originally always-on;
+that part is superseded by [0008](0008-opt-in-compose-monitoring.md).
 
 ## Consequences
 

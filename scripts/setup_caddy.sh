@@ -29,12 +29,12 @@ set +a
 printf 'Caddy (Docker) setup for CurieAI\n'
 printf '  App domain:     %s\n' "$CADDY_APP_DOMAIN"
 printf '  Admin domain:   %s\n' "${CADDY_ADMIN_DOMAIN:-"(unset)"}"
-printf '  Grafana domain: %s\n' "${CADDY_GRAFANA_DOMAIN:-"(unset)"}"
+printf '  Grafana domain: %s (not proxied unless --profile monitoring + Caddy grafana site)\n' "${CADDY_GRAFANA_DOMAIN:-"(unset)"}"
 printf '  ACME email:     %s\n' "$CADDY_ACME_EMAIL"
 printf '\nDNS: point A records for those hosts to this VM public IP.\n'
 printf 'Firewall: allow tcp/80 and tcp/443 only for the public edge.\n'
 printf '\nStart / refresh HTTPS stack:\n'
-printf '  docker compose --env-file %s -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml up -d\n' "$ENV_FILE"
+printf '  docker compose --profile cloud-chat --profile workers --env-file %s -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml up -d\n' "$ENV_FILE"
 printf '\nOr: ./scripts/deploy_prod.sh\n'
 printf 'Caddyfile: monitoring/caddy/Caddyfile\n'
 printf 'Docs: docs/runbooks/prod-gcp-vm.md\n'
