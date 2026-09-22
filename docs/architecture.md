@@ -475,9 +475,8 @@ Normal chat (`POST /chat/stream`) runs in the API process. Rebuild the app image
 - `GET /metrics` exposes Prometheus text format.
 - `live_adapter_requests_total` — adapter hits labelled by domain, status, source, cache_hit.
 - `live_adapter_latency_seconds` — provider latency histogram.
-- Prometheus scrapes both itself and the app.
-- Grafana is provisioned against the internal `http://prometheus:9090` compose address.
-- Live-data failures: Grafana dashboard **Personal AI — Live Data** (`live-data.json`) charts adapter errors by domain and a 24h top-failing-domains table.
+- Optional Compose profile `monitoring` runs Prometheus, Loki, Promtail, and Grafana (`make up-monitoring`). Production does not enable it ([ADR 0008](adr/0008-opt-in-compose-monitoring.md)).
+- When the profile is on, Prometheus scrapes itself and the app; Grafana uses `http://prometheus:9090`. Dashboard **Personal AI — Live Data** (`live-data.json`) charts adapter errors by domain.
 
 ---
 

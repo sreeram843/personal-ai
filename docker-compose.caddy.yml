@@ -4,15 +4,19 @@
 #   ./scripts/deploy_prod.sh
 #
 # One-time host prep (stop conflicting system Caddy on port 443):
-#   ./scripts/setup_grafana_subdomain.sh
+#   ./scripts/setup_caddy.sh
 #
 # Usage (manual):
-#   docker compose --profile cloud-chat \
+#   docker compose --profile cloud-chat --profile workers \
 #     -f docker-compose.yml -f docker-compose.cloud.yml -f docker-compose.caddy.yml \
 #     --env-file .env.cloud up -d
+#
+# Grafana/Prometheus/Loki are opt-in (`--profile monitoring`). Prod does not
+# start them. To expose Grafana again, add the profile and restore the
+# grafana site block in monitoring/caddy/Caddyfile (see docs/runbooks/monitoring-subdomain.md).
 
 services:
-  # No host ports — Caddy reaches app/grafana on the Docker network.
+  # No host ports — Caddy reaches app on the Docker network.
   app:
     ports: !reset []
 
@@ -37,7 +41,6 @@ services:
       - "443:443/udp"
     environment:
       CADDY_APP_DOMAIN: ${CADDY_APP_DOMAIN:-app.cura-i.com}
-      CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.app.cura-i.com}
       CADDY_ADMIN_DOMAIN: ${CADDY_ADMIN_DOMAIN:-admin.cura-i.com}
       CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-}
     volumes:
@@ -48,7 +51,6 @@ services:
       - personal-ai-network
     depends_on:
       - app
-      - grafana
 
 volumes:
   caddy_data:

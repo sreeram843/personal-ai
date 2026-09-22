@@ -50,7 +50,8 @@ message: live-data short-circuit → `chat` / `rag` / `workflow`.
 
 - Multiple env files per runtime profile: `.env` (local/Ollama), `.env.cloud`,
   `.env.remote`, `.env.gpu-vllm`. Compose profiles: `local` (default), `cloud-chat`,
-  `gpu-vllm`, `remote`, `workers`. `make up` is local only.
+  `gpu-vllm`, `remote`, `workers`, `monitoring`. `make up` is local only.
+  Prod (`deploy_prod.sh`) does not enable `monitoring` (Grafana/Loki/Prometheus).
 - `get_settings()` is cached; after changing env/settings (esp. in tests) call
   `get_settings.cache_clear()`.
 - Playwright visual baselines: CI is Linux — commit both `*-darwin.png` and

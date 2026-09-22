@@ -35,12 +35,12 @@ Open <http://localhost:8000>.
 | App (API + frontend) | http://localhost:8000 |
 | Ollama | http://localhost:11434 |
 | Qdrant | http://localhost:6333 |
-| Prometheus / Grafana | http://localhost:9090 / http://localhost:3000 |
+| Prometheus / Grafana | opt-in: `make up-monitoring` |
 
 Frontend dev server (optional): `cd frontend && npm install && npm run dev` →
 http://localhost:5173.
 
-Other runtime modes (`cloud-chat`, `gpu-vllm`, `remote`, `workers`) are switched via
+Other runtime modes (`cloud-chat`, `gpu-vllm`, `remote`, `workers`, `monitoring`) are switched via
 Compose profiles — see [docs/compose-profiles.md](docs/compose-profiles.md).
 
 ## Routing table

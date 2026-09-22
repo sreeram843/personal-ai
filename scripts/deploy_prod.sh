@@ -99,9 +99,6 @@ printf '\n[%s] Health checks\n' "$(date '+%H:%M:%S')"
 if [ -n "${CADDY_APP_DOMAIN:-}" ]; then
   curl -fsS "https://${CADDY_APP_DOMAIN}/health"
   curl -fsS "https://${CADDY_APP_DOMAIN}/ready"
-  if [ -n "${CADDY_GRAFANA_DOMAIN:-}" ]; then
-    curl -fsS "https://${CADDY_GRAFANA_DOMAIN}/api/health"
-  fi
 else
   curl -fsS http://127.0.0.1:8000/health
   curl -fsS http://127.0.0.1:8000/ready

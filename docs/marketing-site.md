@@ -8,7 +8,7 @@
 | `https://www.cura-i.com` | Redirect to `https://cura-i.com` | Squarespace / DNS |
 | `https://app.cura-i.com` | CurieAI product and public `/privacy` + `/terms` fallbacks | CurieAI deployment |
 | `https://admin.cura-i.com` | Restricted administration portal | CurieAI deployment |
-| `https://grafana.app.cura-i.com` | Restricted operations dashboards | CurieAI deployment |
+| `https://grafana.app.cura-i.com` | Optional ops dashboards (off in prod; `--profile monitoring`) | CurieAI deployment |
 
 The application includes public legal pages at:
 
